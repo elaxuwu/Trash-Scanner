@@ -11,12 +11,12 @@
 
         let stream = null;
         let ctx = null;
+        let video = null;
 
         // 1. Initialize Camera
         async function initCamera() {
-            // Create video element in memory only
-            const video = document.createElement('video');
-            video.id = 'videoFeed'; // Keep ID for compatibility
+            video = document.createElement('video');
+            video.id = 'videoFeed';
             video.autoplay = true;
             video.playsinline = true;
             video.muted = true;
@@ -35,7 +35,6 @@
                 video.classList.remove('hidden');
                 cameraFallback.classList.add('hidden');
 
-                // Wait for video to be ready
                 video.onloadedmetadata = () => {
                     video.play();
                     startCanvasLoop(video);
@@ -79,19 +78,50 @@
         // Handle File Upload
         fileInput.addEventListener('change', (e) => {
             if (e.target.files && e.target.files[0]) {
-                simulateProcessing();
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    showSnappedPhoto(event.target.result);
+                    simulateProcessing();
+                };
+                reader.readAsDataURL(e.target.files[0]);
             }
         });
 
         function captureImage() {
-            // Flash effect
+            // 1. Flash effect
             flashOverlay.classList.add('active');
 
-            // Short timeout for flash
+            // 2. Capture frame from canvas
+            const imageData = videoCanvas.toDataURL('image/jpeg', 0.8);
+
             setTimeout(() => {
                 flashOverlay.classList.remove('active');
+                showSnappedPhoto(imageData);
                 simulateProcessing();
             }, 100);
+        }
+
+        function showSnappedPhoto(imageData) {
+            // Stop camera loop
+            stream = null;
+            ctx = null;
+
+            // Hide live canvas
+            videoCanvas.classList.add('hidden');
+
+            // Create and show static image
+            let snappedPhoto = document.getElementById('snappedPhoto');
+            if (!snappedPhoto) {
+                snappedPhoto = document.createElement('img');
+                snappedPhoto.id = 'snappedPhoto';
+                snappedPhoto.className = 'w-full h-full object-cover absolute inset-0';
+                cameraSection.appendChild(snappedPhoto);
+            }
+            snappedPhoto.src = imageData;
+            snappedPhoto.classList.remove('hidden');
+
+            // Hide scan button
+            scanActionSection.classList.add('hidden');
         }
 
         function simulateProcessing() {
@@ -104,7 +134,7 @@
             setTimeout(() => {
                 loadingOverlay.classList.remove('active');
 
-                // Reset input value so same file can be selected again if needed
+                // Reset input value
                 fileInput.value = "";
 
                 alert("Analysis Complete!\n\nResult: Recyclable Plastic Bottle (Type 1 PET)");

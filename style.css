@@ -120,6 +120,17 @@
             pointer-events: auto;
         }
 
+        /* Snapped photo display */
+        #snappedPhoto {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            object-fit: cover;
+        }
+
         /* Pulsing button animation */
         .pulse-ring {
             position: absolute;
