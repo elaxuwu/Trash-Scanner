@@ -1,0 +1,146 @@
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+        }
+
+        body {
+            background-color: #f3f4f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* Layout Wrapper */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: white;
+            width: 100%;
+        }
+
+        /* Responsive Camera Viewport */
+        .camera-viewport {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background-color: #1f2937;
+            border-radius: 0; /* Clean edge on mobile */
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Tablet & Desktop adjustments */
+        @media (min-width: 768px) {
+            .app-container {
+                max-width: 1200px;
+                margin: 0 auto;
+                flex-direction: row;
+                flex-wrap: wrap;
+                padding: 2rem;
+                gap: 2rem;
+            }
+
+            header {
+                width: 100%;
+                border-bottom: none !important;
+                padding-bottom: 0 !important;
+            }
+
+            main {
+                display: flex;
+                flex-direction: column;
+                gap: 2rem;
+                padding-bottom: 0 !important;
+            }
+
+            .camera-viewport {
+                width: 100%;
+                max-width: 800px;
+                margin: 0 auto;
+                border-radius: 1rem;
+                aspect-ratio: 16 / 9;
+            }
+
+            section:last-child {
+                width: 100%;
+            }
+        }
+
+        /* Fallback UI adjustments */
+        .camera-fallback-content {
+            padding: 2rem;
+        }
+
+        video, canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Flash effect */
+        .flash-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: white;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.1s;
+            z-index: 10;
+        }
+
+        .flash-overlay.active {
+            opacity: 1;
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 20;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Pulsing button animation */
+        .pulse-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: rgba(16, 185, 129, 0.4);
+            animation: pulse-animation 2s infinite;
+            z-index: 0;
+        }
+
+        @keyframes pulse-animation {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        /* Recent items animation */
+        .scan-item {
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+        .scan-item:hover {
+            transform: translateY(-2px);
+            background-color: #f9fafb;
+        }
