@@ -55,7 +55,11 @@ const dom = {
     objectFocusBox: document.getElementById('objectFocusBox'),
     scanModeOptions: document.getElementById('scanModeOptions'),
     achievementList: document.getElementById('achievementList'),
-    achievementBanner: document.getElementById('achievementBanner')
+    achievementBanner: document.getElementById('achievementBanner'),
+    demoModeSwitch: document.getElementById('demoModeSwitch'),
+    demoSelectorPanel: document.getElementById('demoSelectorPanel'),
+    demoScenarioSelect: document.getElementById('demoScenarioSelect'),
+    resultsDemoBadge: document.getElementById('resultsDemoBadge')
 };
 
 const STORAGE_KEYS = {
@@ -65,7 +69,8 @@ const STORAGE_KEYS = {
     providerModels: 'ai_provider_models',
     history: 'recycle_history',
     selectedMode: 'recycle_selected_mode',
-    achievements: 'recycle_achievements'
+    achievements: 'recycle_achievements',
+    demoMode: 'recycle_demo_mode'
 };
 
 const MAX_HISTORY_ITEMS = 12;
@@ -172,7 +177,9 @@ const translations = {
         warrior: 'Eco Warrior',
         master: 'Recycle Master',
         next: 'Next:',
-        xp: 'XP'
+        xp: 'XP',
+        demoModeOn: 'Offline Mode On',
+        demoModeOff: 'Offline Mode Off'
     },
     vi: {
         noScans: 'Chua co lan quet nao gan day.',
@@ -185,7 +192,9 @@ const translations = {
         warrior: 'Chien Binh Xanh',
         master: 'Bac Thay Tai Che',
         next: 'Ke tiep:',
-        xp: 'XP'
+        xp: 'XP',
+        demoModeOn: 'Demo Ngoại tuyến Bật',
+        demoModeOff: 'Demo Ngoại tuyến Tắt'
     }
 };
 
@@ -474,6 +483,276 @@ function buildSystemPrompt(modeName = selectedScanMode) {
         'Expected batch JSON: {"scanType":"batch","objects":[{"id":1,"name":"Plastic Bottle","category":"Plastic","gridCell":3,"recyclable":true,"confidence":0.92,"ecoScore":15,"disposalAction":"Empty, rinse, and recycle if accepted locally.","components":[{"part":"Bottle body","material":"PET plastic","recyclable":true,"instruction":"Empty and rinse."}],"preparationSteps":["Empty remaining liquid.","Rinse before recycling."],"education":"Brief reason.","carbonSavedGrams":20}],"overallSummary":"Short summary.","totalEcoScore":20,"carbonSavedGrams":20}',
         'Expected single JSON: {"scanType":"single","mainItem":"Plastic Water Bottle","category":"Composite Packaging","recyclable":"partial","confidence":0.9,"ecoScore":18,"components":[{"part":"PET bottle body","material":"Plastic PET","recyclable":true,"instruction":"Empty and rinse before recycling."}],"preparationSteps":["Empty remaining liquid.","Rinse the bottle."],"overallSummary":"Short summary.","carbonSavedGrams":15}'
     ].join(' ');
+}
+
+function getMockDemoResponse() {
+    const selector = dom.demoScenarioSelect;
+    const selectedScenario = selector ? selector.value : 'bottle';
+    const isVietnamese = currentLanguage === 'vi';
+
+    const mockData = {
+        bottle: {
+            scanType: 'single',
+            mainItem: isVietnamese ? 'Chai nước nhựa PET' : 'PET Plastic Water Bottle',
+            category: isVietnamese ? 'Rác tái chế' : 'Plastic Packaging',
+            recyclable: 'partial',
+            confidence: 0.96,
+            overallSummary: isVietnamese 
+                ? 'Chai nước nhựa PET có thể tái chế phần thân và nắp, nhưng nhãn giấy ép thì không. Hãy tách các bộ phận trước khi bỏ vào thùng rác.' 
+                : 'PET plastic bottle is partially recyclable. The body and cap are recyclable, but the laminated paper label is not. Separation is recommended.',
+            totalEcoScore: 85,
+            carbonSavedGrams: 42,
+            objects: [
+                {
+                    id: 1,
+                    name: isVietnamese ? 'Thân chai nước nhựa' : 'Plastic Bottle Body',
+                    category: 'Plastic #1 (PET)',
+                    gridCell: 6,
+                    recyclable: true,
+                    confidence: 0.98,
+                    ecoScore: 90,
+                    disposalAction: isVietnamese ? 'Rửa sạch và bỏ vào thùng rác tái chế.' : 'Rinse and discard in the recycling bin.',
+                    components: [
+                        {
+                            part: isVietnamese ? 'Thân Chai' : 'Bottle Body',
+                            material: 'PET Plastic',
+                            recyclable: true,
+                            instruction: isVietnamese ? 'Rửa sạch và ép dẹt' : 'Rinse and flatten to conserve space.'
+                        },
+                        {
+                            part: isVietnamese ? 'Nắp chai nhựa' : 'Bottle Cap',
+                            material: 'HDPE Plastic',
+                            recyclable: true,
+                            instruction: isVietnamese ? 'Vặn chặt sau khi rửa thân chai' : 'Keep screwed on after washing body.'
+                        },
+                        {
+                            part: isVietnamese ? 'Nhãn mác' : 'Laminated Label',
+                            material: 'Laminated Paper/Glue',
+                            recyclable: false,
+                            instruction: isVietnamese ? 'Bóc bỏ và vứt vào thùng rác chung' : 'Peel off and dispose in general waste.'
+                        }
+                    ],
+                    preparationSteps: isVietnamese 
+                        ? ['Bóc nhãn mác nhựa nếu được.', 'Rửa sạch cặn chất lỏng.', 'Ép dẹt chai để tiết kiệm không gian.', 'Bỏ thân chai và nắp vào thùng tái chế.']
+                        : ['Peel off the wrapping label wrapper.', 'Rinse out any remaining liquid.', 'Crush the bottle body to save space.', 'Discard body and cap into plastic recycle bin.'],
+                    education: isVietnamese 
+                        ? 'PET (nhựa số 1) là một trong những loại nhựa được tái chế nhiều nhất thế giới. Tái chế 1 tấn nhựa PET giúp tiết kiệm gần 1.5 tấn CO₂.'
+                        : 'PET plastic (Code 1) is one of the most widely recycled plastics. Recycling one ton of PET saves approximately 1.5 tons of carbon emissions.',
+                    carbonSavedGrams: 45
+                }
+            ]
+        },
+        battery: {
+            scanType: 'single',
+            mainItem: isVietnamese ? 'Pin gia dụng Lithium' : 'Lithium Household Battery',
+            category: isVietnamese ? 'Chất thải độc hại' : 'Hazardous Waste',
+            recyclable: 'special',
+            confidence: 0.94,
+            overallSummary: isVietnamese
+                ? 'Pin chứa kim loại nặng độc hại và không được vứt cùng rác thải sinh hoạt thông thường. Yêu cầu chuyển đến điểm thu gom đặc biệt.'
+                : 'Batteries contain heavy metals and are hazardous. They must not be disposed of in standard municipal trash or recycling bins. Take to a collection center.',
+            totalEcoScore: 10,
+            carbonSavedGrams: 5,
+            objects: [
+                {
+                    id: 1,
+                    name: isVietnamese ? 'Pin khô' : 'Dry Cell Battery',
+                    category: 'Hazardous Waste',
+                    gridCell: 11,
+                    recyclable: 'special',
+                    confidence: 0.95,
+                    ecoScore: 10,
+                    disposalAction: isVietnamese 
+                        ? 'Gửi đến trạm xử lý chất thải nguy hại của địa phương.' 
+                        : 'Deliver to your local municipal hazardous waste collection site.',
+                    components: [
+                        {
+                            part: isVietnamese ? 'Vỏ bọc kim loại' : 'Steel Casing',
+                            material: 'Steel',
+                            recyclable: 'special',
+                            instruction: isVietnamese ? 'Có thể thu hồi tại các lò luyện kim chuyên dụng' : 'Can be recovered at specialized smelters.'
+                        },
+                        {
+                            part: isVietnamese ? 'Chất điện phân' : 'Internal Lithium Cells',
+                            material: 'Lithium / Cobalt / Heavy Metals',
+                            recyclable: 'special',
+                            instruction: isVietnamese ? 'Độc hại cao, cần thu hồi hóa học' : 'Highly toxic. Requires chemical extraction.'
+                        }
+                    ],
+                    preparationSteps: isVietnamese
+                        ? ['Bọc băng dính vào 2 đầu cực để tránh đoản mạch.', 'Đặt trong hộp nhựa khô ráo.', 'Đưa đến điểm thu gom pin cũ gần nhất.', 'Tuyệt đối không đốt pin.']
+                        : ['Tape the battery terminals to prevent short circuits.', 'Place in a secure, non-conductive plastic box.', 'Drop off at designated battery bins at supermarkets or hazardous depots.', 'Never incinerate or throw in fire.'],
+                    education: isVietnamese
+                        ? 'Pin rò rỉ hóa chất có thể ô nhiễm nguồn nước ngầm. Một viên pin cúc áo có thể làm ô nhiễm 600,000 lít nước.'
+                        : 'Leaking batteries contaminate groundwater with cadmium, lead, and mercury. A single button cell can contaminate 600,000 liters of water.',
+                    carbonSavedGrams: 5
+                }
+            ]
+        },
+        bag: {
+            scanType: 'single',
+            mainItem: isVietnamese ? 'Túi Nilon Nhựa Mềm' : 'Soft Plastic Grocery Bag',
+            category: 'Plastic #4 (LDPE)',
+            recyclable: 'special',
+            confidence: 0.88,
+            overallSummary: isVietnamese
+                ? 'Túi nilon nhựa LDPE có thể tái chế nhưng thường làm kẹt máy phân loại ở thùng rác vỉa hè thông thường. Hãy gom và gửi tại siêu thị.'
+                : 'LDPE plastic grocery bags are recyclable but clog standard mechanical conveyor belts. Drop them off at supermarket soft-plastic collection boxes.',
+            totalEcoScore: 40,
+            carbonSavedGrams: 20,
+            objects: [
+                {
+                    id: 1,
+                    name: isVietnamese ? 'Túi nhựa mỏng' : 'Plastic Shopping Bag',
+                    category: 'LDPE Plastic',
+                    gridCell: 7,
+                    recyclable: 'special',
+                    confidence: 0.89,
+                    ecoScore: 40,
+                    disposalAction: isVietnamese 
+                        ? 'Gửi trạm gom màng nhựa mềm ở các siêu thị lớn.' 
+                        : 'Drop off at supermarket soft plastic collection bins.',
+                    components: [
+                        {
+                            part: isVietnamese ? 'Thân túi' : 'Bag Body',
+                            material: 'LDPE Plastic',
+                            recyclable: 'special',
+                            instruction: isVietnamese ? 'Phải khô ráo và sạch thức ăn' : 'Must be completely dry and free of food debris.'
+                        }
+                    ],
+                    preparationSteps: isVietnamese
+                        ? ['Lấy hết hóa đơn, rác bên trong.', 'Làm sạch cặn bám thực phẩm.', 'Nhét nhiều túi nhỏ vào một túi lớn để dễ gom.', 'Gửi trạm thu hồi túi nilon siêu thị.']
+                        : ['Remove all receipts and tags.', 'Ensure the bag is dry and clean.', 'Stuff multiple dry bags into a single bag to compress them.', 'Drop in storefront recycling collection stations.'],
+                    education: isVietnamese
+                        ? 'Túi nilon mất từ 10 đến 100 năm để phân hủy. Thay thế bằng túi vải tái sử dụng giúp bảo vệ sinh vật biển.'
+                        : 'Plastic bags take up to 100 years to break down and often turn into microplastics. Switching to reusable tote bags eliminates this waste stream entirely.',
+                    carbonSavedGrams: 20
+                }
+            ]
+        },
+        mixed: {
+            scanType: 'batch',
+            mainItem: isVietnamese ? 'Hỗn hợp rác thải' : 'Mixed Trash Scene',
+            category: 'Mixed Waste',
+            recyclable: 'partial',
+            confidence: 0.95,
+            overallSummary: isVietnamese
+                ? 'Phát hiện 4 nhóm vật phẩm rác khác nhau. Vui lòng bấm vào từng vật phẩm để xem chi tiết phân loại và cách xử lý.'
+                : 'Detected 4 distinct waste items. Select individual objects from the checklist below to view their specific material breakdowns.',
+            totalEcoScore: 213,
+            carbonSavedGrams: 106,
+            objects: [
+                {
+                    id: 1,
+                    name: isVietnamese ? 'Lon nước ngọt nhôm' : 'Aluminum Soda Can',
+                    category: 'Metal',
+                    gridCell: 2,
+                    recyclable: true,
+                    confidence: 0.98,
+                    ecoScore: 95,
+                    disposalAction: isVietnamese ? 'Rửa sạch và cho vào thùng rác kim loại.' : 'Rinse and place in the metal recycling bin.',
+                    components: [
+                        {
+                            part: isVietnamese ? 'Thân lon nhôm' : 'Can Body',
+                            material: 'Aluminum',
+                            recyclable: true,
+                            instruction: isVietnamese ? 'Nhôm có khả năng tái chế vô hạn' : 'Aluminum is infinitely recyclable.'
+                        }
+                    ],
+                    preparationSteps: isVietnamese
+                        ? ['Đổ sạch nước soda thừa.', 'Rửa qua nước.', 'Ép dẹp lon để tiết kiệm không gian.', 'Bỏ vào thùng kim loại.']
+                        : ['Empty remaining liquid.', 'Rinse out soda residues.', 'Crush the metal body.', 'Dispose in metal collection stream.'],
+                    education: isVietnamese
+                        ? 'Tái chế nhôm tiết kiệm 95% năng lượng so với sản xuất từ quặng thô bô-xít.'
+                        : 'Recycling aluminum saves 95% of the energy required to make brand new cans from raw bauxite ore.',
+                    carbonSavedGrams: 47
+                },
+                {
+                    id: 2,
+                    name: isVietnamese ? 'Hộp Carton các-tông' : 'Cardboard Box Slices',
+                    category: 'Paper',
+                    gridCell: 4,
+                    recyclable: true,
+                    confidence: 0.96,
+                    ecoScore: 88,
+                    disposalAction: isVietnamese ? 'Bóc băng keo, ép dẹt và tái chế giấy.' : 'Remove tape, flatten, and recycle as paper.',
+                    components: [
+                        {
+                            part: isVietnamese ? 'Thân hộp các-tông' : 'Cardboard Frame',
+                            material: 'Paper Fibers',
+                            recyclable: true,
+                            instruction: isVietnamese ? 'Tái chế làm bột giấy thô' : 'Recyclable into packaging and pulp.'
+                        },
+                        {
+                            part: isVietnamese ? 'Băng dính nhựa' : 'Plastic Packaging Tape',
+                            material: 'Polypropylene Adhesive',
+                            recyclable: false,
+                            instruction: isVietnamese ? 'Bóc bỏ và vứt thùng rác chung' : 'Peel off and throw into general waste.'
+                        }
+                    ],
+                    preparationSteps: isVietnamese
+                        ? ['Bóc bỏ băng dính nhựa bám trên hộp.', 'Gỡ phẳng dẹt hộp các-tông.', 'Tránh ẩm ướt và dầu mỡ.', 'Bỏ vào thùng thu gom giấy tái chế.']
+                        : ['Peel off all synthetic adhesive tape.', 'Flatten the cardboard structure.', 'Ensure it is dry and free of greasy residues.', 'Place into blue paper bin.'],
+                    education: isVietnamese
+                        ? '1 tấn giấy các-tông tái chế giúp cứu sống 17 cây xanh và tiết kiệm 26,000 lít nước.'
+                        : 'Recycling one ton of cardboard saves 17 trees, 2 yards of landfill space, and 26,000 liters of water.',
+                    carbonSavedGrams: 44
+                },
+                {
+                    id: 3,
+                    name: isVietnamese ? 'Pin AA cũ' : 'AA Alkaline Battery',
+                    category: 'Hazardous Waste',
+                    gridCell: 9,
+                    recyclable: 'special',
+                    confidence: 0.97,
+                    ecoScore: 10,
+                    disposalAction: isVietnamese ? 'Độc hại. Mang đến điểm thu hồi pin nguy hại.' : 'Toxic. Drop off at battery recycling depots.',
+                    components: [
+                        {
+                            part: isVietnamese ? 'Lõi pin kiềm' : 'Alkaline Cell',
+                            material: 'Zinc/Manganese/Steel',
+                            recyclable: 'special',
+                            instruction: isVietnamese ? 'Ngăn rò rỉ kim loại ra môi trường' : 'Must be collected separately to extract zinc and steel.'
+                        }
+                    ],
+                    preparationSteps: isVietnamese
+                        ? ['Cách điện 2 cực bằng băng keo.', 'Đặt trong bình nhựa an toàn.', 'Đưa đến điểm thu gom đặc biệt.']
+                        : ['Tape battery terminals to insulate.', 'Keep in dry container.', 'Deliver to battery recycling deposit.'],
+                    education: isVietnamese
+                        ? 'Kim loại trong pin có thể ngấm vào đất và tích tụ sinh học trong chuỗi thức ăn.'
+                        : 'Alkaline batteries release corrosive chemicals that leak into landfills. Specialized recycling recovers valuable zinc and steel.',
+                    carbonSavedGrams: 5
+                },
+                {
+                    id: 4,
+                    name: isVietnamese ? 'Hộp cơm xốp' : 'Soiled Styrofoam Box',
+                    category: 'Polystyrene (PS #6)',
+                    gridCell: 15,
+                    recyclable: false,
+                    confidence: 0.90,
+                    ecoScore: 20,
+                    disposalAction: isVietnamese ? 'Vứt vào thùng rác chung (không thể tái chế).' : 'Dispose in general garbage bin (non-recyclable).',
+                    components: [
+                        {
+                            part: isVietnamese ? 'Khay đựng xốp' : 'Styrofoam Shell',
+                            material: 'Polystyrene Foam',
+                            recyclable: false,
+                            instruction: isVietnamese ? 'Khó phân hủy và nhiễm bẩn thức ăn' : 'Too light and greasy to recycle economically.'
+                        }
+                    ],
+                    preparationSteps: isVietnamese
+                        ? ['Gạt bỏ thức ăn thừa.', 'Vứt vào túi rác sinh hoạt thông thường.']
+                        : ['Scrape off food particles.', 'Discard into general waste trash bag.'],
+                    education: isVietnamese
+                        ? 'Nhựa xốp PS chứa các phân tử styrene có hại. Chúng vỡ thành hạt vi nhựa cực kỳ bền vũ trong môi trường.'
+                        : 'Styrofoam is 95% air and easily breaks into microplastic fragments that persist in soil and water forever.',
+                    carbonSavedGrams: 10
+                }
+            ]
+        }
+    };
+
+    return normalizeResult(mockData[selectedScenario] || mockData.bottle);
 }
 
 async function analyzeWasteImage({ provider, apiKey, model, imageBase64, mode }) {
@@ -808,18 +1087,21 @@ function resetToCamera() {
 }
 
 async function analyzeWithAI() {
+    const isDemoMode = localStorage.getItem(STORAGE_KEYS.demoMode) === 'true';
     const config = getProviderConfig();
     const providerMeta = aiProviders[config.provider];
 
-    if (!config.apiKey) {
-        openSettings();
-        showToast(`Add a ${providerMeta.label} API key before scanning.`);
-        return;
-    }
-    if (!config.model) {
-        openSettings();
-        showToast(`Choose a vision-capable ${providerMeta.label} model before scanning.`);
-        return;
+    if (!isDemoMode) {
+        if (!config.apiKey) {
+            openSettings();
+            showToast(`Add a ${providerMeta.label} API key before scanning.`);
+            return;
+        }
+        if (!config.model) {
+            openSettings();
+            showToast(`Choose a vision-capable ${providerMeta.label} model before scanning.`);
+            return;
+        }
     }
     if (!capturedImageData) {
         showToast('Capture or upload an image first.');
@@ -831,19 +1113,26 @@ async function analyzeWithAI() {
     dom.loadingOverlay.classList.add('active');
 
     try {
-        const normalized = await analyzeWasteImage({
-            provider: config.provider,
-            apiKey: config.apiKey,
-            model: config.model,
-            imageBase64: capturedImageData,
-            mode: selectedScanMode
-        });
+        let normalized;
+        if (isDemoMode) {
+            // Simulate AI latency for demo realism
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            normalized = getMockDemoResponse();
+        } else {
+            normalized = await analyzeWasteImage({
+                provider: config.provider,
+                apiKey: config.apiKey,
+                model: config.model,
+                imageBase64: capturedImageData,
+                mode: selectedScanMode
+            });
+        }
         dom.loadingOverlay.classList.remove('active');
         showResults(normalized, true);
     } catch (error) {
         console.error('AI analysis error:', error);
         dom.loadingOverlay.classList.remove('active');
-        showToast(`${providerMeta.label} analysis failed: ${error.message}`);
+        showToast(isDemoMode ? `Demo analysis failed: ${error.message}` : `${providerMeta.label} analysis failed: ${error.message}`);
     }
 }
 
@@ -860,6 +1149,13 @@ function showResults(result, shouldSave) {
         hour: '2-digit',
         minute: '2-digit'
     });
+
+    const isDemoMode = result.isDemo ?? (localStorage.getItem(STORAGE_KEYS.demoMode) === 'true');
+    if (isDemoMode) {
+        dom.resultsDemoBadge.classList.remove('hidden');
+    } else {
+        dom.resultsDemoBadge.classList.add('hidden');
+    }
 
     if (result.scanType === 'unclear') {
         renderUnclearResult(result);
@@ -1096,13 +1392,21 @@ function renderSustainability(result) {
 function addToHistory(result) {
     const history = getHistory();
     const config = getProviderConfig();
+    const isDemoMode = localStorage.getItem(STORAGE_KEYS.demoMode) === 'true';
+    
+    // Tag the result with demo state if saved under demo mode
+    if (isDemoMode) {
+        result.isDemo = true;
+    }
+
     const entry = {
         id: Date.now(),
         timestamp: new Date().toISOString(),
         mode: selectedScanMode,
-        provider: config.provider,
-        model: config.model,
+        provider: isDemoMode ? 'demo' : config.provider,
+        model: isDemoMode ? 'offline-mock' : config.model,
         imageData: capturedHistoryImageData || capturedImageData,
+        isDemo: isDemoMode,
         result
     };
     history.unshift(entry);
@@ -1164,6 +1468,8 @@ function loadHistory() {
 
         historyItem.addEventListener('click', () => {
             capturedImageData = entry.imageData;
+            // Transfer stored demo state to preview results badge
+            result.isDemo = entry.isDemo;
             showResults(result, false);
         });
         recentList.appendChild(historyItem);
@@ -1344,6 +1650,13 @@ function openSettings() {
     document.body.classList.add('overflow-hidden');
     selectedProvider = localStorage.getItem(STORAGE_KEYS.provider) || selectedProvider || 'openai';
     dom.providerSelect.value = aiProviders[selectedProvider] ? selectedProvider : 'openai';
+    
+    const isDemoMode = localStorage.getItem(STORAGE_KEYS.demoMode) === 'true';
+    if (dom.demoModeSwitch) {
+        dom.demoModeSwitch.checked = isDemoMode;
+    }
+    updateDemoModeUI(isDemoMode);
+
     loadProviderSettings(dom.providerSelect.value);
 }
 
@@ -1478,13 +1791,39 @@ function bindEvents() {
     dom.saveToHistoryBtn.addEventListener('click', () => {
         if (lastAnalysisResult) addToHistory(lastAnalysisResult);
     });
+    if (dom.demoModeSwitch) {
+        dom.demoModeSwitch.addEventListener('change', event => {
+            const isActive = event.target.checked;
+            localStorage.setItem(STORAGE_KEYS.demoMode, String(isActive));
+            updateDemoModeUI(isActive);
+            showToast(isActive ? 'Offline Demo Mode activated.' : 'Offline Demo Mode deactivated.');
+        });
+    }
     window.addEventListener('beforeunload', stopCamera);
+}
+
+function updateDemoModeUI(isActive) {
+    if (dom.demoSelectorPanel) {
+        dom.demoSelectorPanel.classList.toggle('hidden', !isActive);
+    }
+    
+    const demoLabel = document.getElementById('currentDemoLabel');
+    if (demoLabel) {
+        demoLabel.textContent = isActive ? t('demoModeOn') : t('demoModeOff');
+    }
 }
 
 function initializeApp() {
     setupPwa();
     bindEvents();
     setScanMode(selectedScanMode);
+    
+    const isDemoMode = localStorage.getItem(STORAGE_KEYS.demoMode) === 'true';
+    if (dom.demoModeSwitch) {
+        dom.demoModeSwitch.checked = isDemoMode;
+    }
+    updateDemoModeUI(isDemoMode);
+
     initCamera();
     loadHistory();
     renderChart();

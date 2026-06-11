@@ -64,6 +64,26 @@
                 <!-- Canvas for displaying camera feed -->
                 <canvas id="videoCanvas" class="w-full h-full object-cover"></canvas>
 
+                <!-- Demo Mode Floating Indicator & Selector -->
+                <div id="demoSelectorPanel" class="hidden absolute top-4 left-4 right-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur border border-amber-200 dark:border-amber-900/50 rounded-xl p-3 shadow-lg z-20 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 text-left">
+                        <span class="flex h-2 w-2 relative">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                        </span>
+                        <div>
+                            <span class="text-xs font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider block">Offline Demo Active</span>
+                            <span class="text-[10px] text-slate-500 dark:text-slate-400">Select what the camera is seeing:</span>
+                        </div>
+                    </div>
+                    <select id="demoScenarioSelect" class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none text-slate-850 dark:text-white max-w-xs focus:border-amber-500">
+                        <option value="bottle">Scenario 1: Plastic Bottle (Composite)</option>
+                        <option value="battery">Scenario 2: Household Battery (Hazardous)</option>
+                        <option value="bag">Scenario 3: Single-Use Plastic Bag (Soft Plastic)</option>
+                        <option value="mixed">Scenario 4: Mixed Waste (Can, Box, Battery, Styrofoam)</option>
+                    </select>
+                </div>
+
                 <!-- Flash Overlay -->
                 <div id="flashOverlay" class="flash-overlay"></div>
 
@@ -236,6 +256,21 @@
             </div>
             
             <div class="p-6 space-y-6">
+                <!-- Demo Mode Toggle -->
+                <div class="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50 rounded-xl">
+                    <div class="flex items-center gap-2 text-left">
+                        <i class="ph ph-plugs-connected text-xl text-amber-600 dark:text-amber-400"></i>
+                        <div>
+                            <span class="block text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Offline Demo Mode</span>
+                            <span class="text-[10px] text-amber-600 dark:text-amber-400">Simulate scans without internet or API keys</span>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="demoModeSwitch" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                </div>
+
                 <div>
                     <label for="providerSelect" class="block text-sm font-medium text-gray-700 mb-2">AI Provider</label>
                     <select id="providerSelect" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-white">
@@ -288,9 +323,15 @@
         <!-- Results Header -->
         <header class="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-10">
             <div class="max-w-2xl mx-auto px-6 py-4 flex justify-between items-center">
-                <div class="flex items-center gap-2">
-                    <i class="ph ph-leaf text-xl text-emerald-500"></i>
-                    <h2 class="font-bold text-lg text-gray-800">Analysis Results</h2>
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <i class="ph ph-leaf text-xl text-emerald-500"></i>
+                        <h2 class="font-bold text-lg text-gray-800">Analysis Results</h2>
+                    </div>
+                    <div id="resultsDemoBadge" class="hidden flex items-center gap-1.5 px-2.5 py-0.5 bg-amber-500/10 text-amber-650 dark:text-amber-400 border border-amber-500/30 rounded-full text-[10px] font-black">
+                        <i class="ph ph-shield-warning animate-pulse"></i>
+                        <span>Offline Demo Data</span>
+                    </div>
                 </div>
                 <button id="closeResultsBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-600 font-medium text-sm transition-colors">
                     Done
