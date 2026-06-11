@@ -96,8 +96,10 @@
                 itemName: 'Item Name',
                 analytics: 'Analytics',
                 totalRecycled: 'Total Items Recycled',
-                recycled: 'Recycled',
-                notRecycled: 'Not Recycled'
+                recyclable: 'Recyclable',
+                nonRecyclable: 'Non-Recyclable',
+                currentXp: 'XP',
+                nextLevel: 'Next:'
             },
             vi: {
                 appTitle: 'RecycleCheck AI',
@@ -129,8 +131,10 @@
                 itemName: 'Tên Sản Phẩm',
                 analytics: 'Phân Tích',
                 totalRecycled: 'Tổng Vật Phẩm Tái Chế',
-                recycled: 'Tái Chế Được',
-                notRecycled: 'Không Tái Chế'
+                recyclable: 'Có Thể Tái Chế',
+                nonRecyclable: 'Không Thể Tái Chế',
+                currentXp: 'XP',
+                nextLevel: 'Kế tiếp:'
             }
         };
 
@@ -315,6 +319,18 @@
             resultImage.src = item.imageData;
             resultItemName.textContent = item.itemName;
 
+            // Set timestamp
+            const date = new Date(item.timestamp);
+            const formattedDate = date.toLocaleDateString(currentLanguage === 'vi' ? 'vi-VN' : 'en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('resultTimestamp').textContent = formattedDate;
+
             // Status Card
             if (item.isRecyclable) {
                 statusCard.className = 'rounded-2xl p-6 shadow-sm bg-gradient-to-r from-emerald-500 to-emerald-600';
@@ -397,26 +413,48 @@
             let level = {
                 icon: '🌱',
                 name: t('levelSprout'),
-                color: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                threshold: 0,
+                nextThreshold: 100
             };
 
             if (totalScore >= 500) {
                 level = {
                     icon: '👑',
                     name: t('levelMaster'),
-                    color: 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                    color: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+                    threshold: 500,
+                    nextThreshold: null
                 };
             } else if (totalScore >= 100) {
                 level = {
                     icon: '🛡️',
                     name: t('levelWarrior'),
-                    color: 'bg-blue-50 text-blue-700 border-blue-200'
+                    color: 'bg-blue-50 text-blue-700 border-blue-200',
+                    threshold: 100,
+                    nextThreshold: 500
                 };
             }
 
             levelIcon.textContent = level.icon;
             levelText.textContent = level.name;
-            userLevelBadge.className = `hidden md:flex items-center gap-1.5 px-3 py-1.5 ${level.color} rounded-full text-xs font-bold border`;
+            userLevelBadge.className = `flex items-center gap-1 px-2 py-0.5 ${level.color} rounded-full text-xs font-bold border`;
+
+            // Update XP text
+            const currentXpEl = document.getElementById('currentXp');
+            const nextLevelXpEl = document.getElementById('nextLevelXp');
+            const xpBar = document.getElementById('xpProgressBar');
+
+            currentXpEl.textContent = `${totalScore} ${t('currentXp')}`;
+
+            if (level.nextThreshold) {
+                nextLevelXpEl.textContent = `${t('nextLevel')} ${level.nextThreshold} XP`;
+                const progress = ((totalScore - level.threshold) / (level.nextThreshold - level.threshold)) * 100;
+                xpBar.style.width = `${Math.min(progress, 100)}%`;
+            } else {
+                nextLevelXpEl.textContent = `${t('levelMaster')}!`;
+                xpBar.style.width = '100%';
+            }
         }
 
         function triggerConfetti() {
@@ -466,7 +504,7 @@
             if (totalItems === 0) return;
 
             const data = {
-                labels: [t('recycled'), t('notRecycled')],
+                labels: [t('recyclable'), t('nonRecyclable')],
                 datasets: [{
                     data: [recyclableCount, notRecyclableCount],
                     backgroundColor: [
@@ -788,6 +826,18 @@
             // Set image and item name
             resultImage.src = capturedImageData;
             resultItemName.textContent = data.scanned_item || 'Unknown Item';
+
+            // Set timestamp (new scan)
+            const now = new Date();
+            const formattedDate = now.toLocaleDateString(currentLanguage === 'vi' ? 'vi-VN' : 'en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('resultTimestamp').textContent = formattedDate;
 
             // Status Card
             if (data.is_recyclable) {
