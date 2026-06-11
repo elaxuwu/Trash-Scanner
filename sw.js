@@ -1,6 +1,6 @@
 // Service Worker for RecycleCheck PWA
 
-const CACHE_NAME = 'recyclecheck-v3';
+const CACHE_NAME = 'recyclecheck-v5';
 const urlsToCache = [
   './',
   './index.html',

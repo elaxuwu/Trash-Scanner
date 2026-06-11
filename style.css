@@ -275,6 +275,22 @@
             filter: grayscale(0.6);
         }
 
+        .impact-stat-card {
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .impact-stat-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        }
+
+        .category-breakdown-row {
+            padding: 0.75rem;
+            border: 1px solid #f3f4f6;
+            border-radius: 0.85rem;
+            background: #ffffff;
+        }
+
         /* Recent items animation */
         .scan-item {
             transition: transform 0.2s ease, background-color 0.2s ease;

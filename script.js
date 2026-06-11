@@ -19,6 +19,7 @@ const dom = {
     cancelSettingsBtn: document.getElementById('cancelSettingsBtn'),
     saveSettingsBtn: document.getElementById('saveSettingsBtn'),
     providerSelect: document.getElementById('providerSelect'),
+    modelSelect: document.getElementById('modelSelect'),
     modelInput: document.getElementById('modelInput'),
     modelHint: document.getElementById('modelHint'),
     apiKeyLabel: document.getElementById('apiKeyLabel'),
@@ -36,6 +37,10 @@ const dom = {
     statusCard: document.getElementById('statusCard'),
     statusIcon: document.getElementById('statusIcon'),
     statusMessage: document.getElementById('statusMessage'),
+    disposalPlanSection: document.getElementById('disposalPlanSection'),
+    disposalPlanItemName: document.getElementById('disposalPlanItemName'),
+    disposalPlanGrid: document.getElementById('disposalPlanGrid'),
+    disposalPlanSteps: document.getElementById('disposalPlanSteps'),
     detectedObjectsSection: document.getElementById('detectedObjectsSection'),
     detectedObjectsList: document.getElementById('detectedObjectsList'),
     compositionBars: document.getElementById('compositionBars'),
@@ -50,12 +55,32 @@ const dom = {
     langToggleBtn: document.getElementById('langToggleBtn'),
     statsChartCanvas: document.getElementById('statsChart'),
     totalRecycledCount: document.getElementById('totalRecycledCount'),
+    impactStatsGrid: document.getElementById('impactStatsGrid'),
+    impactSummaryText: document.getElementById('impactSummaryText'),
+    categoryBreakdownList: document.getElementById('categoryBreakdownList'),
     clearHistoryBtn: document.getElementById('clearHistoryBtn'),
     gridOverlay: document.getElementById('gridOverlay'),
     objectFocusBox: document.getElementById('objectFocusBox'),
     scanModeOptions: document.getElementById('scanModeOptions'),
     achievementList: document.getElementById('achievementList'),
-    achievementBanner: document.getElementById('achievementBanner')
+    achievementBanner: document.getElementById('achievementBanner'),
+    startQuizBtn: document.getElementById('startQuizBtn'),
+    quizIntroText: document.getElementById('quizIntroText'),
+    quizStatsInline: document.getElementById('quizStatsInline'),
+    quizModal: document.getElementById('quizModal'),
+    closeQuizBtn: document.getElementById('closeQuizBtn'),
+    quizModalTitle: document.getElementById('quizModalTitle'),
+    quizProgressText: document.getElementById('quizProgressText'),
+    quizEmptyState: document.getElementById('quizEmptyState'),
+    quizQuestionCard: document.getElementById('quizQuestionCard'),
+    quizTypeBadge: document.getElementById('quizTypeBadge'),
+    quizSourceBadge: document.getElementById('quizSourceBadge'),
+    quizQuestionText: document.getElementById('quizQuestionText'),
+    quizOptionsList: document.getElementById('quizOptionsList'),
+    quizFeedback: document.getElementById('quizFeedback'),
+    quizScoreText: document.getElementById('quizScoreText'),
+    nextQuizBtn: document.getElementById('nextQuizBtn'),
+    quizSummaryCard: document.getElementById('quizSummaryCard')
 };
 
 const STORAGE_KEYS = {
@@ -63,14 +88,26 @@ const STORAGE_KEYS = {
     provider: 'ai_provider',
     providerKeys: 'ai_provider_api_keys',
     providerModels: 'ai_provider_models',
+    providerRecommendedModels: 'ai_provider_recommended_models',
+    providerCustomModels: 'ai_provider_custom_models',
     history: 'recycle_history',
     selectedMode: 'recycle_selected_mode',
-    achievements: 'recycle_achievements'
+    achievements: 'recycle_achievements',
+    quizStats: 'eco_quiz_stats'
 };
 
 const MAX_HISTORY_ITEMS = 12;
 const MAX_IMAGE_DIMENSION = 1280;
 const HISTORY_IMAGE_DIMENSION = 420;
+
+const co2EstimatesKg = {
+    plastic: 0.08,
+    metal: 0.20,
+    paper: 0.05,
+    glass: 0.10,
+    special: 0.15,
+    other: 0.03
+};
 
 const scanModes = {
     quick: {
@@ -104,24 +141,27 @@ const aiProviders = {
     openai: {
         label: 'OpenAI',
         defaultModel: 'gpt-4o-mini',
+        recommendedModels: ['gpt-4o-mini', 'gpt-4.1-mini'],
         keyPlaceholder: 'sk-...',
-        modelHint: 'Use a vision-capable OpenAI model, such as gpt-4o-mini.',
+        modelHint: 'Recommended OpenAI options here are vision-capable models.',
         keyHelpText: 'Get your API key from OpenAI Platform.',
         keyHelpUrl: 'https://platform.openai.com/api-keys'
     },
     openrouter: {
         label: 'OpenRouter',
         defaultModel: 'openai/gpt-4o-mini',
+        recommendedModels: ['openai/gpt-4o-mini', 'google/gemini-2.0-flash-001'],
         keyPlaceholder: 'sk-or-...',
-        modelHint: 'Use a vision-capable OpenRouter model, such as openai/gpt-4o-mini or google/gemini-2.0-flash-001.',
+        modelHint: 'Recommended OpenRouter options here are vision-capable models.',
         keyHelpText: 'Get your API key from OpenRouter.',
         keyHelpUrl: 'https://openrouter.ai/keys'
     },
     gemini: {
         label: 'Gemini',
         defaultModel: 'gemini-1.5-flash',
+        recommendedModels: ['gemini-1.5-flash'],
         keyPlaceholder: 'AI...',
-        modelHint: 'Use a vision-capable Gemini model, such as gemini-1.5-flash or gemini-1.5-pro.',
+        modelHint: 'Recommended Gemini options here are vision-capable models.',
         keyHelpText: 'Get your API key from Google AI Studio.',
         keyHelpUrl: 'https://aistudio.google.com/app/apikey'
     }
@@ -157,6 +197,30 @@ const achievements = [
         title: 'Batch Master',
         description: 'Complete 5 batch scans',
         unlocked: metrics => metrics.batchScans >= 5
+    },
+    {
+        id: 'eco_learner',
+        title: 'Eco Learner',
+        description: 'Complete 1 quiz',
+        unlocked: metrics => metrics.quizStats.quizzesCompleted >= 1
+    },
+    {
+        id: 'sorting_student',
+        title: 'Sorting Student',
+        description: 'Answer 10 quiz questions correctly',
+        unlocked: metrics => metrics.quizStats.correctAnswers >= 10
+    },
+    {
+        id: 'perfect_sorter',
+        title: 'Perfect Sorter',
+        description: 'Get 5/5 in one quiz',
+        unlocked: metrics => metrics.quizStats.perfectQuizzes >= 1
+    },
+    {
+        id: 'waste_wisdom',
+        title: 'Waste Wisdom',
+        description: 'Reach 50 quiz XP',
+        unlocked: metrics => metrics.quizStats.quizXp >= 50
     }
 ];
 
@@ -200,6 +264,7 @@ let currentLanguage = 'en';
 let selectedScanMode = localStorage.getItem(STORAGE_KEYS.selectedMode) || 'quick';
 let selectedProvider = localStorage.getItem(STORAGE_KEYS.provider) || 'openai';
 let statsChartInstance = null;
+let currentQuiz = null;
 
 function t(key) {
     return translations[currentLanguage][key] || translations.en[key] || key;
@@ -242,16 +307,18 @@ function asArray(value) {
 }
 
 function getStatusLabel(status) {
-    if (status === true || status === 'true' || status === 'recyclable') return t('recyclable');
-    if (status === 'partial') return t('partial');
-    if (status === 'special') return t('special');
+    const normalized = typeof status === 'string' ? status.toLowerCase() : status;
+    if (normalized === true || normalized === 'true' || normalized === 'recyclable') return t('recyclable');
+    if (normalized === 'partial') return t('partial');
+    if (normalized === 'special' || normalized === 'special handling') return t('special');
     return t('nonRecyclable');
 }
 
 function getStatusKind(status) {
-    if (status === true || status === 'true' || status === 'recyclable') return 'recyclable';
-    if (status === 'partial') return 'partial';
-    if (status === 'special') return 'special';
+    const normalized = typeof status === 'string' ? status.toLowerCase() : status;
+    if (normalized === true || normalized === 'true' || normalized === 'recyclable') return 'recyclable';
+    if (normalized === 'partial') return 'partial';
+    if (normalized === 'special' || normalized === 'special handling') return 'special';
     return 'nonRecyclable';
 }
 
@@ -292,6 +359,46 @@ function saveUnlockedAchievementIds(ids) {
     localStorage.setItem(STORAGE_KEYS.achievements, JSON.stringify(ids));
 }
 
+function getQuizStats() {
+    const defaults = {
+        quizXp: 0,
+        quizzesCompleted: 0,
+        correctAnswers: 0,
+        incorrectAnswers: 0,
+        perfectQuizzes: 0,
+        completedQuizIds: [],
+        completedQuestionIds: []
+    };
+
+    try {
+        const data = localStorage.getItem(STORAGE_KEYS.quizStats);
+        const parsed = data ? JSON.parse(data) : {};
+        return {
+            quizXp: clampNumber(parsed.quizXp, 0, 100000, defaults.quizXp),
+            quizzesCompleted: clampNumber(parsed.quizzesCompleted, 0, 100000, defaults.quizzesCompleted),
+            correctAnswers: clampNumber(parsed.correctAnswers, 0, 100000, defaults.correctAnswers),
+            incorrectAnswers: clampNumber(parsed.incorrectAnswers, 0, 100000, defaults.incorrectAnswers),
+            perfectQuizzes: clampNumber(parsed.perfectQuizzes, 0, 100000, defaults.perfectQuizzes),
+            completedQuizIds: asArray(parsed.completedQuizIds).map(id => safeString(id)).filter(Boolean).slice(-50),
+            completedQuestionIds: asArray(parsed.completedQuestionIds).map(id => safeString(id)).filter(Boolean).slice(-250)
+        };
+    } catch {
+        return defaults;
+    }
+}
+
+function saveQuizStats(stats) {
+    localStorage.setItem(STORAGE_KEYS.quizStats, JSON.stringify({
+        quizXp: clampNumber(stats.quizXp, 0, 100000, 0),
+        quizzesCompleted: clampNumber(stats.quizzesCompleted, 0, 100000, 0),
+        correctAnswers: clampNumber(stats.correctAnswers, 0, 100000, 0),
+        incorrectAnswers: clampNumber(stats.incorrectAnswers, 0, 100000, 0),
+        perfectQuizzes: clampNumber(stats.perfectQuizzes, 0, 100000, 0),
+        completedQuizIds: asArray(stats.completedQuizIds).slice(-50),
+        completedQuestionIds: asArray(stats.completedQuestionIds).slice(-250)
+    }));
+}
+
 function readJsonMap(key) {
     try {
         const data = localStorage.getItem(key);
@@ -310,27 +417,41 @@ function getProviderConfig(provider = selectedProvider) {
     const normalizedProvider = aiProviders[provider] ? provider : 'openai';
     const keys = readJsonMap(STORAGE_KEYS.providerKeys);
     const models = readJsonMap(STORAGE_KEYS.providerModels);
+    const recommendedModels = readJsonMap(STORAGE_KEYS.providerRecommendedModels);
+    const customModels = readJsonMap(STORAGE_KEYS.providerCustomModels);
     const legacyOpenAiKey = localStorage.getItem(STORAGE_KEYS.apiKey) || '';
+    const selectedRecommendedModel = recommendedModels[normalizedProvider] || models[normalizedProvider] || aiProviders[normalizedProvider].defaultModel;
+    const customModel = safeString(customModels[normalizedProvider] || '');
 
     return {
         provider: normalizedProvider,
         apiKey: keys[normalizedProvider] || (normalizedProvider === 'openai' ? legacyOpenAiKey : ''),
-        model: models[normalizedProvider] || aiProviders[normalizedProvider].defaultModel
+        selectedModel: selectedRecommendedModel,
+        customModel,
+        model: customModel || selectedRecommendedModel
     };
 }
 
-function saveProviderConfig({ provider, apiKey, model }) {
+function saveProviderConfig({ provider, apiKey, selectedModel, customModel }) {
     const normalizedProvider = aiProviders[provider] ? provider : 'openai';
     const keys = readJsonMap(STORAGE_KEYS.providerKeys);
     const models = readJsonMap(STORAGE_KEYS.providerModels);
+    const recommendedModels = readJsonMap(STORAGE_KEYS.providerRecommendedModels);
+    const customModels = readJsonMap(STORAGE_KEYS.providerCustomModels);
+    const recommendedModel = selectedModel || aiProviders[normalizedProvider].defaultModel;
+    const custom = safeString(customModel || '');
 
     keys[normalizedProvider] = apiKey;
-    models[normalizedProvider] = model || aiProviders[normalizedProvider].defaultModel;
+    models[normalizedProvider] = custom || recommendedModel;
+    recommendedModels[normalizedProvider] = recommendedModel;
+    customModels[normalizedProvider] = custom;
     selectedProvider = normalizedProvider;
 
     localStorage.setItem(STORAGE_KEYS.provider, normalizedProvider);
     saveJsonMap(STORAGE_KEYS.providerKeys, keys);
     saveJsonMap(STORAGE_KEYS.providerModels, models);
+    saveJsonMap(STORAGE_KEYS.providerRecommendedModels, recommendedModels);
+    saveJsonMap(STORAGE_KEYS.providerCustomModels, customModels);
 
     if (normalizedProvider === 'openai') {
         localStorage.setItem(STORAGE_KEYS.apiKey, apiKey);
@@ -366,8 +487,50 @@ function normalizeComponent(component) {
     return {
         part: safeString(component.part || component.material || 'Material'),
         material: safeString(component.material || component.part || 'Unknown material'),
-        recyclable: component.recyclable === true || component.recyclable === 'true' || component.recyclable === 'partial' ? component.recyclable : false,
+        recyclable: component.recyclable === true || component.recyclable === 'true' || component.recyclable === 'partial' || component.recyclable === 'special' || component.recyclable === 'special handling' ? component.recyclable : false,
         instruction: safeString(component.instruction || component.disposalAction || 'Check local recycling rules.')
+    };
+}
+
+function normalizeDisposalPlan(rawPlan, fallback = {}) {
+    const plan = rawPlan && typeof rawPlan === 'object' ? rawPlan : {};
+    const fallbackSteps = asArray(fallback.steps).map(step => safeString(step)).filter(Boolean);
+    const steps = asArray(plan.steps)
+        .map(step => safeString(step))
+        .filter(Boolean)
+        .slice(0, 8);
+
+    return {
+        immediateAction: safeString(plan.immediateAction || fallback.immediateAction || 'Check the item condition and follow local disposal rules.'),
+        steps: (steps.length > 0 ? steps : fallbackSteps).slice(0, 8),
+        handlingType: safeString(plan.handlingType || fallback.handlingType || 'Check local rules'),
+        safetyWarning: safeString(plan.safetyWarning || fallback.safetyWarning || 'No special safety warning identified.'),
+        mistakeToAvoid: safeString(plan.mistakeToAvoid || fallback.mistakeToAvoid || 'Do not guess if local recycling rules are unclear.')
+    };
+}
+
+function getFallbackDisposalPlan(rawObject, recyclable, components, preparationSteps) {
+    const kind = getStatusKind(recyclable);
+    const hasSpecialComponent = components.some(component => getStatusKind(component.recyclable) === 'special' || /battery|e-waste|sharp|hazard/i.test(`${component.part} ${component.material}`));
+    const handlingType = hasSpecialComponent
+        ? 'Special handling'
+        : kind === 'recyclable'
+            ? 'Recycling bin'
+            : kind === 'partial'
+                ? 'Separate parts before disposal'
+                : 'General waste or local drop-off';
+    const immediateAction = rawObject.disposalAction || rawObject.status_message || (kind === 'recyclable'
+        ? 'Empty, clean, and place the item in the appropriate recycling stream.'
+        : kind === 'partial'
+            ? 'Separate recyclable parts from non-recyclable parts before disposal.'
+            : 'Keep this out of standard recycling unless local rules say otherwise.');
+
+    return {
+        immediateAction,
+        steps: preparationSteps.length > 0 ? preparationSteps : [immediateAction],
+        handlingType,
+        safetyWarning: hasSpecialComponent ? 'Handle carefully and use a dedicated collection point if available.' : '',
+        mistakeToAvoid: kind === 'recyclable' ? 'Do not recycle it while dirty or full.' : 'Do not place it in recycling just because part of it looks recyclable.'
     };
 }
 
@@ -375,6 +538,12 @@ function normalizeObject(rawObject, index) {
     const recyclable = rawObject.recyclable ?? rawObject.is_recyclable ?? false;
     const components = asArray(rawObject.components || rawObject.composition).map(normalizeComponent);
     const fallbackSteps = rawObject.disposalAction ? [rawObject.disposalAction] : [];
+    const preparationSteps = asArray(rawObject.preparationSteps || rawObject.action_steps).map(step => safeString(step)).filter(Boolean).slice(0, 8).concat(fallbackSteps).slice(0, 8);
+    const disposalAction = safeString(rawObject.disposalAction || rawObject.status_message || 'Check local disposal rules.');
+    const disposalPlan = normalizeDisposalPlan(
+        rawObject.disposalPlan,
+        getFallbackDisposalPlan({ ...rawObject, disposalAction }, recyclable, components, preparationSteps)
+    );
 
     return {
         id: clampNumber(rawObject.id, 1, 99, index + 1),
@@ -384,9 +553,10 @@ function normalizeObject(rawObject, index) {
         recyclable,
         confidence: clampNumber(rawObject.confidence, 0, 1, 0.7),
         ecoScore: clampNumber(rawObject.ecoScore ?? rawObject.eco_score, 0, 100, 0),
-        disposalAction: safeString(rawObject.disposalAction || rawObject.status_message || 'Check local disposal rules.'),
+        disposalAction,
+        disposalPlan,
         components,
-        preparationSteps: asArray(rawObject.preparationSteps || rawObject.action_steps).map(step => safeString(step)).filter(Boolean).slice(0, 8).concat(fallbackSteps).slice(0, 8),
+        preparationSteps,
         education: safeString(rawObject.education || rawObject.explanation || ''),
         carbonSavedGrams: clampNumber(rawObject.carbonSavedGrams ?? rawObject.carbon_saved_grams, 0, 5000, 0)
     };
@@ -425,6 +595,7 @@ function normalizeResult(rawResult) {
             confidence: rawResult.confidence,
             ecoScore: rawResult.ecoScore ?? rawResult.eco_score,
             disposalAction: rawResult.disposalAction || rawResult.status_message,
+            disposalPlan: rawResult.disposalPlan,
             components: rawResult.components || rawResult.composition,
             preparationSteps: rawResult.preparationSteps || rawResult.action_steps,
             education: rawResult.education || rawResult.explanation,
@@ -469,10 +640,12 @@ function buildSystemPrompt(modeName = selectedScanMode) {
         'If uncertain, use confidence below 0.7 and suggest retaking the photo.',
         'If the image has multiple objects, use scanType = "batch".',
         'If an item has multiple materials, include components.',
+        'Every single result or detected object must include disposalPlan with immediateAction, steps, handlingType, safetyWarning, and mistakeToAvoid.',
+        'Use handlingType values such as Recycling bin, General waste, Compost, Special handling, E-waste drop-off, Battery drop-off, or Separate parts before disposal.',
         'If the image is unclear, return exactly: {"scanType":"unclear","message":"The image is unclear. Please retake the photo with better lighting and place the object in the center.","confidence":0.3}',
         `Selected mode: ${mode.label}. ${mode.instruction}`,
-        'Expected batch JSON: {"scanType":"batch","objects":[{"id":1,"name":"Plastic Bottle","category":"Plastic","gridCell":3,"recyclable":true,"confidence":0.92,"ecoScore":15,"disposalAction":"Empty, rinse, and recycle if accepted locally.","components":[{"part":"Bottle body","material":"PET plastic","recyclable":true,"instruction":"Empty and rinse."}],"preparationSteps":["Empty remaining liquid.","Rinse before recycling."],"education":"Brief reason.","carbonSavedGrams":20}],"overallSummary":"Short summary.","totalEcoScore":20,"carbonSavedGrams":20}',
-        'Expected single JSON: {"scanType":"single","mainItem":"Plastic Water Bottle","category":"Composite Packaging","recyclable":"partial","confidence":0.9,"ecoScore":18,"components":[{"part":"PET bottle body","material":"Plastic PET","recyclable":true,"instruction":"Empty and rinse before recycling."}],"preparationSteps":["Empty remaining liquid.","Rinse the bottle."],"overallSummary":"Short summary.","carbonSavedGrams":15}'
+        'Expected batch JSON: {"scanType":"batch","objects":[{"id":1,"name":"Plastic Bottle","category":"Plastic","gridCell":3,"recyclable":true,"confidence":0.92,"ecoScore":15,"disposalAction":"Empty, rinse, and recycle if accepted locally.","disposalPlan":{"immediateAction":"Empty and rinse the bottle now.","steps":["Empty remaining liquid.","Rinse before recycling.","Put in recycling if accepted locally."],"handlingType":"Recycling bin","safetyWarning":"No special safety risk if empty.","mistakeToAvoid":"Do not recycle it with liquid inside."},"components":[{"part":"Bottle body","material":"PET plastic","recyclable":true,"instruction":"Empty and rinse."}],"preparationSteps":["Empty remaining liquid.","Rinse before recycling."],"education":"Brief reason.","carbonSavedGrams":20}],"overallSummary":"Short summary.","totalEcoScore":20,"carbonSavedGrams":20}',
+        'Expected single JSON: {"scanType":"single","mainItem":"Plastic Water Bottle","category":"Composite Packaging","recyclable":"partial","confidence":0.9,"ecoScore":18,"disposalPlan":{"immediateAction":"Separate the label if possible, then empty and rinse the bottle.","steps":["Empty remaining liquid.","Rinse the bottle.","Remove label if possible.","Recycle accepted plastic parts."],"handlingType":"Separate parts before disposal","safetyWarning":"Avoid sharp edges if the bottle is damaged.","mistakeToAvoid":"Do not recycle contaminated or full packaging."},"components":[{"part":"PET bottle body","material":"Plastic PET","recyclable":true,"instruction":"Empty and rinse before recycling."}],"preparationSteps":["Empty remaining liquid.","Rinse the bottle."],"overallSummary":"Short summary.","carbonSavedGrams":15}'
     ].join(' ');
 }
 
@@ -873,6 +1046,7 @@ function showResults(result, shouldSave) {
         renderDetectedObjects(result);
         renderGrid(result);
         renderObjectDetails(result.objects[0]);
+        renderDisposalPlan(result.objects[0]);
         renderSustainability(result);
     }
 
@@ -896,6 +1070,7 @@ function renderUnclearResult(result) {
     dom.gridOverlay.classList.add('hidden');
     dom.objectFocusBox.classList.add('hidden');
     renderObjectDetails(null);
+    renderDisposalPlan(null);
     dom.ecoScoreValue.textContent = '0';
     dom.carbonSavedValue.textContent = '0g';
 }
@@ -982,6 +1157,7 @@ function renderDetectedObjects(result) {
         card.style.animationDelay = `${index * 70}ms`;
         card.addEventListener('click', () => {
             renderObjectDetails(item);
+            renderDisposalPlan(item);
             focusGridCell(item.gridCell);
         });
         dom.detectedObjectsList.appendChild(card);
@@ -1088,6 +1264,83 @@ function renderObjectDetails(item) {
     }
 }
 
+function renderDisposalPlan(item) {
+    dom.disposalPlanGrid.replaceChildren();
+    dom.disposalPlanSteps.replaceChildren();
+
+    if (!item) {
+        dom.disposalPlanItemName.textContent = 'No disposal plan available for this scan.';
+        dom.disposalPlanGrid.appendChild(createElement('p', {
+            className: 'text-sm text-gray-400',
+            text: 'Try retaking the photo with better lighting or selecting a detected item.'
+        }));
+        return;
+    }
+
+    const plan = normalizeDisposalPlan(item.disposalPlan, getFallbackDisposalPlan(item, item.recyclable, item.components || [], item.preparationSteps || []));
+    dom.disposalPlanItemName.textContent = item.name;
+
+    const cards = [
+        {
+            iconClass: 'ph ph-lightning text-emerald-600 text-xl',
+            label: 'Immediate action',
+            value: plan.immediateAction,
+            color: 'bg-emerald-50 border-emerald-100'
+        },
+        {
+            iconClass: 'ph ph-trash text-blue-600 text-xl',
+            label: 'Correct bin / handling',
+            value: plan.handlingType,
+            color: 'bg-blue-50 border-blue-100'
+        },
+        {
+            iconClass: 'ph ph-warning text-amber-600 text-xl',
+            label: 'Safety warning',
+            value: plan.safetyWarning || 'No special safety warning identified.',
+            color: 'bg-amber-50 border-amber-100'
+        },
+        {
+            iconClass: 'ph ph-prohibit text-orange-600 text-xl',
+            label: 'Common mistake to avoid',
+            value: plan.mistakeToAvoid,
+            color: 'bg-orange-50 border-orange-100'
+        }
+    ];
+
+    cards.forEach(card => {
+        dom.disposalPlanGrid.appendChild(createElement('div', {
+            className: `border rounded-xl p-4 ${card.color}`
+        }, [
+            createElement('div', { className: 'flex items-center gap-2 mb-2' }, [
+                icon(card.iconClass),
+                createElement('p', { className: 'text-xs font-bold uppercase text-gray-500', text: card.label })
+            ]),
+            createElement('p', { className: 'text-sm font-semibold text-gray-800', text: card.value })
+        ]));
+    });
+
+    const steps = plan.steps.length > 0 ? plan.steps : item.preparationSteps || [];
+    if (steps.length === 0) {
+        dom.disposalPlanSteps.appendChild(createElement('p', {
+            className: 'text-sm text-gray-400',
+            text: 'No step-by-step plan was returned. Follow the immediate action and local disposal rules.'
+        }));
+        return;
+    }
+
+    steps.forEach((step, index) => {
+        dom.disposalPlanSteps.appendChild(createElement('div', {
+            className: 'flex items-start gap-3 p-3 bg-gray-50 rounded-xl'
+        }, [
+            createElement('div', {
+                className: 'w-6 h-6 flex-shrink-0 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xs font-bold',
+                text: index + 1
+            }),
+            createElement('p', { className: 'text-sm text-gray-700', text: step })
+        ]));
+    });
+}
+
 function renderSustainability(result) {
     dom.ecoScoreValue.textContent = result.totalEcoScore;
     dom.carbonSavedValue.textContent = `${result.carbonSavedGrams || Math.round(result.totalEcoScore * 0.5)}g`;
@@ -1180,14 +1433,499 @@ function clearHistory() {
     renderAchievements();
 }
 
+function getObjectsFromHistoryEntry(entry) {
+    if (entry?.result?.objects && Array.isArray(entry.result.objects)) {
+        return entry.result.objects.map((item, index) => normalizeObject(item, index));
+    }
+
+    if (entry?.itemName || entry?.isRecyclable !== undefined) {
+        return [normalizeObject({
+            id: entry.id || 1,
+            name: entry.itemName,
+            recyclable: entry.isRecyclable,
+            ecoScore: entry.ecoScore,
+            disposalAction: entry.statusMessage,
+            components: entry.composition,
+            preparationSteps: entry.actionSteps
+        }, 0)];
+    }
+
+    return [];
+}
+
+function classifyWasteCategory(item) {
+    const text = `${item?.name || ''} ${item?.category || ''}`.toLowerCase();
+    if (/battery|e-waste|ewaste|electronic|phone|cable|charger|lithium/.test(text)) return 'special';
+    if (/plastic|pet|hdpe|soft plastic|bag|bottle/.test(text)) return 'plastic';
+    if (/metal|aluminum|aluminium|steel|tin|can/.test(text)) return 'metal';
+    if (/paper|cardboard|carton|newspaper/.test(text)) return 'paper';
+    if (/glass|jar/.test(text)) return 'glass';
+    return 'other';
+}
+
+function isSpecialHandlingItem(item) {
+    const planText = `${item?.disposalPlan?.handlingType || ''} ${item?.disposalPlan?.safetyWarning || ''}`.toLowerCase();
+    return classifyWasteCategory(item) === 'special' || getStatusKind(item?.recyclable) === 'special' || /special|battery|e-waste|hazard|drop-off|dropoff/.test(planText);
+}
+
+function estimateCo2Kg(item) {
+    const category = classifyWasteCategory(item);
+    if (category === 'special' && isSpecialHandlingItem(item)) return co2EstimatesKg.special;
+    if (getStatusKind(item?.recyclable) !== 'recyclable') return 0;
+    return co2EstimatesKg[category] || co2EstimatesKg.other;
+}
+
 function getMetrics() {
     const history = getHistory();
-    const objects = history.flatMap(entry => entry.result?.objects || []);
-    const totalEcoScore = history.reduce((total, entry) => total + (entry.result?.totalEcoScore || 0), 0);
-    const plasticCount = objects.filter(item => `${item.name} ${item.category}`.toLowerCase().includes('plastic')).length;
-    const batteryCount = objects.filter(item => `${item.name} ${item.category}`.toLowerCase().includes('battery')).length;
+    const quizStats = getQuizStats();
+    const objects = history.flatMap(getObjectsFromHistoryEntry);
+    const totalEcoScore = clampNumber(
+        history.reduce((total, entry) => {
+            const resultScore = entry?.result?.totalEcoScore;
+            if (Number.isFinite(Number(resultScore))) return total + Number(resultScore);
+            return total + getObjectsFromHistoryEntry(entry).reduce((itemTotal, item) => itemTotal + item.ecoScore, 0);
+        }, 0),
+        0,
+        100000,
+        0
+    );
+
+    const categoryCounts = {};
+    const categoryCo2 = {};
+    let recyclableCount = 0;
+    let nonRecyclableCount = 0;
+    let specialHandlingCount = 0;
+    let estimatedCo2Kg = 0;
+
+    objects.forEach(item => {
+        const category = classifyWasteCategory(item);
+        const status = getStatusKind(item.recyclable);
+        const special = isSpecialHandlingItem(item);
+        categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+
+        if (special) specialHandlingCount += 1;
+        if (status === 'recyclable') recyclableCount += 1;
+        if (status === 'nonRecyclable') nonRecyclableCount += 1;
+
+        const co2 = estimateCo2Kg(item);
+        estimatedCo2Kg += co2;
+        categoryCo2[category] = (categoryCo2[category] || 0) + co2;
+    });
+
+    const mostCommonCategory = Object.entries(categoryCounts)
+        .sort((a, b) => b[1] - a[1])[0]?.[0] || 'none';
+    const plasticCount = objects.filter(item => classifyWasteCategory(item) === 'plastic').length;
+    const batteryCount = objects.filter(item => classifyWasteCategory(item) === 'special').length;
     const batchScans = history.filter(entry => entry.result?.scanType === 'batch').length;
-    return { history, objects, totalEcoScore, plasticCount, batteryCount, batchScans };
+
+    return {
+        history,
+        objects,
+        totalScans: history.length,
+        totalEcoScore,
+        recyclableCount,
+        nonRecyclableCount,
+        specialHandlingCount,
+        mostCommonCategory,
+        estimatedCo2Kg: clampNumber(estimatedCo2Kg, 0, 10000, 0),
+        categoryCounts,
+        categoryCo2,
+        quizStats,
+        quizAccuracy: quizStats.correctAnswers + quizStats.incorrectAnswers > 0
+            ? Math.round((quizStats.correctAnswers / (quizStats.correctAnswers + quizStats.incorrectAnswers)) * 100)
+            : 0,
+        plasticCount,
+        batteryCount,
+        batchScans
+    };
+}
+
+function getSampleQuizItems() {
+    return [
+        normalizeObject({
+            id: 1,
+            name: 'Plastic water bottle',
+            category: 'Plastic',
+            recyclable: 'partial',
+            ecoScore: 12,
+            disposalAction: 'Empty, rinse, and recycle accepted plastic parts.',
+            disposalPlan: {
+                immediateAction: 'Empty and rinse the bottle.',
+                steps: ['Empty remaining liquid.', 'Rinse the bottle.', 'Remove label if possible.', 'Recycle accepted plastic parts.'],
+                handlingType: 'Separate parts before disposal',
+                safetyWarning: 'No special safety warning if empty.',
+                mistakeToAvoid: 'Do not recycle it while full or dirty.'
+            },
+            components: [
+                { part: 'Bottle body', material: 'PET plastic', recyclable: true, instruction: 'Empty and rinse.' },
+                { part: 'Glossy label', material: 'Coated paper or film', recyclable: false, instruction: 'Remove if possible.' }
+            ],
+            preparationSteps: ['Empty remaining liquid.', 'Rinse the bottle.', 'Remove label if possible.']
+        }, 0),
+        normalizeObject({
+            id: 2,
+            name: 'Used battery',
+            category: 'Battery',
+            recyclable: 'special',
+            ecoScore: 18,
+            disposalAction: 'Take to a battery drop-off point.',
+            disposalPlan: {
+                immediateAction: 'Keep it out of normal trash and recycling.',
+                steps: ['Tape exposed terminals if needed.', 'Store in a dry place.', 'Bring to a battery drop-off point.'],
+                handlingType: 'Battery drop-off',
+                safetyWarning: 'Damaged batteries can leak or overheat.',
+                mistakeToAvoid: 'Do not put batteries in regular recycling bins.'
+            },
+            components: [{ part: 'Battery cell', material: 'Mixed metals and chemicals', recyclable: 'special', instruction: 'Use special collection.' }],
+            preparationSteps: ['Store safely.', 'Bring to a collection point.']
+        }, 1),
+        normalizeObject({
+            id: 3,
+            name: 'Greasy pizza box',
+            category: 'Paper',
+            recyclable: false,
+            ecoScore: 4,
+            disposalAction: 'Compost clean paper if allowed; discard greasy sections.',
+            disposalPlan: {
+                immediateAction: 'Separate clean cardboard from greasy parts.',
+                steps: ['Tear off clean lid if recyclable.', 'Discard or compost greasy sections if accepted locally.'],
+                handlingType: 'Separate parts before disposal',
+                safetyWarning: 'No special safety warning.',
+                mistakeToAvoid: 'Do not recycle greasy cardboard with clean paper.'
+            },
+            components: [{ part: 'Greasy cardboard', material: 'Contaminated paper', recyclable: false, instruction: 'Keep out of clean recycling.' }],
+            preparationSteps: ['Separate clean and greasy parts.']
+        }, 2)
+    ];
+}
+
+function shuffleArray(items) {
+    const copy = [...items];
+    for (let index = copy.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+    }
+    return copy;
+}
+
+function uniqueOptions(correctAnswer, distractors) {
+    const options = [correctAnswer, ...distractors]
+        .map(option => safeString(option))
+        .filter(Boolean);
+    const unique = [...new Set(options)];
+    while (unique.length < 3) {
+        unique.push(['Check local rules', 'Put it in regular recycling', 'Throw it away without sorting'][unique.length - 1] || 'Ask a local waste guide');
+    }
+    return shuffleArray(unique.slice(0, 3));
+}
+
+function getQuestionPriority(item, index, categoryCounts) {
+    let score = 100 - index;
+    if (isSpecialHandlingItem(item)) score += 500;
+    if (getStatusKind(item.recyclable) === 'nonRecyclable') score += 350;
+    if ((item.components || []).length > 1 || getStatusKind(item.recyclable) === 'partial') score += 250;
+    score += (categoryCounts[classifyWasteCategory(item)] || 0) * 20;
+    return score;
+}
+
+function buildQuestionFromItem(item, type, sourceLabel, index) {
+    const plan = normalizeDisposalPlan(item.disposalPlan, getFallbackDisposalPlan(item, item.recyclable, item.components || [], item.preparationSteps || []));
+    const components = asArray(item.components);
+    const preparationSteps = asArray(item.preparationSteps).filter(Boolean);
+    const idBase = `${sourceLabel}-${item.name}-${type}-${index}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 90);
+
+    if (type === 'disposal') {
+        return {
+            id: `${idBase}-disposal`,
+            typeLabel: 'Disposal action',
+            prompt: `What should you do first with ${item.name}?`,
+            options: uniqueOptions(plan.immediateAction, ['Put it in any recycling bin', 'Ignore labels and throw it away']),
+            correctAnswer: plan.immediateAction,
+            explanation: `Best immediate action: ${plan.immediateAction}`,
+            source: sourceLabel
+        };
+    }
+
+    if (type === 'preparation') {
+        const correct = plan.steps[0] || preparationSteps[0] || item.disposalAction;
+        return {
+            id: `${idBase}-prep`,
+            typeLabel: 'Preparation step',
+            prompt: `Which preparation step is recommended for ${item.name}?`,
+            options: uniqueOptions(correct, ['Recycle it without cleaning', 'Mix it with food waste']),
+            correctAnswer: correct,
+            explanation: `Preparation matters because contamination can make recycling fail.`,
+            source: sourceLabel
+        };
+    }
+
+    if (type === 'recyclable') {
+        const correct = getStatusLabel(item.recyclable);
+        return {
+            id: `${idBase}-status`,
+            typeLabel: 'Recyclable status',
+            prompt: `How should ${item.name} be classified?`,
+            options: uniqueOptions(correct, [t('recyclable'), t('nonRecyclable'), t('special')].filter(label => label !== correct)),
+            correctAnswer: correct,
+            explanation: `${item.name} is marked as ${correct}.`,
+            source: sourceLabel
+        };
+    }
+
+    if (type === 'special') {
+        return {
+            id: `${idBase}-special`,
+            typeLabel: 'Special handling',
+            prompt: `What handling type is best for ${item.name}?`,
+            options: uniqueOptions(plan.handlingType, ['Regular recycling bin', 'Regular trash with no sorting']),
+            correctAnswer: plan.handlingType,
+            explanation: plan.safetyWarning || `Recommended handling: ${plan.handlingType}.`,
+            source: sourceLabel
+        };
+    }
+
+    const component = components[0] || normalizeComponent({ part: item.name, material: item.category, recyclable: item.recyclable, instruction: item.disposalAction });
+    return {
+        id: `${idBase}-material`,
+        typeLabel: 'Material breakdown',
+        prompt: `Which material or part needs attention in ${item.name}?`,
+        options: uniqueOptions(`${component.part}: ${component.material}`, [`${item.name}: no parts to separate`, 'All parts are always recycled together']),
+        correctAnswer: `${component.part}: ${component.material}`,
+        explanation: component.instruction,
+        source: sourceLabel
+    };
+}
+
+function buildQuizQuestions() {
+    const metrics = getMetrics();
+    const hasHistory = metrics.objects.length > 0;
+    const objects = hasHistory ? metrics.objects : getSampleQuizItems();
+    const sourceLabel = hasHistory ? 'Personalized' : 'Sample Quiz';
+    const categoryCounts = metrics.categoryCounts || {};
+    const prioritized = objects
+        .map((item, index) => ({ item, priority: getQuestionPriority(item, index, categoryCounts) }))
+        .sort((a, b) => b.priority - a.priority)
+        .map(entry => entry.item);
+    const questionTypes = ['special', 'disposal', 'preparation', 'recyclable', 'material'];
+    const questions = [];
+
+    prioritized.forEach((item, index) => {
+        questionTypes.forEach(type => {
+            if (questions.length >= 12) return;
+            if (type === 'special' && !isSpecialHandlingItem(item)) return;
+            if (type === 'material' && asArray(item.components).length === 0 && index > 1) return;
+            questions.push(buildQuestionFromItem(item, type, sourceLabel, index));
+        });
+    });
+
+    let fallbackIndex = 0;
+    while (questions.length < 5) {
+        const item = objects[fallbackIndex % objects.length];
+        const type = questionTypes[fallbackIndex % questionTypes.length];
+        questions.push(buildQuestionFromItem(item, type, sourceLabel, fallbackIndex + 20));
+        fallbackIndex += 1;
+    }
+
+    const selectedQuestions = questions.slice(0, 5);
+    return {
+        id: `${sourceLabel.toLowerCase().replace(/\s+/g, '-')}-${selectedQuestions.map(question => question.id).join('|')}`.slice(0, 160),
+        isSample: !hasHistory,
+        questions: selectedQuestions
+    };
+}
+
+function renderQuizInlineStats() {
+    if (!dom.quizStatsInline) return;
+    const stats = getQuizStats();
+    const totalAnswers = stats.correctAnswers + stats.incorrectAnswers;
+    const accuracy = totalAnswers > 0 ? Math.round((stats.correctAnswers / totalAnswers) * 100) : 0;
+    const cards = [
+        { label: 'Quiz XP', value: stats.quizXp },
+        { label: 'Completed', value: stats.quizzesCompleted },
+        { label: 'Correct', value: stats.correctAnswers },
+        { label: 'Accuracy', value: `${accuracy}%` }
+    ];
+
+    dom.quizStatsInline.replaceChildren();
+    cards.forEach(card => {
+        dom.quizStatsInline.appendChild(createElement('div', {
+            className: 'bg-gray-50 border border-gray-100 rounded-xl p-3'
+        }, [
+            createElement('p', { className: 'text-xs text-gray-500 font-bold uppercase', text: card.label }),
+            createElement('p', { className: 'text-lg font-bold text-gray-800', text: card.value })
+        ]));
+    });
+}
+
+function startEcoQuiz() {
+    const quiz = buildQuizQuestions();
+    const stats = getQuizStats();
+    currentQuiz = {
+        id: quiz.id,
+        isSample: quiz.isSample,
+        questions: quiz.questions,
+        currentIndex: 0,
+        selectedAnswers: [],
+        score: 0,
+        completedAlready: stats.completedQuizIds.includes(quiz.id)
+    };
+
+    dom.quizModalTitle.textContent = quiz.isSample ? 'Eco Quiz - Sample Quiz' : 'Eco Quiz';
+    dom.quizSourceBadge.textContent = quiz.isSample ? 'Sample Quiz' : 'Personalized';
+    dom.quizEmptyState.classList.toggle('hidden', !quiz.isSample);
+    dom.quizQuestionCard.classList.remove('hidden');
+    dom.quizSummaryCard.classList.add('hidden');
+    dom.quizModal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+
+    if (quiz.isSample) {
+        dom.quizEmptyState.replaceChildren(
+            icon('ph ph-info text-emerald-500 text-4xl'),
+            createElement('h3', { className: 'text-lg font-bold text-gray-800 mt-3', text: 'Sample Quiz' }),
+            createElement('p', {
+                className: 'text-sm text-gray-500 mt-2',
+                text: 'Your personalized quiz becomes richer after you complete scans. This sample uses common waste items.'
+            })
+        );
+    }
+
+    renderQuizQuestion();
+}
+
+function closeEcoQuiz() {
+    dom.quizModal.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+}
+
+function renderQuizQuestion() {
+    if (!currentQuiz) return;
+    const question = currentQuiz.questions[currentQuiz.currentIndex];
+    const answered = currentQuiz.selectedAnswers[currentQuiz.currentIndex];
+
+    dom.quizProgressText.textContent = `Question ${currentQuiz.currentIndex + 1} of ${currentQuiz.questions.length}`;
+    dom.quizTypeBadge.textContent = question.typeLabel;
+    dom.quizSourceBadge.textContent = currentQuiz.isSample ? 'Sample Quiz' : 'Personalized';
+    dom.quizQuestionText.textContent = question.prompt;
+    dom.quizOptionsList.replaceChildren();
+    dom.quizFeedback.classList.add('hidden');
+    dom.nextQuizBtn.disabled = !answered;
+    dom.nextQuizBtn.textContent = currentQuiz.currentIndex === currentQuiz.questions.length - 1 ? 'Finish' : 'Next';
+    dom.quizScoreText.textContent = `Score: ${currentQuiz.score}/${currentQuiz.selectedAnswers.length}`;
+
+    question.options.forEach(option => {
+        const isSelected = answered?.selectedAnswer === option;
+        const isCorrect = option === question.correctAnswer;
+        const button = createElement('button', {
+            type: 'button',
+            className: 'quiz-option w-full text-left p-4 border border-gray-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50 transition-colors',
+            text: option
+        });
+
+        if (answered) {
+            button.disabled = true;
+            if (isCorrect) {
+                button.className = 'quiz-option w-full text-left p-4 border border-emerald-300 bg-emerald-50 text-emerald-800 rounded-xl font-semibold';
+            } else if (isSelected) {
+                button.className = 'quiz-option w-full text-left p-4 border border-orange-300 bg-orange-50 text-orange-800 rounded-xl font-semibold';
+            }
+        } else {
+            button.addEventListener('click', () => selectQuizAnswer(option));
+        }
+
+        dom.quizOptionsList.appendChild(button);
+    });
+
+    if (answered) {
+        renderQuizFeedback(question, answered.isCorrect);
+    }
+}
+
+function selectQuizAnswer(selectedAnswer) {
+    if (!currentQuiz) return;
+    const question = currentQuiz.questions[currentQuiz.currentIndex];
+    const isCorrect = selectedAnswer === question.correctAnswer;
+    currentQuiz.selectedAnswers[currentQuiz.currentIndex] = {
+        questionId: question.id,
+        selectedAnswer,
+        correctAnswer: question.correctAnswer,
+        isCorrect
+    };
+    if (isCorrect) currentQuiz.score += 1;
+    renderQuizQuestion();
+}
+
+function renderQuizFeedback(question, isCorrect) {
+    dom.quizFeedback.classList.remove('hidden');
+    dom.quizFeedback.className = isCorrect
+        ? 'mt-5 p-4 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200'
+        : 'mt-5 p-4 rounded-xl bg-orange-50 text-orange-800 border border-orange-200';
+    dom.quizFeedback.replaceChildren(
+        createElement('p', {
+            className: 'font-bold mb-1',
+            text: isCorrect ? 'Correct' : 'Not quite'
+        }),
+        createElement('p', {
+            className: 'text-sm',
+            text: question.explanation
+        })
+    );
+    dom.nextQuizBtn.disabled = false;
+    dom.quizScoreText.textContent = `Score: ${currentQuiz.score}/${currentQuiz.selectedAnswers.length}`;
+}
+
+function goToNextQuizQuestion() {
+    if (!currentQuiz) return;
+    if (currentQuiz.currentIndex < currentQuiz.questions.length - 1) {
+        currentQuiz.currentIndex += 1;
+        renderQuizQuestion();
+        return;
+    }
+    finishEcoQuiz();
+}
+
+function finishEcoQuiz() {
+    if (!currentQuiz) return;
+    const stats = getQuizStats();
+    const alreadyCompleted = stats.completedQuizIds.includes(currentQuiz.id);
+    const incorrect = currentQuiz.questions.length - currentQuiz.score;
+    let awardedXp = 0;
+
+    if (!alreadyCompleted) {
+        awardedXp = currentQuiz.score * 5 + 2 + (currentQuiz.score === currentQuiz.questions.length ? 5 : 0);
+        stats.quizXp += awardedXp;
+        stats.quizzesCompleted += 1;
+        stats.correctAnswers += currentQuiz.score;
+        stats.incorrectAnswers += incorrect;
+        if (currentQuiz.score === currentQuiz.questions.length) stats.perfectQuizzes += 1;
+        stats.completedQuizIds.push(currentQuiz.id);
+        stats.completedQuestionIds.push(...currentQuiz.questions.map(question => question.id));
+        saveQuizStats(stats);
+    }
+
+    dom.quizQuestionCard.classList.add('hidden');
+    dom.quizEmptyState.classList.add('hidden');
+    dom.quizSummaryCard.classList.remove('hidden');
+    dom.quizSummaryCard.replaceChildren(
+        icon(currentQuiz.score === currentQuiz.questions.length ? 'ph ph-trophy text-amber-500 text-5xl' : 'ph ph-graduation-cap text-emerald-500 text-5xl'),
+        createElement('h3', { className: 'text-2xl font-bold text-gray-800 mt-3', text: `Score: ${currentQuiz.score}/${currentQuiz.questions.length}` }),
+        createElement('p', {
+            className: 'text-sm text-gray-500 mt-2',
+            text: alreadyCompleted
+                ? 'You already completed this quiz, so XP was not awarded again.'
+                : `XP earned: ${awardedXp} (+5 per correct, +2 completion${currentQuiz.score === currentQuiz.questions.length ? ', +5 perfect bonus' : ''}).`
+        }),
+        createElement('button', {
+            type: 'button',
+            className: 'mt-5 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold transition-colors',
+            text: 'Done'
+        })
+    );
+    dom.quizSummaryCard.querySelector('button').addEventListener('click', closeEcoQuiz);
+
+    renderQuizInlineStats();
+    renderChart();
+    updateUserLevel();
+    checkAchievements();
 }
 
 function updateUserLevel() {
@@ -1295,18 +2033,101 @@ function triggerConfetti() {
     }, 220);
 }
 
+function formatCategoryName(category) {
+    const labels = {
+        plastic: 'Plastic',
+        metal: 'Metal',
+        paper: 'Paper',
+        glass: 'Glass',
+        special: 'E-waste / Battery',
+        other: 'Other',
+        none: 'None yet'
+    };
+    return labels[category] || 'Other';
+}
+
+function formatCo2(valueKg) {
+    const clamped = clampNumber(valueKg, 0, 10000, 0);
+    if (clamped < 1) return `${Math.round(clamped * 1000)}g`;
+    return `${clamped.toFixed(2)}kg`;
+}
+
+function renderImpactDashboard(metrics = getMetrics()) {
+    if (!dom.impactStatsGrid || !dom.categoryBreakdownList) return;
+
+    dom.impactStatsGrid.replaceChildren();
+    dom.categoryBreakdownList.replaceChildren();
+
+    const statCards = [
+        { label: 'Total scans', value: metrics.totalScans, iconClass: 'ph ph-camera text-emerald-600' },
+        { label: 'Eco score', value: metrics.totalEcoScore, iconClass: 'ph ph-leaf text-emerald-600' },
+        { label: 'Recyclable items', value: metrics.recyclableCount, iconClass: 'ph ph-recycle text-emerald-600' },
+        { label: 'Non-recyclable', value: metrics.nonRecyclableCount, iconClass: 'ph ph-warning text-orange-600' },
+        { label: 'Special handling', value: metrics.specialHandlingCount, iconClass: 'ph ph-shield-warning text-amber-600' },
+        { label: 'Most common', value: formatCategoryName(metrics.mostCommonCategory), iconClass: 'ph ph-stack text-blue-600' },
+        { label: 'Estimated CO2 saved', value: formatCo2(metrics.estimatedCo2Kg), iconClass: 'ph ph-cloud text-blue-600' },
+        { label: 'Quiz XP', value: metrics.quizStats.quizXp, iconClass: 'ph ph-graduation-cap text-emerald-600' },
+        { label: 'Quizzes completed', value: metrics.quizStats.quizzesCompleted, iconClass: 'ph ph-check-circle text-emerald-600' },
+        { label: 'Correct answers', value: metrics.quizStats.correctAnswers, iconClass: 'ph ph-thumbs-up text-blue-600' },
+        { label: 'Incorrect answers', value: metrics.quizStats.incorrectAnswers, iconClass: 'ph ph-x-circle text-orange-600' },
+        { label: 'Quiz accuracy', value: `${metrics.quizAccuracy}%`, iconClass: 'ph ph-target text-purple-600' }
+    ];
+
+    statCards.forEach(card => {
+        dom.impactStatsGrid.appendChild(createElement('div', {
+            className: 'impact-stat-card bg-gray-50 rounded-xl p-4 border border-gray-100'
+        }, [
+            createElement('div', { className: 'flex items-center gap-2 mb-2' }, [
+                icon(`${card.iconClass} text-xl`),
+                createElement('p', { className: 'text-xs font-bold text-gray-500 uppercase', text: card.label })
+            ]),
+            createElement('p', { className: 'text-xl font-bold text-gray-800', text: card.value })
+        ]));
+    });
+
+    dom.impactSummaryText.textContent = `${metrics.totalScans} scans | ${formatCo2(metrics.estimatedCo2Kg)} estimated CO2 saved`;
+
+    const maxCategoryCount = Math.max(1, ...Object.values(metrics.categoryCounts));
+    const orderedCategories = ['plastic', 'metal', 'paper', 'glass', 'special', 'other'];
+    orderedCategories.forEach(category => {
+        const count = metrics.categoryCounts[category] || 0;
+        const percent = Math.round((count / maxCategoryCount) * 100);
+        const co2 = metrics.categoryCo2[category] || 0;
+
+        dom.categoryBreakdownList.appendChild(createElement('div', {
+            className: 'category-breakdown-row'
+        }, [
+            createElement('div', { className: 'flex items-center justify-between text-sm mb-1' }, [
+                createElement('span', { className: 'font-semibold text-gray-700', text: formatCategoryName(category) }),
+                createElement('span', { className: 'text-gray-500', text: `${count} items | ${formatCo2(co2)}` })
+            ]),
+            createElement('div', { className: 'h-2.5 rounded-full bg-gray-100 overflow-hidden' }, [
+                createElement('div', {
+                    className: 'h-full rounded-full bg-emerald-500'
+                })
+            ])
+        ]));
+
+        const bar = dom.categoryBreakdownList.lastElementChild.querySelector('.bg-emerald-500');
+        bar.style.width = `${percent}%`;
+    });
+}
+
 function renderChart() {
+    const metrics = getMetrics();
+    renderImpactDashboard(metrics);
+
     if (!dom.statsChartCanvas || typeof Chart !== 'function') return;
     if (statsChartInstance) {
         statsChartInstance.destroy();
         statsChartInstance = null;
     }
 
-    const { history, objects } = getMetrics();
+    const { history, objects } = metrics;
     dom.totalRecycledCount.textContent = objects.length || history.length;
     if (history.length === 0) return;
 
-    const recyclableCount = objects.filter(item => getStatusKind(item.recyclable) === 'recyclable').length;
+    const recyclableCount = metrics.recyclableCount;
     const partialCount = objects.filter(item => getStatusKind(item.recyclable) === 'partial').length;
     const otherCount = Math.max(0, objects.length - recyclableCount - partialCount);
 
@@ -1373,8 +2194,18 @@ function loadProviderSettings(provider) {
     dom.apiKeyLabel.textContent = `${providerMeta.label} API Key`;
     dom.apiKeyInput.placeholder = providerMeta.keyPlaceholder;
     dom.apiKeyInput.value = config.apiKey;
-    dom.modelInput.value = config.model;
-    dom.modelInput.placeholder = providerMeta.defaultModel;
+    dom.modelSelect.replaceChildren();
+    providerMeta.recommendedModels.forEach(model => {
+        dom.modelSelect.appendChild(createElement('option', {
+            text: model
+        }));
+        dom.modelSelect.lastElementChild.value = model;
+    });
+    dom.modelSelect.value = providerMeta.recommendedModels.includes(config.selectedModel)
+        ? config.selectedModel
+        : providerMeta.defaultModel;
+    dom.modelInput.value = config.customModel;
+    dom.modelInput.placeholder = `Optional custom ${providerMeta.label} model`;
     dom.modelHint.textContent = providerMeta.modelHint;
 
     dom.apiKeyHelp.replaceChildren(
@@ -1396,18 +2227,20 @@ function saveSettings() {
     const provider = dom.providerSelect.value;
     const providerMeta = aiProviders[provider] || aiProviders.openai;
     const key = dom.apiKeyInput.value.trim();
-    const model = dom.modelInput.value.trim() || providerMeta.defaultModel;
+    const selectedModel = dom.modelSelect.value || providerMeta.defaultModel;
+    const customModel = dom.modelInput.value.trim();
+    const effectiveModel = customModel || selectedModel;
 
     if (!key) {
         showToast(`Enter a valid ${providerMeta.label} API key.`);
         return;
     }
-    if (!model) {
+    if (!effectiveModel) {
         showToast(`Enter a vision-capable ${providerMeta.label} model name.`);
         return;
     }
 
-    saveProviderConfig({ provider, apiKey: key, model });
+    saveProviderConfig({ provider, apiKey: key, selectedModel, customModel });
     updateApiKeyStatus(true);
     closeSettings();
     showToast(`${providerMeta.label} settings saved locally.`);
@@ -1457,6 +2290,9 @@ function bindEvents() {
         localStorage.setItem(STORAGE_KEYS.provider, selectedProvider);
         loadProviderSettings(selectedProvider);
     });
+    dom.startQuizBtn.addEventListener('click', startEcoQuiz);
+    dom.closeQuizBtn.addEventListener('click', closeEcoQuiz);
+    dom.nextQuizBtn.addEventListener('click', goToNextQuizQuestion);
     dom.toggleApiKeyBtn.addEventListener('click', () => {
         const isHidden = dom.apiKeyInput.type === 'password';
         dom.apiKeyInput.type = isHidden ? 'text' : 'password';
@@ -1490,6 +2326,7 @@ function initializeApp() {
     renderChart();
     updateUserLevel();
     renderAchievements();
+    renderQuizInlineStats();
 }
 
 initializeApp();
