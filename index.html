@@ -20,7 +20,7 @@
                 <i class="ph ph-leaf text-2xl text-emerald-500"></i>
                 <h1 class="font-bold text-xl text-gray-800">RecycleCheck AI</h1>
             </div>
-            <button class="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors" title="Settings">
+            <button id="settingsBtn" class="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors" title="Settings">
                 <i class="ph ph-gear text-2xl"></i>
             </button>
         </header>
@@ -73,21 +73,194 @@
 
             <!-- Recent Activity Section -->
             <section class="px-6 mt-10">
-                <div class="flex justify-between items-end mb-4">
+                <div class="flex justify-between items-center mb-4">
                     <h2 class="text-lg font-bold text-gray-800">Recent Scans</h2>
-                    <button class="text-sm text-emerald-600 font-medium hover:underline">View All</button>
+                    <div class="flex gap-3">
+                        <button id="clearHistoryBtn" class="text-sm text-gray-500 font-medium hover:text-red-500 transition-colors">Clear All</button>
+                        <button class="text-sm text-emerald-600 font-medium hover:underline">View All</button>
+                    </div>
                 </div>
 
                 <!-- List Container -->
                 <div id="recentList" class="space-y-3">
                     <!-- Empty state for dynamic items -->
                     <div id="emptyRecent" class="py-12 text-center text-gray-400">
-                        <i class="ph ph-camera text-4xl mb-2 block opacity-50"></i>
+                        <i class="ph ph-clock-counter-clockwise text-4xl mb-2 block opacity-50"></i>
                         <p class="text-sm">No recent scans yet.</p>
                     </div>
                 </div>
             </section>
 
+        </main>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div id="previewModal" class="fixed inset-0 bg-black/90 z-50 hidden flex flex-col">
+        <div class="flex justify-end p-4">
+            <button id="closePreviewBtn" class="text-white hover:text-gray-300 transition-colors">
+                <i class="ph ph-x text-3xl"></i>
+            </button>
+        </div>
+        
+        <div class="flex-1 flex items-center justify-center p-4">
+            <img id="previewImage" src="" alt="Preview" class="max-w-full max-h-full max-[90vw] max-[80vh] object-contain rounded-lg shadow-2xl">
+        </div>
+        
+        <div class="p-6 flex justify-center gap-4">
+            <button id="retakeBtn" class="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-colors">
+                <i class="ph ph-arrow-counter-clockwise text-xl"></i>
+                <span>Retake</span>
+            </button>
+            <button id="analyzeBtn" class="flex items-center gap-2 px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold transition-colors shadow-lg">
+                <i class="ph ph-magnifying-glass text-xl"></i>
+                <span>Analyze</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="flex justify-between items-center p-6 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                        <i class="ph ph-key text-xl text-emerald-600"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-800">Settings</h2>
+                </div>
+                <button id="closeSettingsBtn" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 space-y-6">
+                <div>
+                    <label for="apiKeyInput" class="block text-sm font-medium text-gray-700 mb-2">OpenAI API Key</label>
+                    <div class="relative">
+                        <input type="password" id="apiKeyInput" placeholder="sk-..." class="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                        <button id="toggleApiKeyBtn" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            <i class="ph ph-eye text-lg"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" class="text-emerald-600 hover:underline">OpenAI Platform</a></p>
+                    <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                        <i class="ph ph-lock-simple"></i> Your API key is saved locally in your browser and never sent to our servers.
+                    </p>
+                </div>
+                
+                <div id="apiKeyStatus" class="hidden p-3 rounded-xl text-sm flex items-center gap-2">
+                    <!-- Dynamic status -->
+                </div>
+            </div>
+            
+            <div class="p-6 bg-gray-50 flex justify-end gap-3">
+                <button id="cancelSettingsBtn" class="px-5 py-2.5 text-gray-600 hover:bg-gray-200 rounded-xl font-medium transition-colors">
+                    Cancel
+                </button>
+                <button id="saveSettingsBtn" class="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-colors shadow-sm">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Modal -->
+    <div id="resultsModal" class="fixed inset-0 bg-gray-50 z-50 hidden flex flex-col overflow-y-auto">
+        <!-- Results Header -->
+        <header class="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-10">
+            <div class="max-w-2xl mx-auto px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i class="ph ph-leaf text-xl text-emerald-500"></i>
+                    <h2 class="font-bold text-lg text-gray-800">Analysis Results</h2>
+                </div>
+                <button id="closeResultsBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-600 font-medium text-sm transition-colors">
+                    Done
+                </button>
+            </div>
+        </header>
+
+        <!-- Results Content -->
+        <main class="flex-1 max-w-2xl mx-auto w-full px-6 py-8 space-y-6">
+            
+            <!-- Scanned Item & Image -->
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div class="relative h-48 bg-gray-100">
+                    <img id="resultImage" src="" alt="Scanned item" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                    <div class="absolute bottom-4 left-4 right-4">
+                        <h3 id="resultItemName" class="text-white text-2xl font-bold">Item Name</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Card -->
+            <div id="statusCard" class="rounded-2xl p-6 shadow-sm">
+                <div class="flex items-center gap-4">
+                    <div id="statusIcon" class="w-14 h-14 rounded-full flex items-center justify-center bg-white/20">
+                        <i class="ph text-3xl text-white"></i>
+                    </div>
+                    <div>
+                        <p class="text-white/80 text-sm font-medium uppercase tracking-wide">Recyclability Status</p>
+                        <h4 id="statusMessage" class="text-white text-xl font-bold">Status</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Composition Breakdown -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+                <h5 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <i class="ph ph-chart-pie text-emerald-500"></i>
+                    Material Composition
+                </h5>
+                <div id="compositionBars" class="space-y-4">
+                    <!-- Dynamic content -->
+                </div>
+            </div>
+
+            <!-- Action Steps -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+                <h5 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <i class="ph ph-list-checks text-emerald-500"></i>
+                    Disposal Guide
+                </h5>
+                <div id="actionSteps" class="space-y-3">
+                    <!-- Dynamic content -->
+                </div>
+            </div>
+
+            <!-- Sustainability Tracker -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+                <h5 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <i class="ph ph-trophy text-emerald-500"></i>
+                    Sustainability Tracker
+                </h5>
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Eco Score -->
+                    <div class="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-4 text-center">
+                        <div class="w-12 h-12 mx-auto mb-2 bg-emerald-500 rounded-full flex items-center justify-center">
+                            <i class="ph ph-leaf text-white text-xl"></i>
+                        </div>
+                        <p class="text-xs text-emerald-600 font-medium uppercase mb-1">Eco Score</p>
+                        <p id="ecoScoreValue" class="text-2xl font-bold text-emerald-700">0</p>
+                    </div>
+                    <!-- Carbon Saved -->
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center">
+                        <div class="w-12 h-12 mx-auto mb-2 bg-blue-500 rounded-full flex items-center justify-center">
+                            <i class="ph ph-cloud text-white text-xl"></i>
+                        </div>
+                        <p class="text-xs text-blue-600 font-medium uppercase mb-1">CO₂ Saved</p>
+                        <p id="carbonSavedValue" class="text-2xl font-bold text-blue-700">0g</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Save to History Button (Hidden by default, used for manual save) -->
+            <div id="saveHistoryContainer" class="flex justify-center pt-4 hidden">
+                <button id="saveToHistoryBtn" class="flex items-center gap-2 px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 rounded-xl font-medium transition-colors shadow-sm border border-gray-200">
+                    <i class="ph ph-plus-circle text-emerald-500 text-xl"></i>
+                    <span>Save to History</span>
+                </button>
+            </div>
         </main>
     </div>
 

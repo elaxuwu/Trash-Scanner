@@ -8,12 +8,278 @@
         const cameraFallback = document.getElementById('cameraFallback');
         const fileInput = document.getElementById('fileInput');
         const cameraSection = document.getElementById('cameraSection');
+        const previewModal = document.getElementById('previewModal');
+        const previewImage = document.getElementById('previewImage');
+        const closePreviewBtn = document.getElementById('closePreviewBtn');
+        const retakeBtn = document.getElementById('retakeBtn');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+
+        // Settings Modal Elements
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+        const cancelSettingsBtn = document.getElementById('cancelSettingsBtn');
+        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const toggleApiKeyBtn = document.getElementById('toggleApiKeyBtn');
+        const apiKeyStatus = document.getElementById('apiKeyStatus');
+
+        // Results Modal Elements
+        const resultsModal = document.getElementById('resultsModal');
+        const closeResultsBtn = document.getElementById('closeResultsBtn');
+        const resultImage = document.getElementById('resultImage');
+        const resultItemName = document.getElementById('resultItemName');
+        const statusCard = document.getElementById('statusCard');
+        const statusIcon = document.getElementById('statusIcon');
+        const statusMessage = document.getElementById('statusMessage');
+        const compositionBars = document.getElementById('compositionBars');
+        const actionSteps = document.getElementById('actionSteps');
+        const ecoScoreValue = document.getElementById('ecoScoreValue');
+        const carbonSavedValue = document.getElementById('carbonSavedValue');
+        const saveHistoryContainer = document.getElementById('saveHistoryContainer');
+        const saveToHistoryBtn = document.getElementById('saveToHistoryBtn');
 
         let stream = null;
         let ctx = null;
         let video = null;
+        let capturedImageData = null;
+        let lastAnalysisResult = null;
 
-        // 1. Initialize Camera
+        // --- HISTORY MANAGEMENT ---
+        
+        const HISTORY_KEY = 'recycle_history';
+        const MAX_HISTORY_ITEMS = 10;
+
+        function getHistory() {
+            const data = localStorage.getItem(HISTORY_KEY);
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveHistory(history) {
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        }
+
+        function addToHistory(resultData) {
+            const history = getHistory();
+            
+            const newItem = {
+                id: Date.now(),
+                itemName: resultData.scanned_item || 'Unknown Item',
+                isRecyclable: resultData.is_recyclable,
+                statusMessage: resultData.status_message || '',
+                ecoScore: resultData.eco_score || 0,
+                carbonSaved: Math.round((resultData.eco_score || 0) * 0.5),
+                timestamp: new Date().toISOString(),
+                imageData: capturedImageData,
+                composition: resultData.composition || [],
+                actionSteps: resultData.action_steps || []
+            };
+
+            history.unshift(newItem);
+
+            if (history.length > MAX_HISTORY_ITEMS) {
+                history.pop();
+            }
+
+            saveHistory(history);
+            loadHistory();
+        }
+
+        function loadHistory() {
+            const recentList = document.getElementById('recentList');
+            const emptyRecent = document.getElementById('emptyRecent');
+            const history = getHistory();
+
+            const existingItems = recentList.querySelectorAll('.history-item');
+            existingItems.forEach(item => item.remove());
+
+            if (history.length === 0) {
+                emptyRecent.classList.remove('hidden');
+                return;
+            }
+
+            emptyRecent.classList.add('hidden');
+
+            history.forEach(item => {
+                const date = new Date(item.timestamp);
+                const formattedDate = date.toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                const isRecyclable = item.isRecyclable;
+                const statusIcon = isRecyclable 
+                    ? '<i class="ph ph-recycle text-emerald-500"></i>' 
+                    : '<i class="ph ph-warning text-orange-500"></i>';
+                const statusColor = isRecyclable ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-orange-700';
+                const scoreColor = isRecyclable ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600';
+
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item bg-white rounded-xl p-4 shadow-sm flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow';
+                historyItem.innerHTML = `
+                    <div class="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        ${item.imageData 
+                            ? `<img src="${item.imageData}" alt="${item.itemName}" class="w-full h-full object-cover">`
+                            : `<i class="ph ph-package text-2xl text-gray-400"></i>`
+                        }
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            ${statusIcon}
+                            <h4 class="font-semibold text-gray-800 truncate">${item.itemName}</h4>
+                        </div>
+                        <p class="text-xs text-gray-500">${formattedDate}</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${scoreColor}">
+                            <i class="ph ph-leaf mr-1"></i>
+                            ${item.ecoScore}
+                        </span>
+                    </div>
+                `;
+                historyItem.addEventListener('click', () => {
+                    viewHistoryItem(item);
+                });
+                recentList.appendChild(historyItem);
+            });
+        }
+
+        function viewHistoryItem(item) {
+            // Set image and item name
+            resultImage.src = item.imageData;
+            resultItemName.textContent = item.itemName;
+
+            // Status Card
+            if (item.isRecyclable) {
+                statusCard.className = 'rounded-2xl p-6 shadow-sm bg-gradient-to-r from-emerald-500 to-emerald-600';
+                statusIcon.innerHTML = '<i class="ph ph-recycle text-white text-3xl"></i>';
+                statusMessage.textContent = '♻️ ' + (item.statusMessage || 'RECYCLABLE');
+            } else {
+                statusCard.className = 'rounded-2xl p-6 shadow-sm bg-gradient-to-r from-orange-500 to-red-500';
+                statusIcon.innerHTML = '<i class="ph ph-warning text-white text-3xl"></i>';
+                statusMessage.textContent = '⚠️ ' + (item.statusMessage || 'NOT RECYCLABLE');
+            }
+
+            // Composition Bars
+            compositionBars.innerHTML = '';
+            const colors = ['bg-emerald-500', 'bg-blue-500', 'bg-purple-500', 'bg-amber-500', 'bg-rose-500'];
+            if (item.composition && item.composition.length > 0) {
+                item.composition.forEach((compItem, index) => {
+                    const color = colors[index % colors.length];
+                    compositionBars.innerHTML += `
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="font-medium text-gray-700">${compItem.material}</span>
+                                <span class="text-gray-500">${compItem.percentage}%</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-2.5">
+                                <div class="${color} h-2.5 rounded-full" style="width: ${compItem.percentage}%"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                compositionBars.innerHTML = '<p class="text-gray-400 text-sm">No composition data available.</p>';
+            }
+
+            // Action Steps
+            actionSteps.innerHTML = '';
+            if (item.actionSteps && item.actionSteps.length > 0) {
+                item.actionSteps.forEach((step, index) => {
+                    actionSteps.innerHTML += `
+                        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+                            <div class="w-6 h-6 flex-shrink-0 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xs font-bold">
+                                ${index + 1}
+                            </div>
+                            <p class="text-gray-700 text-sm">${step}</p>
+                        </div>
+                    `;
+                });
+            } else {
+                actionSteps.innerHTML = '<p class="text-gray-400 text-sm">No specific steps provided.</p>';
+            }
+
+            // Sustainability Tracker
+            ecoScoreValue.textContent = item.ecoScore;
+            carbonSavedValue.textContent = `${item.carbonSaved}g`;
+
+            // Hide the save button for history view
+            saveToHistoryBtn.classList.add('hidden');
+
+            // Show modal
+            resultsModal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+        }
+
+        function clearHistory() {
+            if (confirm('Are you sure you want to clear all scan history?')) {
+                localStorage.removeItem(HISTORY_KEY);
+                loadHistory();
+            }
+        }
+
+        // --- SETTINGS MODAL LOGIC ---
+        
+        function openSettings() {
+            settingsModal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            const savedKey = localStorage.getItem('openai_api_key');
+            if (savedKey) {
+                apiKeyInput.value = savedKey;
+                updateApiKeyStatus(true);
+            } else {
+                apiKeyInput.value = '';
+                updateApiKeyStatus(false);
+            }
+        }
+
+        function closeSettings() {
+            settingsModal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        function updateApiKeyStatus(isConfigured) {
+            apiKeyStatus.classList.remove('hidden');
+            if (isConfigured) {
+                apiKeyStatus.className = 'hidden p-3 rounded-xl text-sm flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200';
+                apiKeyStatus.innerHTML = '<i class="ph ph-check-circle"></i> API Key is configured';
+            } else {
+                apiKeyStatus.className = 'hidden p-3 rounded-xl text-sm flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200';
+                apiKeyStatus.innerHTML = '<i class="ph ph-warning"></i> No API Key found. Analysis will fail.';
+            }
+        }
+
+        function saveSettings() {
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                localStorage.setItem('openai_api_key', key);
+                alert('Settings saved successfully!');
+                closeSettings();
+            } else {
+                alert('Please enter a valid API Key.');
+            }
+        }
+
+        // Settings Event Listeners
+        settingsBtn.addEventListener('click', openSettings);
+        closeSettingsBtn.addEventListener('click', closeSettings);
+        cancelSettingsBtn.addEventListener('click', closeSettings);
+        saveSettingsBtn.addEventListener('click', saveSettings);
+
+        toggleApiKeyBtn.addEventListener('click', () => {
+            if (apiKeyInput.type === 'password') {
+                apiKeyInput.type = 'text';
+                toggleApiKeyBtn.innerHTML = '<i class="ph ph-eye-slash text-lg"></i>';
+            } else {
+                apiKeyInput.type = 'password';
+                toggleApiKeyBtn.innerHTML = '<i class="ph ph-eye text-lg"></i>';
+            }
+        });
+
+        // --- CAMERA LOGIC ---
+
         async function initCamera() {
             video = document.createElement('video');
             video.id = 'videoFeed';
@@ -66,7 +332,7 @@
             scanActionSection.classList.add('hidden');
         }
 
-        // 2. Scan Action
+        // Scan Action
         scanBtn.addEventListener('click', () => {
             if (!stream) {
                 fileInput.click();
@@ -81,65 +347,240 @@
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     showSnappedPhoto(event.target.result);
-                    simulateProcessing();
+                    showPreviewModal(event.target.result);
                 };
                 reader.readAsDataURL(e.target.files[0]);
             }
         });
 
         function captureImage() {
-            // 1. Flash effect
             flashOverlay.classList.add('active');
-
-            // 2. Capture frame from canvas
             const imageData = videoCanvas.toDataURL('image/jpeg', 0.8);
 
             setTimeout(() => {
                 flashOverlay.classList.remove('active');
                 showSnappedPhoto(imageData);
-                simulateProcessing();
+                showPreviewModal(imageData);
             }, 100);
         }
 
         function showSnappedPhoto(imageData) {
-            // Stop camera loop
             stream = null;
             ctx = null;
-
-            // Hide live canvas
             videoCanvas.classList.add('hidden');
 
-            // Create and show static image
             let snappedPhoto = document.getElementById('snappedPhoto');
             if (!snappedPhoto) {
                 snappedPhoto = document.createElement('img');
                 snappedPhoto.id = 'snappedPhoto';
-                snappedPhoto.className = 'w-full h-full object-cover absolute inset-0';
+                snappedPhoto.className = 'w-full h-full absolute inset-0';
+                snappedPhoto.style.objectFit = 'contain';
+                snappedPhoto.style.backgroundColor = '#000';
                 cameraSection.appendChild(snappedPhoto);
             }
             snappedPhoto.src = imageData;
             snappedPhoto.classList.remove('hidden');
-
-            // Hide scan button
             scanActionSection.classList.add('hidden');
         }
 
-        function simulateProcessing() {
-            // Show loading
-            loadingOverlay.classList.add('active');
-
-            console.log("Image captured successfully! Sending to AI model...");
-
-            // Simulate 2 seconds of AI processing
-            setTimeout(() => {
-                loadingOverlay.classList.remove('active');
-
-                // Reset input value
-                fileInput.value = "";
-
-                alert("Analysis Complete!\n\nResult: Recyclable Plastic Bottle (Type 1 PET)");
-            }, 2000);
+        function showPreviewModal(imageData) {
+            capturedImageData = imageData;
+            previewImage.src = imageData;
+            previewModal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
         }
+
+        function hidePreviewModal() {
+            previewModal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        function resetToCamera() {
+            hidePreviewModal();
+            const snappedPhoto = document.getElementById('snappedPhoto');
+            if (snappedPhoto) {
+                snappedPhoto.classList.add('hidden');
+                snappedPhoto.src = '';
+            }
+            fileInput.value = '';
+            videoCanvas.classList.remove('hidden');
+            scanActionSection.classList.remove('hidden');
+            initCamera();
+        }
+
+        // Preview Modal Event Listeners
+        closePreviewBtn.addEventListener('click', resetToCamera);
+        retakeBtn.addEventListener('click', resetToCamera);
+        
+        analyzeBtn.addEventListener('click', () => {
+            analyzeWithAI();
+        });
+
+        // --- OPENAI API INTEGRATION ---
+
+        const SYSTEM_PROMPT = `You are an expert waste sorting AI. Analyze the uploaded image and return ONLY a JSON object matching exactly this structure: { "scanned_item": "Short item name", "is_recyclable": boolean, "status_message": "Short status like RECYCLABLE or CONTAMINATED", "composition": [ { "material": "Name", "percentage": number } ], "action_steps": [ "Step 1", "Step 2" ], "eco_score": number (0-100) }`;
+
+        async function analyzeWithAI() {
+            const apiKey = localStorage.getItem('openai_api_key');
+
+            if (!apiKey) {
+                const userChoice = confirm('No API Key found. Would you like to set it up now?');
+                if (userChoice) {
+                    openSettings();
+                }
+                return;
+            }
+
+            hidePreviewModal();
+            loadingOverlay.classList.add('active');
+            console.log("Sending image to OpenAI API...");
+
+            try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        response_format: { type: 'json_object' },
+                        messages: [
+                            {
+                                role: 'system',
+                                content: SYSTEM_PROMPT
+                            },
+                            {
+                                role: 'user',
+                                content: [
+                                    {
+                                        type: 'image_url',
+                                        image_url: {
+                                            url: capturedImageData,
+                                            detail: 'low'
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const result = JSON.parse(data.choices[0].message.content);
+                
+                loadingOverlay.classList.remove('active');
+                showResults(result);
+
+            } catch (error) {
+                console.error('AI Analysis Error:', error);
+                loadingOverlay.classList.remove('active');
+                alert(`Analysis Failed: ${error.message}\n\nPlease check your API key and internet connection.`);
+            }
+        }
+
+        // --- RESULTS MODAL LOGIC ---
+
+        function showResults(data) {
+            // Store the result for history saving
+            lastAnalysisResult = data;
+            
+            // Auto-save to history
+            addToHistory(data);
+            
+            // Set image and item name
+            resultImage.src = capturedImageData;
+            resultItemName.textContent = data.scanned_item || 'Unknown Item';
+
+            // Status Card
+            if (data.is_recyclable) {
+                statusCard.className = 'rounded-2xl p-6 shadow-sm bg-gradient-to-r from-emerald-500 to-emerald-600';
+                statusIcon.innerHTML = '<i class="ph ph-recycle text-white text-3xl"></i>';
+                statusMessage.textContent = '♻️ ' + (data.status_message || 'RECYCLABLE');
+            } else {
+                statusCard.className = 'rounded-2xl p-6 shadow-sm bg-gradient-to-r from-orange-500 to-red-500';
+                statusIcon.innerHTML = '<i class="ph ph-warning text-white text-3xl"></i>';
+                statusMessage.textContent = '⚠️ ' + (data.status_message || 'NOT RECYCLABLE');
+            }
+
+            // Composition Bars
+            compositionBars.innerHTML = '';
+            const colors = ['bg-emerald-500', 'bg-blue-500', 'bg-purple-500', 'bg-amber-500', 'bg-rose-500'];
+            if (data.composition && data.composition.length > 0) {
+                data.composition.forEach((item, index) => {
+                    const color = colors[index % colors.length];
+                    compositionBars.innerHTML += `
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="font-medium text-gray-700">${item.material}</span>
+                                <span class="text-gray-500">${item.percentage}%</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-2.5">
+                                <div class="${color} h-2.5 rounded-full" style="width: ${item.percentage}%"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                compositionBars.innerHTML = '<p class="text-gray-400 text-sm">No composition data available.</p>';
+            }
+
+            // Action Steps
+            actionSteps.innerHTML = '';
+            if (data.action_steps && data.action_steps.length > 0) {
+                data.action_steps.forEach((step, index) => {
+                    actionSteps.innerHTML += `
+                        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+                            <div class="w-6 h-6 flex-shrink-0 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xs font-bold">
+                                ${index + 1}
+                            </div>
+                            <p class="text-gray-700 text-sm">${step}</p>
+                        </div>
+                    `;
+                });
+            } else {
+                actionSteps.innerHTML = '<p class="text-gray-400 text-sm">No specific steps provided.</p>';
+            }
+
+            // Sustainability Tracker
+            const score = data.eco_score || 0;
+            ecoScoreValue.textContent = score;
+            carbonSavedValue.textContent = `${Math.round(score * 0.5)}g`;
+
+            // Show modal
+            resultsModal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+
+            // Hide the save button since it's auto-saved
+            saveHistoryContainer.classList.add('hidden');
+        }
+
+        function closeResults() {
+            // Show the save button again for next analysis
+            saveHistoryContainer.classList.remove('hidden');
+            resultsModal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            resetToCamera();
+        }
+
+        // Results Event Listeners
+        closeResultsBtn.addEventListener('click', closeResults);
+        
+        saveToHistoryBtn.addEventListener('click', () => {
+            if (lastAnalysisResult) {
+                addToHistory(lastAnalysisResult);
+                closeResults();
+            }
+        });
+
+        // Clear History Button
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        clearHistoryBtn.addEventListener('click', clearHistory);
 
         // Cleanup on window close
         window.addEventListener('beforeunload', () => {
@@ -150,3 +591,4 @@
 
         // Start
         initCamera();
+        loadHistory();
