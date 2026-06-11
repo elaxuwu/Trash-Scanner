@@ -23,6 +23,14 @@
         const apiKeyInput = document.getElementById('apiKeyInput');
         const toggleApiKeyBtn = document.getElementById('toggleApiKeyBtn');
         const apiKeyStatus = document.getElementById('apiKeyStatus');
+        
+        // Developer Menu Elements
+        const developerSettingsSection = document.getElementById('developerSettingsSection');
+        const providerOpenAI = document.getElementById('providerOpenAI');
+        const providerGemini = document.getElementById('providerGemini');
+        const geminiKeyContainer = document.getElementById('geminiKeyContainer');
+        const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
+        const toggleGeminiKeyBtn = document.getElementById('toggleGeminiKeyBtn');
 
         // Results Modal Elements
         const resultsModal = document.getElementById('resultsModal');
@@ -54,6 +62,31 @@
         let lastAnalysisResult = null;
         let currentLanguage = 'en';
         let statsChartInstance = null;
+        
+        // Secret Developer Menu State
+        let tapCount = 0;
+        let tapTimer = null;
+        let developerMode = false;
+        let currentProvider = localStorage.getItem('ai_provider') || 'openai';
+
+        // Storage Keys
+        const STORAGE_KEYS = {
+            OPENAI_KEY: 'openai_api_key',
+            GEMINI_KEY: 'gemini_api_key',
+            PROVIDER: 'ai_provider'
+        };
+        
+        // API Configuration
+        const API_CONFIG = {
+            OPENAI: {
+                url: 'https://api.openai.com/v1/chat/completions',
+                model: 'gpt-4o-mini'
+            },
+            GEMINI: {
+                url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent/',
+                model: 'gemini-2.5-flash'
+            }
+        };
 
         // --- PWA REGISTRATION ---
         if ('serviceWorker' in navigator) {
@@ -99,7 +132,11 @@
                 recyclable: 'Recyclable',
                 nonRecyclable: 'Non-Recyclable',
                 currentXp: 'XP',
-                nextLevel: 'Next:'
+                nextLevel: 'Next:',
+                // Developer Menu
+                devOptions: 'Developer Options',
+                aiProvider: 'AI Provider',
+                geminiKeyLabel: 'Gemini API Key'
             },
             vi: {
                 appTitle: 'RecycleCheck AI',
@@ -134,7 +171,11 @@
                 recyclable: 'Có Thể Tái Chế',
                 nonRecyclable: 'Không Thể Tái Chế',
                 currentXp: 'XP',
-                nextLevel: 'Kế tiếp:'
+                nextLevel: 'Kế tiếp:',
+                // Developer Menu
+                devOptions: 'Tùy Chọn Nhà Phát Triển',
+                aiProvider: 'Nhà Cung Cấp AI',
+                geminiKeyLabel: 'Khóa API Gemini'
             }
         };
 
@@ -181,6 +222,18 @@
             document.querySelector('#settingsModal h2').textContent = t('apiSettings');
             cancelSettingsBtn.textContent = t('cancel');
             saveSettingsBtn.textContent = t('saveChanges');
+
+            // Developer Menu Updates
+            if (developerSettingsSection) {
+                const devTitle = developerSettingsSection.querySelector('h3');
+                if (devTitle) devTitle.innerHTML = `<i class="ph ph-code text-emerald-500"></i> ${t('devOptions')}`;
+            }
+            const providerLabel = providerOpenAI.closest('.mb-4').querySelector('label');
+            if (providerLabel) providerLabel.textContent = t('aiProvider');
+            const geminiLabel = geminiKeyContainer.querySelector('label');
+            if (geminiLabel) geminiLabel.textContent = t('geminiKeyLabel');
+            
+            updateDeveloperUI();
 
             // Results Modal
             document.querySelector('#resultsModal h2').textContent = t('analysisResults');
@@ -540,19 +593,95 @@
             });
         }
 
+        // --- SECRET DEVELOPER MENU ---
+        
+        function handleLogoTap() {
+            tapCount++;
+            if (tapTimer) clearTimeout(tapTimer);
+            
+            tapTimer = setTimeout(() => {
+                tapCount = 0;
+            }, 1000);
+
+            if (tapCount >= 5) {
+                developerMode = !developerMode;
+                tapCount = 0;
+                updateDeveloperUI();
+                
+                if (developerMode) {
+                    console.log('[App] Developer Mode Enabled');
+                } else {
+                    console.log('[App] Developer Mode Disabled');
+                }
+            }
+        }
+
+        function updateDeveloperUI() {
+            // Update provider buttons styling
+            if (currentProvider === 'openai') {
+                providerOpenAI.classList.add('bg-white', 'shadow-sm', 'text-emerald-600');
+                providerOpenAI.classList.remove('text-gray-500', 'hover:text-gray-700');
+                providerGemini.classList.remove('bg-white', 'shadow-sm', 'text-emerald-600');
+                providerGemini.classList.add('text-gray-500', 'hover:text-gray-700');
+            } else {
+                providerGemini.classList.add('bg-white', 'shadow-sm', 'text-emerald-600');
+                providerGemini.classList.remove('text-gray-500', 'hover:text-gray-700');
+                providerOpenAI.classList.remove('bg-white', 'shadow-sm', 'text-emerald-600');
+                providerOpenAI.classList.add('text-gray-500', 'hover:text-gray-700');
+            }
+
+            // Show/hide Gemini key container
+            // Note: Gemini key container is always visible now
+        }
+
+        function switchProvider(provider) {
+            currentProvider = provider;
+            localStorage.setItem(STORAGE_KEYS.PROVIDER, provider);
+            updateDeveloperUI();
+        }
+
+        // Logo click event for developer menu
+        document.querySelector('h1').addEventListener('click', handleLogoTap);
+
+        // Provider Toggle Events
+        providerOpenAI.addEventListener('click', () => switchProvider('openai'));
+        providerGemini.addEventListener('click', () => switchProvider('gemini'));
+
+        // Toggle Gemini Key Visibility
+        toggleGeminiKeyBtn.addEventListener('click', () => {
+            if (geminiApiKeyInput.type === 'password') {
+                geminiApiKeyInput.type = 'text';
+                toggleGeminiKeyBtn.innerHTML = '<i class="ph ph-eye-slash text-lg"></i>';
+            } else {
+                geminiApiKeyInput.type = 'password';
+                toggleGeminiKeyBtn.innerHTML = '<i class="ph ph-eye text-lg"></i>';
+            }
+        });
+
         // --- SETTINGS MODAL LOGIC ---
         
         function openSettings() {
             settingsModal.classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
-            const savedKey = localStorage.getItem('openai_api_key');
-            if (savedKey) {
-                apiKeyInput.value = savedKey;
-                updateApiKeyStatus(true);
+            
+            // Load saved keys
+            const savedOpenAIKey = localStorage.getItem(STORAGE_KEYS.OPENAI_KEY);
+            const savedGeminiKey = localStorage.getItem(STORAGE_KEYS.GEMINI_KEY);
+            
+            if (savedOpenAIKey) {
+                apiKeyInput.value = savedOpenAIKey;
             } else {
                 apiKeyInput.value = '';
-                updateApiKeyStatus(false);
             }
+            
+            if (savedGeminiKey) {
+                geminiApiKeyInput.value = savedGeminiKey;
+            } else {
+                geminiApiKeyInput.value = '';
+            }
+            
+            updateDeveloperUI();
+            updateApiKeyStatus();
         }
 
         function closeSettings() {
@@ -560,25 +689,42 @@
             document.body.classList.remove('overflow-hidden');
         }
 
-        function updateApiKeyStatus(isConfigured) {
+        function updateApiKeyStatus() {
+            const currentKey = currentProvider === 'openai' 
+                ? localStorage.getItem(STORAGE_KEYS.OPENAI_KEY) 
+                : localStorage.getItem(STORAGE_KEYS.GEMINI_KEY);
+            
             apiKeyStatus.classList.remove('hidden');
-            if (isConfigured) {
+            if (currentKey) {
                 apiKeyStatus.className = 'p-3 rounded-xl text-sm flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200';
-                apiKeyStatus.innerHTML = '<i class="ph ph-check-circle"></i> ' + (currentLanguage === 'vi' ? 'API Key đã được cấu hình' : 'API Key is configured');
+                apiKeyStatus.innerHTML = '<i class="ph ph-check-circle"></i> ' + 
+                    (currentProvider === 'gemini' 
+                        ? (currentLanguage === 'vi' ? 'API Key Gemini đã được cấu hình' : 'Gemini API Key is configured')
+                        : (currentLanguage === 'vi' ? 'API Key OpenAI đã được cấu hình' : 'OpenAI API Key is configured'));
             } else {
                 apiKeyStatus.className = 'p-3 rounded-xl text-sm flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200';
-                apiKeyStatus.innerHTML = '<i class="ph ph-warning"></i> ' + (currentLanguage === 'vi' ? 'Không tìm thấy API Key. Phân tích sẽ thất bại.' : 'No API Key found. Analysis will fail.');
+                apiKeyStatus.innerHTML = '<i class="ph ph-warning"></i> ' + 
+                    (currentLanguage === 'vi' ? 'Không tìm thấy API Key. Phân tích sẽ thất bại.' : 'No API Key found. Analysis will fail.');
             }
         }
 
         function saveSettings() {
-            const key = apiKeyInput.value.trim();
-            if (key) {
-                localStorage.setItem('openai_api_key', key);
+            const openaiKey = apiKeyInput.value.trim();
+            const geminiKey = geminiApiKeyInput.value.trim();
+            
+            // Save both keys regardless of provider
+            if (openaiKey) {
+                localStorage.setItem(STORAGE_KEYS.OPENAI_KEY, openaiKey);
+            }
+            if (geminiKey) {
+                localStorage.setItem(STORAGE_KEYS.GEMINI_KEY, geminiKey);
+            }
+            
+            if (openaiKey || geminiKey) {
                 alert(currentLanguage === 'vi' ? 'Cài đặt đã được lưu!' : 'Settings saved successfully!');
                 closeSettings();
             } else {
-                alert(currentLanguage === 'vi' ? 'Vui lòng nhập API Key hợp lệ.' : 'Please enter a valid API Key.');
+                alert(currentLanguage === 'vi' ? 'Vui lòng nhập ít nhất một API Key.' : 'Please enter at least one API Key.');
             }
         }
 
@@ -736,7 +882,7 @@
             analyzeWithAI();
         });
 
-        // --- OPENAI API INTEGRATION ---
+        // --- AI API INTEGRATION (OpenAI & Gemini) ---
 
         function getSystemPrompt() {
             const langRule = currentLanguage === 'vi' 
@@ -747,7 +893,9 @@
         }
 
         async function analyzeWithAI() {
-            const apiKey = localStorage.getItem('openai_api_key');
+            let apiKey = currentProvider === 'openai' 
+                ? localStorage.getItem(STORAGE_KEYS.OPENAI_KEY) 
+                : localStorage.getItem(STORAGE_KEYS.GEMINI_KEY);
 
             if (!apiKey) {
                 const userChoice = confirm(currentLanguage === 'vi' 
@@ -761,46 +909,114 @@
 
             hidePreviewModal();
             loadingOverlay.classList.add('active');
-            console.log("Sending image to OpenAI API...");
+            console.log(`Sending image to ${currentProvider === 'openai' ? 'OpenAI' : 'Gemini'} API...`);
 
             try {
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-4o-mini',
-                        response_format: { type: 'json_object' },
-                        messages: [
-                            {
-                                role: 'system',
-                                content: getSystemPrompt()
-                            },
-                            {
-                                role: 'user',
-                                content: [
-                                    {
-                                        type: 'image_url',
-                                        image_url: {
-                                            url: capturedImageData,
-                                            detail: 'low'
+                let response;
+                let data;
+                let result;
+
+                if (currentProvider === 'gemini') {
+                    // Gemini API (OpenAI-compatible endpoint)
+                    const config = API_CONFIG.GEMINI;
+                    response = await fetch(`${config.url}?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            contents: [
+                                {
+                                    parts: [
+                                        {
+                                            text: getSystemPrompt()
+                                        },
+                                        {
+                                            inline_data: {
+                                                mime_type: capturedImageData.split(';')[0].split(':')[1],
+                                                data: capturedImageData.split(',')[1]
+                                            }
                                         }
+                                    ]
+                                }
+                            ],
+                            generationConfig: {
+                                responseMimeType: "application/json",
+                                responseSchema: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        scanned_item: { type: "STRING" },
+                                        is_recyclable: { type: "BOOLEAN" },
+                                        status_message: { type: "STRING" },
+                                        composition: {
+                                            type: "ARRAY",
+                                            items: {
+                                                type: "OBJECT",
+                                                properties: {
+                                                    material: { type: "STRING" },
+                                                    percentage: { type: "NUMBER" }
+                                                }
+                                            }
+                                        },
+                                        action_steps: {
+                                            type: "ARRAY",
+                                            items: { type: "STRING" }
+                                        },
+                                        eco_score: { type: "NUMBER" }
                                     }
-                                ]
+                                }
                             }
-                        ]
-                    })
-                });
+                        })
+                    });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+                    }
+
+                    data = await response.json();
+                    result = JSON.parse(data.candidates[0].content.parts[0].text);
+                } else {
+                    // OpenAI API
+                    const config = API_CONFIG.OPENAI;
+                    response = await fetch(config.url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: config.model,
+                            response_format: { type: 'json_object' },
+                            messages: [
+                                {
+                                    role: 'system',
+                                    content: getSystemPrompt()
+                                },
+                                {
+                                    role: 'user',
+                                    content: [
+                                        {
+                                            type: 'image_url',
+                                            image_url: {
+                                                url: capturedImageData,
+                                                detail: 'low'
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+                    }
+
+                    data = await response.json();
+                    result = JSON.parse(data.choices[0].message.content);
                 }
-
-                const data = await response.json();
-                const result = JSON.parse(data.choices[0].message.content);
                 
                 loadingOverlay.classList.remove('active');
                 showResults(result);
@@ -942,6 +1158,7 @@
         });
 
         // Start
+        updateDeveloperUI();
         initCamera();
         loadHistory();
         updateUserLevel();
