@@ -23,6 +23,26 @@
             object-fit: contain !important;
         }
 
+        #settingsModal > div {
+            max-height: calc(100vh - 1.5rem);
+        }
+
+        #settingsModal .overflow-y-auto {
+            scrollbar-gutter: stable;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #resultsModal main {
+            scrollbar-gutter: stable;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        @media (min-width: 640px) {
+            #settingsModal > div {
+                max-height: calc(100vh - 2rem);
+            }
+        }
+
         /* Layout Wrapper */
         .app-container {
             display: flex;
@@ -41,6 +61,68 @@
             border-radius: 0; /* Clean edge on mobile */
             overflow: hidden;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .drop-zone-hint {
+            position: absolute;
+            left: 1rem;
+            right: 1rem;
+            bottom: 1rem;
+            z-index: 9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.7rem 0.85rem;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 0.9rem;
+            background: rgba(15, 23, 42, 0.68);
+            color: white;
+            font-size: 0.82rem;
+            font-weight: 700;
+            backdrop-filter: blur(10px);
+            pointer-events: none;
+        }
+
+        .paste-shortcut-hint {
+            color: rgba(255, 255, 255, 0.72);
+            font-size: 0.72rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .drop-zone-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 25;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            background: rgba(6, 78, 59, 0.82);
+            border: 3px dashed rgba(167, 243, 208, 0.95);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+        }
+
+        .camera-viewport.drag-over {
+            outline: 3px solid rgba(52, 211, 153, 0.9);
+            outline-offset: 4px;
+        }
+
+        @media (max-width: 640px) {
+            .drop-zone-hint {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 0.2rem;
+                font-size: 0.76rem;
+            }
+
+            .paste-shortcut-hint {
+                display: none;
+            }
         }
 
         /* Tablet & Desktop adjustments */
@@ -217,12 +299,72 @@
 
         .grid-overlay {
             position: absolute;
-            inset: 0;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
             z-index: 4;
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             grid-template-rows: repeat(4, 1fr);
             pointer-events: none;
+        }
+
+        .result-image-frame {
+            position: relative;
+            width: 100%;
+            height: min(56vh, 400px);
+            min-height: 220px;
+            max-height: 420px;
+            overflow: hidden;
+            border-radius: 1rem;
+            background: #0f172a;
+        }
+
+        .result-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        @media (max-width: 640px) {
+            .result-image-frame {
+                height: min(52vh, 330px);
+                min-height: 210px;
+            }
+        }
+
+        .detected-objects-list {
+            display: flex;
+            gap: 0.75rem;
+            overflow-x: auto;
+            padding-bottom: 0.25rem;
+            scroll-snap-type: x proximity;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .detected-objects-list .result-card {
+            flex: 0 0 min(280px, 86vw);
+            scroll-snap-align: start;
+        }
+
+        @media (min-width: 768px) {
+            .detected-objects-list {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                overflow-x: visible;
+            }
+
+            .detected-objects-list .result-card {
+                flex: initial;
+            }
+        }
+
+        .result-card.active {
+            border-color: #10b981;
+            background: #ecfdf5;
+            box-shadow: 0 10px 24px rgba(16, 185, 129, 0.14);
         }
 
         .grid-cell {

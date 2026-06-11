@@ -5,6 +5,10 @@ const dom = {
     flashOverlay: document.getElementById('flashOverlay'),
     loadingOverlay: document.getElementById('loadingOverlay'),
     loadingModeText: document.getElementById('loadingModeText'),
+    dropZoneHint: document.getElementById('dropZoneHint'),
+    dropZoneOverlay: document.getElementById('dropZoneOverlay'),
+    dropZoneTitle: document.getElementById('dropZoneTitle'),
+    dropZoneMessage: document.getElementById('dropZoneMessage'),
     cameraFallback: document.getElementById('cameraFallback'),
     fileInput: document.getElementById('fileInput'),
     cameraSection: document.getElementById('cameraSection'),
@@ -29,9 +33,11 @@ const dom = {
     apiKeyStatus: document.getElementById('apiKeyStatus'),
     resultsModal: document.getElementById('resultsModal'),
     closeResultsBtn: document.getElementById('closeResultsBtn'),
+    resultImageFrame: document.getElementById('resultImageFrame'),
     resultImage: document.getElementById('resultImage'),
     resultItemName: document.getElementById('resultItemName'),
     resultTimestamp: document.getElementById('resultTimestamp'),
+    resultSummaryEcoScore: document.getElementById('resultSummaryEcoScore'),
     resultSummaryCard: document.getElementById('resultSummaryCard'),
     resultSummaryText: document.getElementById('resultSummaryText'),
     statusCard: document.getElementById('statusCard'),
@@ -98,12 +104,14 @@ const STORAGE_KEYS = {
     selectedMode: 'recycle_selected_mode',
     achievements: 'recycle_achievements',
     quizStats: 'eco_quiz_stats',
-    demoMode: 'recycle_demo_mode'
+    demoMode: 'recycle_demo_mode',
+    language: 'recycle_language'
 };
 
 const MAX_HISTORY_ITEMS = 12;
 const MAX_IMAGE_DIMENSION = 1280;
 const HISTORY_IMAGE_DIMENSION = 420;
+const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 
 const co2EstimatesKg = {
     plastic: 0.08,
@@ -170,6 +178,14 @@ const aiProviders = {
         keyHelpText: 'Get your API key from Google AI Studio.',
         keyHelpUrl: 'https://aistudio.google.com/app/apikey'
     }
+};
+
+const scanModeTranslationKeys = {
+    quick: { label: 'quick', description: 'quickDesc', loading: 'quickLoading' },
+    detailed: { label: 'detailed', description: 'detailedDesc', loading: 'detailedLoading' },
+    batch: { label: 'batch', description: 'batchDesc', loading: 'batchLoading' },
+    education: { label: 'education', description: 'educationDesc', loading: 'educationLoading' },
+    carbon: { label: 'carbon', description: 'carbonDesc', loading: 'carbonLoading' }
 };
 
 const achievements = [
@@ -262,6 +278,600 @@ const translations = {
     }
 };
 
+const translationOverrides = {
+    en: {
+        appTitle: 'RecycleCheck AI',
+        noScans: 'No recent scans yet.',
+        recyclable: 'Recyclable',
+        nonRecyclable: 'Non-Recyclable',
+        partial: 'Partial',
+        special: 'Special Handling',
+        unclear: 'Unclear Image',
+        sprout: 'Sprout',
+        warrior: 'Eco Warrior',
+        master: 'Recycle Master',
+        next: 'Next:',
+        xp: 'XP',
+        done: 'Done',
+        cancel: 'Cancel',
+        saveChanges: 'Save Changes',
+        settings: 'Settings',
+        uploadImage: 'Upload Image',
+        analyzingWaste: 'Analyzing waste...',
+        loadingGuidance: 'Building recycling guidance',
+        cameraRequired: 'Camera Access Required',
+        cameraDesc: 'To identify your waste instantly, please allow camera access or upload an image.',
+        uploadPasteDropPhoto: 'Upload, paste, drag & drop, or take a photo',
+        pasteShortcut: 'Tip: Press Ctrl+V to paste a screenshot',
+        dropImagePreview: 'Drop image to preview',
+        onlyImagesAccepted: 'Only image files are accepted',
+        scanMode: 'Scan Mode',
+        scanModeDesc: 'Choose how deeply the AI should analyze this image.',
+        quick: 'Quick',
+    quickDesc: 'Fast answer',
+    quickLoading: 'Fast recyclable / not recyclable check',
+    detailed: 'Detailed',
+    detailedDesc: 'Materials + steps',
+    detailedLoading: 'Analyzing materials and preparation steps',
+    batch: 'Batch',
+    batchDesc: 'Multiple items',
+    batchLoading: 'Finding multiple objects across the 4x4 grid',
+    education: 'Education',
+    educationDesc: 'Explain why',
+    educationLoading: 'Explaining recycling decisions',
+    carbon: 'Carbon',
+    carbonDesc: 'Impact estimate',
+    carbonLoading: 'Estimating environmental impact',
+        impactDashboard: 'Personal Impact Dashboard',
+        totalItemsTracked: 'Total Items Tracked',
+        noScansYet: 'No scans yet',
+        categoryBreakdown: 'Category Breakdown',
+        co2Note: 'CO2 values are rough educational estimates.',
+        achievements: 'Achievements',
+        ecoQuiz: 'Eco Quiz',
+        quizIntro: 'Practice waste sorting with questions personalized from your scan history.',
+        startQuiz: 'Start Quiz',
+        recentScans: 'Recent Scans',
+        clearAll: 'Clear All',
+        offlineDemoMode: 'Offline Demo Mode',
+        offlineDemoDesc: 'Simulate scans without internet or API keys',
+        aiProvider: 'AI Provider',
+        visionWarning: 'This app requires a vision-capable model. Text-only models will not work.',
+        recommendedVisionModel: 'Recommended Vision Model',
+        recommendedVisionHint: 'Recommended options are vision-capable models.',
+        customModelOptional: 'Custom Model (optional)',
+        customModelPlaceholder: 'Leave blank to use the recommended model',
+        customModelHelp: 'Advanced users can override the dropdown. Custom text-only models will not work.',
+        openAiApiKey: 'OpenAI API Key',
+        getApiKeyFrom: 'Get your API key from',
+        apiKeyConfigured: '{provider} API key is configured for this browser.',
+        apiKeyMissing: 'No {provider} API key found. Analysis will fail until one is added.',
+        analysisResults: 'Analysis Results',
+        offlineDemoData: 'Offline Demo Data',
+        summary: 'Summary',
+        detectedItems: 'Detected Items',
+        recyclabilityStatus: 'Recyclability Status',
+        whatNow: 'What should I do now?',
+        selectItemPlan: 'Select an item to see its disposal plan.',
+        materialBreakdown: 'Material Breakdown',
+        preparationSteps: 'Preparation Steps',
+        sustainabilityTracker: 'Sustainability Tracker',
+        ecoScore: 'Eco Score',
+        carbonSaved: 'CO2 Saved',
+        saveToHistory: 'Save to History',
+        immediateAction: 'Immediate action',
+        correctBinHandling: 'Correct bin / handling',
+        safetyWarning: 'Safety warning',
+        mistakeToAvoid: 'Common mistake to avoid',
+        steps: 'Steps',
+        whyThisMatters: 'Why this matters',
+        noMaterialBreakdown: 'No material breakdown available.',
+        noPreparationSteps: 'No preparation steps available.',
+        noComponentDetails: 'No component details were returned for this item.',
+        noDisposalPlan: 'No disposal plan available for this scan.',
+        retakeForPlan: 'Try retaking the photo with better lighting or selecting a detected item.',
+        noStepPlan: 'No step-by-step plan was returned. Follow the immediate action and local disposal rules.',
+        noSafetyWarning: 'No special safety warning identified.',
+        totalScans: 'Total scans',
+        recyclableItems: 'Recyclable items',
+        nonRecyclableItems: 'Non-recyclable items',
+        specialHandlingItems: 'Special handling',
+        mostCommon: 'Most common',
+        estimatedCo2Saved: 'Estimated CO2 saved',
+        quizXp: 'Quiz XP',
+        quizzesCompleted: 'Quizzes completed',
+        correctAnswers: 'Correct answers',
+        incorrectAnswers: 'Incorrect answers',
+        quizAccuracy: 'Quiz accuracy',
+        items: 'items',
+        scansSummary: '{count} scans | {co2} estimated CO2 saved',
+        plastic: 'Plastic',
+        metal: 'Metal',
+        paper: 'Paper',
+        glass: 'Glass',
+        eWasteBattery: 'E-waste / Battery',
+        other: 'Other',
+        noneYet: 'None yet',
+        unlocked: 'Unlocked',
+        locked: 'Locked',
+        achievementUnlocked: 'Achievement unlocked: {title}',
+        questionProgress: 'Question {current} of {total}',
+        sampleQuiz: 'Sample Quiz',
+        personalized: 'Personalized',
+        disposalAction: 'Disposal action',
+        preparationStep: 'Preparation step',
+        recyclableStatus: 'Recyclable status',
+        specialHandling: 'Special handling',
+        quizMaterialBreakdown: 'Material breakdown',
+        correct: 'Correct',
+        notQuite: 'Not quite',
+        score: 'Score: {score}/{total}',
+        quizSampleDesc: 'Your personalized quiz becomes richer after you complete scans. This sample uses common waste items.',
+        quizNoXpAgain: 'You already completed this quiz, so XP was not awarded again.',
+        quizXpEarned: 'XP earned: {xp} (+5 per correct, +2 completion{bonus}).',
+        perfectBonus: ', +5 perfect bonus',
+        imageUploaded: 'Image uploaded. Preview ready.',
+        imagePasted: 'Image pasted. Preview ready.',
+        imageDropped: 'Image dropped. Preview ready.',
+        firstImageOnly: 'Using the first image only.',
+        noFileFound: 'No file found.',
+        chooseImageFile: 'Please choose an image file.',
+        chooseSmallImage: 'Please choose an image smaller than 12 MB.',
+        imageLoadFailed: 'Could not load that image. Please try another file.',
+        noClipboardImage: 'No image found in clipboard. Try copying a screenshot or image first.',
+        dropImageFile: 'Please drop an image file.',
+        addProviderKey: 'Add a {provider} API key before scanning.',
+        chooseProviderModel: 'Choose a vision-capable {provider} model before scanning.',
+        captureFirst: 'Capture or upload an image first.',
+        analysisFailed: '{provider} analysis failed: {message}',
+        demoAnalysisFailed: 'Demo analysis failed: {message}',
+        invalidProviderKey: 'Enter a valid {provider} API key.',
+        invalidProviderModel: 'Enter a vision-capable {provider} model name.',
+        providerSettingsSaved: '{provider} settings saved locally.',
+        clearHistoryConfirm: 'Clear all local scan history and progress?',
+        demoActivated: 'Offline Demo Mode activated.',
+        demoDeactivated: 'Offline Demo Mode deactivated.',
+        demoModeOn: 'Offline Mode On',
+        demoModeOff: 'Offline Mode Off',
+        demoActive: 'Offline Demo Active',
+        demoSelectSeeing: 'Select what the camera is seeing:',
+        scenarioBottle: 'Scenario 1: Plastic Bottle (Composite)',
+        scenarioBattery: 'Scenario 2: Household Battery (Hazardous)',
+        scenarioBag: 'Scenario 3: Single-Use Plastic Bag (Soft Plastic)',
+        scenarioMixed: 'Scenario 4: Mixed Waste (Can, Box, Battery, Styrofoam)',
+        retake: 'Retake',
+        analyze: 'Analyze',
+        itemDetected: '{count} items detected',
+        itemAnalyzed: '{count} items analyzed'
+    },
+    vi: {
+        appTitle: 'RecycleCheck AI',
+        noScans: 'Chưa có lượt quét nào gần đây.',
+        recyclable: 'Có thể tái chế',
+        nonRecyclable: 'Không thể tái chế',
+        partial: 'Tái chế một phần',
+        special: 'Cần xử lý đặc biệt',
+        unclear: 'Ảnh chưa rõ',
+        sprout: 'Mầm Non',
+        warrior: 'Chiến Binh Xanh',
+        master: 'Bậc Thầy Tái Chế',
+        next: 'Kế tiếp:',
+        xp: 'XP',
+        done: 'Hoàn tất',
+        cancel: 'Hủy',
+        saveChanges: 'Lưu thay đổi',
+        settings: 'Cài đặt',
+        uploadImage: 'Tải ảnh lên',
+        analyzingWaste: 'Đang phân tích rác...',
+        loadingGuidance: 'Đang tạo hướng dẫn phân loại',
+        cameraRequired: 'Cần quyền truy cập camera',
+        cameraDesc: 'Để nhận diện rác nhanh, hãy cho phép camera hoặc tải ảnh lên.',
+        uploadPasteDropPhoto: 'Tải ảnh, dán ảnh, kéo thả hoặc chụp ảnh',
+        pasteShortcut: 'Mẹo: Nhấn Ctrl+V để dán ảnh chụp màn hình',
+        dropImagePreview: 'Kéo và thả ảnh vào đây',
+        onlyImagesAccepted: 'Chỉ chấp nhận tệp hình ảnh',
+        scanMode: 'Chế độ quét',
+        scanModeDesc: 'Chọn mức độ phân tích của AI cho ảnh này.',
+        quick: 'Nhanh',
+    quickDesc: 'Trả lời nhanh',
+    quickLoading: 'Kiểm tra nhanh có thể tái chế hay không',
+    detailed: 'Chi tiết',
+    detailedDesc: 'Vật liệu + các bước',
+    detailedLoading: 'Đang phân tích vật liệu và các bước chuẩn bị',
+    batch: 'Nhiều vật phẩm',
+    batchDesc: 'Nhiều món trong ảnh',
+    batchLoading: 'Đang tìm nhiều vật thể trong lưới 4x4',
+    education: 'Giải thích',
+    educationDesc: 'Giải thích lý do',
+    educationLoading: 'Đang giải thích quyết định tái chế',
+    carbon: 'Tác động carbon',
+    carbonDesc: 'Ước tính tác động',
+    carbonLoading: 'Đang ước tính tác động môi trường',
+        impactDashboard: 'Bảng tác động cá nhân',
+        totalItemsTracked: 'Tổng vật phẩm đã theo dõi',
+        noScansYet: 'Chưa có lượt quét',
+        categoryBreakdown: 'Phân tích theo loại',
+        co2Note: 'Giá trị CO₂ chỉ là ước tính giáo dục.',
+        achievements: 'Thành tựu',
+        ecoQuiz: 'Câu đố sinh thái',
+        quizIntro: 'Luyện phân loại rác bằng câu hỏi cá nhân hóa từ lịch sử quét.',
+        startQuiz: 'Bắt đầu câu đố',
+        recentScans: 'Lượt quét gần đây',
+        clearAll: 'Xóa tất cả',
+        offlineDemoMode: 'Chế độ ngoại tuyến',
+        offlineDemoDesc: 'Mô phỏng quét khi không có internet hoặc API key',
+        aiProvider: 'Nhà cung cấp AI',
+        visionWarning: 'Ứng dụng cần mô hình có khả năng nhìn ảnh. Mô hình chỉ xử lý văn bản sẽ không hoạt động.',
+        recommendedVisionModel: 'Mô hình đề xuất có hỗ trợ hình ảnh',
+        recommendedVisionHint: 'Các lựa chọn đề xuất đều là mô hình có hỗ trợ hình ảnh.',
+        customModelOptional: 'Mô hình tùy chỉnh (không bắt buộc)',
+        customModelPlaceholder: 'Để trống để dùng mô hình đề xuất',
+        customModelHelp: 'Người dùng nâng cao có thể tự nhập mô hình. Mô hình chỉ văn bản sẽ không hoạt động.',
+        openAiApiKey: 'API key OpenAI',
+        getApiKeyFrom: 'Lấy API key từ',
+        apiKeyConfigured: 'API key {provider} đã được lưu trong trình duyệt này.',
+        apiKeyMissing: 'Chưa có API key {provider}. Phân tích sẽ thất bại cho đến khi bạn thêm key.',
+        analysisResults: 'Kết quả phân tích',
+        offlineDemoData: 'Dữ liệu demo ngoại tuyến',
+        summary: 'Tóm tắt',
+        detectedItems: 'Vật phẩm phát hiện',
+        recyclabilityStatus: 'Trạng thái tái chế',
+        whatNow: 'Tôi nên làm gì bây giờ?',
+        selectItemPlan: 'Chọn một vật phẩm để xem kế hoạch xử lý.',
+        materialBreakdown: 'Phân tích vật liệu',
+        preparationSteps: 'Các bước chuẩn bị',
+        sustainabilityTracker: 'Theo dõi bền vững',
+        ecoScore: 'Điểm sinh thái',
+        carbonSaved: 'CO₂ đã tiết kiệm',
+        saveToHistory: 'Lưu vào lịch sử',
+        immediateAction: 'Hành động ngay',
+        correctBinHandling: 'Thùng đúng / cách xử lý',
+        safetyWarning: 'Cảnh báo an toàn',
+        mistakeToAvoid: 'Lỗi thường gặp cần tránh',
+        steps: 'Các bước',
+        whyThisMatters: 'Vì sao điều này quan trọng',
+        noMaterialBreakdown: 'Không có dữ liệu phân tích vật liệu.',
+        noPreparationSteps: 'Không có bước chuẩn bị.',
+        noComponentDetails: 'AI chưa trả về chi tiết thành phần cho vật phẩm này.',
+        noDisposalPlan: 'Không có kế hoạch xử lý cho lượt quét này.',
+        retakeForPlan: 'Hãy chụp lại với ánh sáng tốt hơn hoặc chọn một vật phẩm đã phát hiện.',
+        noStepPlan: 'Không có kế hoạch từng bước. Hãy làm theo hành động ngay và quy định địa phương.',
+        noSafetyWarning: 'Không phát hiện cảnh báo an toàn đặc biệt.',
+        totalScans: 'Tổng lượt quét',
+        recyclableItems: 'Vật phẩm có thể tái chế',
+        nonRecyclableItems: 'Không thể tái chế',
+        specialHandlingItems: 'Cần xử lý đặc biệt',
+        mostCommon: 'Loại phổ biến nhất',
+        estimatedCo2Saved: 'Ước tính CO₂ đã tiết kiệm',
+        quizXp: 'XP câu đố',
+        quizzesCompleted: 'Câu đố đã hoàn thành',
+        correctAnswers: 'Câu trả lời đúng',
+        incorrectAnswers: 'Câu trả lời sai',
+        quizAccuracy: 'Độ chính xác câu đố',
+        items: 'vật phẩm',
+        scansSummary: '{count} lượt quét | ước tính tiết kiệm {co2} CO₂',
+        plastic: 'Nhựa',
+        metal: 'Kim loại',
+        paper: 'Giấy',
+        glass: 'Thủy tinh',
+        eWasteBattery: 'Rác điện tử / pin',
+        other: 'Khác',
+        noneYet: 'Chưa có',
+        unlocked: 'Đã mở khóa',
+        locked: 'Chưa mở khóa',
+        achievementUnlocked: 'Đã mở khóa thành tựu: {title}',
+        questionProgress: 'Câu {current} / {total}',
+        sampleQuiz: 'Câu đố mẫu',
+        personalized: 'Cá nhân hóa',
+        disposalAction: 'Hành động xử lý',
+        preparationStep: 'Bước chuẩn bị',
+        recyclableStatus: 'Trạng thái tái chế',
+        specialHandling: 'Xử lý đặc biệt',
+        quizMaterialBreakdown: 'Phân tích vật liệu',
+        correct: 'Đúng',
+        notQuite: 'Chưa đúng',
+        score: 'Điểm: {score}/{total}',
+        quizSampleDesc: 'Câu đố cá nhân hóa sẽ phong phú hơn sau khi bạn quét. Câu đố mẫu dùng các vật phẩm phổ biến.',
+        quizNoXpAgain: 'Bạn đã hoàn thành câu đố này, nên XP sẽ không được cộng lại.',
+        quizXpEarned: 'XP nhận được: {xp} (+5 mỗi câu đúng, +2 hoàn thành{bonus}).',
+        perfectBonus: ', +5 thưởng hoàn hảo',
+        imageUploaded: 'Đã tải ảnh. Sẵn sàng xem trước.',
+        imagePasted: 'Đã dán ảnh. Sẵn sàng xem trước.',
+        imageDropped: 'Đã thả ảnh. Sẵn sàng xem trước.',
+        firstImageOnly: 'Chỉ sử dụng ảnh đầu tiên.',
+        noFileFound: 'Không tìm thấy tệp.',
+        chooseImageFile: 'Vui lòng chọn tệp hình ảnh.',
+        chooseSmallImage: 'Vui lòng chọn ảnh nhỏ hơn 12 MB.',
+        imageLoadFailed: 'Không thể tải ảnh này. Hãy thử tệp khác.',
+        noClipboardImage: 'Không tìm thấy ảnh trong clipboard. Hãy sao chép ảnh chụp màn hình hoặc hình ảnh trước.',
+        dropImageFile: 'Vui lòng thả tệp hình ảnh.',
+        addProviderKey: 'Hãy thêm API key {provider} trước khi quét.',
+        chooseProviderModel: 'Hãy chọn mô hình {provider} có hỗ trợ hình ảnh trước khi quét.',
+        captureFirst: 'Hãy chụp hoặc tải ảnh lên trước.',
+        analysisFailed: 'Phân tích bằng {provider} thất bại: {message}',
+        demoAnalysisFailed: 'Phân tích demo thất bại: {message}',
+        invalidProviderKey: 'Hãy nhập API key {provider} hợp lệ.',
+        invalidProviderModel: 'Hãy nhập tên mô hình {provider} có hỗ trợ hình ảnh.',
+        providerSettingsSaved: 'Đã lưu cài đặt {provider} trong trình duyệt.',
+        clearHistoryConfirm: 'Xóa toàn bộ lịch sử quét và tiến trình cục bộ?',
+        demoActivated: 'Đã bật Chế độ ngoại tuyến.',
+        demoDeactivated: 'Đã tắt Chế độ ngoại tuyến.',
+        demoModeOn: 'Chế độ ngoại tuyến đang bật',
+        demoModeOff: 'Chế độ ngoại tuyến đang tắt',
+        demoActive: 'Đang bật demo ngoại tuyến',
+        demoSelectSeeing: 'Chọn nội dung camera đang thấy:',
+        scenarioBottle: 'Tình huống 1: Chai nhựa (nhiều thành phần)',
+        scenarioBattery: 'Tình huống 2: Pin gia dụng (nguy hại)',
+        scenarioBag: 'Tình huống 3: Túi nhựa dùng một lần (nhựa mềm)',
+        scenarioMixed: 'Tình huống 4: Rác hỗn hợp (lon, hộp, pin, xốp)',
+        retake: 'Chụp lại',
+        analyze: 'Phân tích',
+        itemDetected: 'Phát hiện {count} vật phẩm',
+        itemAnalyzed: 'Đã phân tích {count} vật phẩm'
+    }
+};
+
+Object.assign(translations.en, translationOverrides.en);
+Object.assign(translations.vi, translationOverrides.vi);
+
+Object.assign(translations.en, {
+    close: 'Close',
+    nextButton: 'Next',
+    finish: 'Finish',
+    completed: 'Completed',
+    correctShort: 'Correct',
+    accuracy: 'Accuracy',
+    ecoShort: 'eco',
+    confidence: 'confidence',
+    cell: 'cell',
+    wasteScan: 'Waste scan',
+    unknown: 'Unknown',
+    material: 'Material',
+    unknownMaterial: 'Unknown material',
+    checkLocalRules: 'Check local recycling rules.',
+    noClearWaste: 'No clear waste item was detected.',
+    multipleWasteSummary: 'This image contains {count} detected waste items with separate disposal guidance.',
+    unclearConfidence: 'Unclear Image ({percent}% confidence)',
+    statusWithConfidence: '{status} ({percent}% confidence)',
+    itemCount: '{count} items',
+    itemCountWithCo2: '{count} items | {co2}',
+    optionalCustomModel: 'Optional custom {provider} model',
+    apiKeyLabel: '{provider} API Key',
+    keyConfigured: '{provider} API key is configured for this browser.',
+    keyMissing: 'No {provider} API key found. Analysis will fail until one is added.',
+    keyHelpText: 'Get your API key from {provider}.',
+    checkConditionLocalRules: 'Check the item condition and follow local disposal rules.',
+    handleCarefullyDropoff: 'Handle carefully and use a dedicated collection point if available.',
+    doNotGuess: 'Do not guess if local recycling rules are unclear.',
+    emptyCleanRecycle: 'Empty, clean, and place the item in the appropriate recycling stream.',
+    separateParts: 'Separate recyclable parts from non-recyclable parts before disposal.',
+    keepOutRecycling: 'Keep this out of standard recycling unless local rules say otherwise.',
+    recycleBin: 'Recycling bin',
+    generalWasteDropoff: 'General waste or local drop-off',
+    dirtyRecycleMistake: 'Do not recycle it while dirty or full.',
+    partialRecycleMistake: 'Do not place it in recycling just because part of it looks recyclable.',
+    aiEmptyResponse: 'The AI response was empty. Please try again with better lighting.',
+    unclearRetakeMessage: 'The image is unclear. Please retake the photo with better lighting and place the object in the center.',
+    providerEmptyResponse: 'The provider returned an empty response.',
+    providerInvalidJson: 'The provider did not return valid JSON.',
+    achEcoStarter: 'Eco Starter',
+    achEcoStarterDesc: 'Reach 50 eco points',
+    achRecyclingHero: 'Recycling Hero',
+    achRecyclingHeroDesc: 'Reach 200 eco points',
+    achPlasticHunter: 'Plastic Hunter',
+    achPlasticHunterDesc: 'Scan 10 plastic items',
+    achBatteryGuardian: 'Battery Guardian',
+    achBatteryGuardianDesc: 'Detect 3 batteries',
+    achBatchMaster: 'Batch Master',
+    achBatchMasterDesc: 'Complete 5 batch scans',
+    achEcoLearner: 'Eco Learner',
+    achEcoLearnerDesc: 'Complete 1 quiz',
+    achSortingStudent: 'Sorting Student',
+    achSortingStudentDesc: 'Answer 10 quiz questions correctly',
+    achPerfectSorter: 'Perfect Sorter',
+    achPerfectSorterDesc: 'Get 5/5 in one quiz',
+    achWasteWisdom: 'Waste Wisdom',
+    achWasteWisdomDesc: 'Reach 50 quiz XP',
+    quizTitleSample: 'Eco Quiz - Sample Quiz',
+    quizCompleteXp: 'XP earned: {xp} (+5 per correct, +2 completion{bonus}).'
+    ,
+    qFirstActionPrompt: 'What should you do first with {item}?',
+    qBestImmediate: 'Best immediate action: {action}',
+    qPrepPrompt: 'Which preparation step is recommended for {item}?',
+    qPrepExplain: 'Preparation matters because contamination can make recycling fail.',
+    qClassifyPrompt: 'How should {item} be classified?',
+    qClassifyExplain: '{item} is marked as {status}.',
+    qHandlingPrompt: 'What handling type is best for {item}?',
+    qRecommendedHandling: 'Recommended handling: {handling}.',
+    qMaterialPrompt: 'Which material or part needs attention in {item}?',
+    anyRecyclingBin: 'Put it in any recycling bin',
+    ignoreLabelsThrowAway: 'Ignore labels and throw it away',
+    recycleWithoutCleaning: 'Recycle it without cleaning',
+    mixWithFoodWaste: 'Mix it with food waste',
+    regularRecyclingBin: 'Regular recycling bin',
+    regularTrashNoSorting: 'Regular trash with no sorting',
+    noPartsToSeparate: '{item}: no parts to separate',
+    allPartsTogether: 'All parts are always recycled together',
+    askLocalWasteGuide: 'Ask a local waste guide',
+    throwAwayWithoutSorting: 'Throw it away without sorting',
+    putInRegularRecycling: 'Put it in regular recycling'
+    ,
+    sampleBottleName: 'Plastic water bottle',
+    sampleBottleCategory: 'Plastic',
+    sampleBottleAction: 'Empty, rinse, and recycle accepted plastic parts.',
+    sampleBottleImmediate: 'Empty and rinse the bottle.',
+    sampleBottleStep1: 'Empty remaining liquid.',
+    sampleBottleStep2: 'Rinse the bottle.',
+    sampleBottleStep3: 'Remove label if possible.',
+    sampleBottleStep4: 'Recycle accepted plastic parts.',
+    sampleBottleHandling: 'Separate parts before disposal',
+    sampleBottleSafety: 'No special safety warning if empty.',
+    sampleBottleMistake: 'Do not recycle it while full or dirty.',
+    sampleBottleBody: 'Bottle body',
+    sampleBottleBodyMaterial: 'PET plastic',
+    sampleBottleBodyInstruction: 'Empty and rinse.',
+    sampleBottleLabel: 'Glossy label',
+    sampleBottleLabelMaterial: 'Coated paper or film',
+    sampleBottleLabelInstruction: 'Remove if possible.',
+    sampleBatteryName: 'Used battery',
+    sampleBatteryCategory: 'Battery',
+    sampleBatteryAction: 'Take to a battery drop-off point.',
+    sampleBatteryImmediate: 'Keep it out of normal trash and recycling.',
+    sampleBatteryStep1: 'Tape exposed terminals if needed.',
+    sampleBatteryStep2: 'Store in a dry place.',
+    sampleBatteryStep3: 'Bring to a battery drop-off point.',
+    sampleBatteryHandling: 'Battery drop-off',
+    sampleBatterySafety: 'Damaged batteries can leak or overheat.',
+    sampleBatteryMistake: 'Do not put batteries in regular recycling bins.',
+    sampleBatteryCell: 'Battery cell',
+    sampleBatteryMaterial: 'Mixed metals and chemicals',
+    sampleBatteryInstruction: 'Use special collection.',
+    samplePizzaName: 'Greasy pizza box',
+    samplePizzaCategory: 'Paper',
+    samplePizzaAction: 'Compost clean paper if allowed; discard greasy sections.',
+    samplePizzaImmediate: 'Separate clean cardboard from greasy parts.',
+    samplePizzaStep1: 'Tear off clean lid if recyclable.',
+    samplePizzaStep2: 'Discard or compost greasy sections if accepted locally.',
+    samplePizzaHandling: 'Separate parts before disposal',
+    samplePizzaSafety: 'No special safety warning.',
+    samplePizzaMistake: 'Do not recycle greasy cardboard with clean paper.',
+    samplePizzaPart: 'Greasy cardboard',
+    samplePizzaMaterial: 'Contaminated paper',
+    samplePizzaInstruction: 'Keep out of clean recycling.',
+    savedLanguageNote: 'Some saved scan details may remain in the language used when they were created.',
+    promptBatchExample: '{"language":"en","scanType":"batch","objects":[{"id":1,"name":"Plastic Bottle","category":"Plastic","gridCell":3,"recyclable":true,"confidence":0.92,"ecoScore":15,"disposalAction":"Empty, rinse, and recycle if accepted locally.","disposalPlan":{"immediateAction":"Empty and rinse the bottle now.","steps":["Empty remaining liquid.","Rinse before recycling.","Put in recycling if accepted locally."],"handlingType":"Recycling bin","safetyWarning":"No special safety risk if empty.","mistakeToAvoid":"Do not recycle it with liquid inside."},"components":[{"part":"Bottle body","material":"PET plastic","recyclable":true,"instruction":"Empty and rinse."}],"preparationSteps":["Empty remaining liquid.","Rinse before recycling."],"education":"Brief reason.","carbonSavedGrams":20}],"overallSummary":"Short summary.","totalEcoScore":20,"carbonSavedGrams":20}',
+    promptSingleExample: '{"language":"en","scanType":"single","mainItem":"Plastic Water Bottle","category":"Composite Packaging","recyclable":"partial","confidence":0.9,"ecoScore":18,"disposalPlan":{"immediateAction":"Separate the label if possible, then empty and rinse the bottle.","steps":["Empty remaining liquid.","Rinse the bottle.","Remove label if possible.","Recycle accepted plastic parts."],"handlingType":"Separate parts before disposal","safetyWarning":"Avoid sharp edges if the bottle is damaged.","mistakeToAvoid":"Do not recycle contaminated or full packaging."},"components":[{"part":"PET bottle body","material":"Plastic PET","recyclable":true,"instruction":"Empty and rinse before recycling."}],"preparationSteps":["Empty remaining liquid.","Rinse the bottle."],"overallSummary":"Short summary.","carbonSavedGrams":15}'
+});
+
+Object.assign(translations.vi, {
+    close: 'Đóng',
+    nextButton: 'Tiếp theo',
+    finish: 'Kết thúc',
+    completed: 'Đã hoàn thành',
+    correctShort: 'Đúng',
+    accuracy: 'Độ chính xác',
+    ecoShort: 'sinh thái',
+    confidence: 'độ tin cậy',
+    cell: 'ô',
+    wasteScan: 'Lượt quét rác',
+    unknown: 'Không rõ',
+    material: 'Vật liệu',
+    unknownMaterial: 'Vật liệu không rõ',
+    checkLocalRules: 'Kiểm tra quy định tái chế tại địa phương.',
+    noClearWaste: 'Không phát hiện rõ vật phẩm rác nào.',
+    multipleWasteSummary: 'Ảnh này có {count} vật phẩm rác được phát hiện, mỗi vật phẩm có hướng dẫn xử lý riêng.',
+    unclearConfidence: 'Ảnh chưa rõ ({percent}% độ tin cậy)',
+    statusWithConfidence: '{status} ({percent}% độ tin cậy)',
+    itemCount: '{count} vật phẩm',
+    itemCountWithCo2: '{count} vật phẩm | {co2}',
+    optionalCustomModel: 'Mô hình {provider} tùy chỉnh không bắt buộc',
+    apiKeyLabel: 'API key {provider}',
+    keyConfigured: 'API key {provider} đã được lưu cho trình duyệt này.',
+    keyMissing: 'Chưa có API key {provider}. Phân tích sẽ thất bại cho đến khi bạn thêm key.',
+    keyHelpText: 'Lấy API key từ {provider}.',
+    checkConditionLocalRules: 'Kiểm tra tình trạng vật phẩm và làm theo quy định xử lý tại địa phương.',
+    handleCarefullyDropoff: 'Xử lý cẩn thận và dùng điểm thu gom chuyên dụng nếu có.',
+    doNotGuess: 'Không tự đoán nếu quy định tái chế tại địa phương không rõ.',
+    emptyCleanRecycle: 'Đổ hết, làm sạch và bỏ vật phẩm vào luồng tái chế phù hợp.',
+    separateParts: 'Tách phần có thể tái chế khỏi phần không thể tái chế trước khi bỏ.',
+    keepOutRecycling: 'Không bỏ vào thùng tái chế thông thường trừ khi quy định địa phương cho phép.',
+    recycleBin: 'Thùng tái chế',
+    generalWasteDropoff: 'Rác thường hoặc điểm thu gom địa phương',
+    dirtyRecycleMistake: 'Không tái chế khi vật phẩm còn bẩn hoặc còn chứa đồ bên trong.',
+    partialRecycleMistake: 'Không bỏ vào thùng tái chế chỉ vì một phần trông có vẻ tái chế được.',
+    aiEmptyResponse: 'Phản hồi AI trống. Vui lòng thử lại với ánh sáng tốt hơn.',
+    unclearRetakeMessage: 'Ảnh chưa rõ. Vui lòng chụp lại với ánh sáng tốt hơn và đặt vật phẩm ở giữa khung hình.',
+    providerEmptyResponse: 'Nhà cung cấp trả về phản hồi trống.',
+    providerInvalidJson: 'Nhà cung cấp không trả về JSON hợp lệ.',
+    achEcoStarter: 'Người mới xanh',
+    achEcoStarterDesc: 'Đạt 50 điểm sinh thái',
+    achRecyclingHero: 'Anh hùng tái chế',
+    achRecyclingHeroDesc: 'Đạt 200 điểm sinh thái',
+    achPlasticHunter: 'Thợ săn nhựa',
+    achPlasticHunterDesc: 'Quét 10 vật phẩm nhựa',
+    achBatteryGuardian: 'Người bảo vệ pin',
+    achBatteryGuardianDesc: 'Phát hiện 3 viên pin',
+    achBatchMaster: 'Bậc thầy quét nhiều món',
+    achBatchMasterDesc: 'Hoàn thành 5 lượt quét nhiều vật phẩm',
+    achEcoLearner: 'Học viên sinh thái',
+    achEcoLearnerDesc: 'Hoàn thành 1 câu đố',
+    achSortingStudent: 'Học viên phân loại',
+    achSortingStudentDesc: 'Trả lời đúng 10 câu hỏi',
+    achPerfectSorter: 'Người phân loại hoàn hảo',
+    achPerfectSorterDesc: 'Đạt 5/5 trong một câu đố',
+    achWasteWisdom: 'Trí tuệ rác thải',
+    achWasteWisdomDesc: 'Đạt 50 XP câu đố',
+    quizTitleSample: 'Câu đố sinh thái - Câu đố mẫu',
+    quizCompleteXp: 'XP nhận được: {xp} (+5 mỗi câu đúng, +2 hoàn thành{bonus}).'
+    ,
+    qFirstActionPrompt: 'Bạn nên làm gì trước tiên với {item}?',
+    qBestImmediate: 'Hành động ngay tốt nhất: {action}',
+    qPrepPrompt: 'Bước chuẩn bị nào được khuyến nghị cho {item}?',
+    qPrepExplain: 'Chuẩn bị đúng rất quan trọng vì nhiễm bẩn có thể làm việc tái chế thất bại.',
+    qClassifyPrompt: '{item} nên được phân loại như thế nào?',
+    qClassifyExplain: '{item} được đánh dấu là {status}.',
+    qHandlingPrompt: 'Cách xử lý phù hợp nhất cho {item} là gì?',
+    qRecommendedHandling: 'Cách xử lý được khuyến nghị: {handling}.',
+    qMaterialPrompt: 'Vật liệu hoặc bộ phận nào của {item} cần chú ý?',
+    anyRecyclingBin: 'Bỏ vào bất kỳ thùng tái chế nào',
+    ignoreLabelsThrowAway: 'Bỏ qua nhãn và vứt đi',
+    recycleWithoutCleaning: 'Tái chế mà không làm sạch',
+    mixWithFoodWaste: 'Trộn với rác thực phẩm',
+    regularRecyclingBin: 'Thùng tái chế thông thường',
+    regularTrashNoSorting: 'Rác thường, không cần phân loại',
+    noPartsToSeparate: '{item}: không có bộ phận cần tách',
+    allPartsTogether: 'Tất cả bộ phận luôn được tái chế cùng nhau',
+    askLocalWasteGuide: 'Hỏi hướng dẫn xử lý rác tại địa phương',
+    throwAwayWithoutSorting: 'Vứt đi mà không phân loại',
+    putInRegularRecycling: 'Bỏ vào thùng tái chế thông thường'
+    ,
+    sampleBottleName: 'Chai nước nhựa',
+    sampleBottleCategory: 'Nhựa',
+    sampleBottleAction: 'Đổ hết, rửa sạch và tái chế các phần nhựa được chấp nhận.',
+    sampleBottleImmediate: 'Đổ hết và rửa sạch chai.',
+    sampleBottleStep1: 'Đổ hết chất lỏng còn lại.',
+    sampleBottleStep2: 'Rửa sạch chai.',
+    sampleBottleStep3: 'Gỡ nhãn nếu có thể.',
+    sampleBottleStep4: 'Tái chế các phần nhựa được chấp nhận.',
+    sampleBottleHandling: 'Tách các bộ phận trước khi bỏ',
+    sampleBottleSafety: 'Không có cảnh báo an toàn đặc biệt nếu chai đã rỗng.',
+    sampleBottleMistake: 'Không tái chế khi chai còn đầy hoặc còn bẩn.',
+    sampleBottleBody: 'Thân chai',
+    sampleBottleBodyMaterial: 'Nhựa PET',
+    sampleBottleBodyInstruction: 'Đổ hết và rửa sạch.',
+    sampleBottleLabel: 'Nhãn bóng',
+    sampleBottleLabelMaterial: 'Giấy phủ hoặc màng phủ',
+    sampleBottleLabelInstruction: 'Gỡ ra nếu có thể.',
+    sampleBatteryName: 'Pin đã dùng',
+    sampleBatteryCategory: 'Pin',
+    sampleBatteryAction: 'Mang đến điểm thu gom pin.',
+    sampleBatteryImmediate: 'Không bỏ vào rác thường hoặc thùng tái chế.',
+    sampleBatteryStep1: 'Dán băng keo lên cực pin hở nếu cần.',
+    sampleBatteryStep2: 'Cất ở nơi khô ráo.',
+    sampleBatteryStep3: 'Mang đến điểm thu gom pin.',
+    sampleBatteryHandling: 'Điểm thu gom pin',
+    sampleBatterySafety: 'Pin hư hỏng có thể rò rỉ hoặc quá nhiệt.',
+    sampleBatteryMistake: 'Không bỏ pin vào thùng tái chế thông thường.',
+    sampleBatteryCell: 'Lõi pin',
+    sampleBatteryMaterial: 'Kim loại và hóa chất hỗn hợp',
+    sampleBatteryInstruction: 'Dùng điểm thu gom chuyên dụng.',
+    samplePizzaName: 'Hộp pizza dính dầu mỡ',
+    samplePizzaCategory: 'Giấy',
+    samplePizzaAction: 'Ủ phần giấy sạch nếu được phép; bỏ phần dính dầu mỡ.',
+    samplePizzaImmediate: 'Tách bìa sạch khỏi phần dính dầu mỡ.',
+    samplePizzaStep1: 'Xé phần nắp sạch nếu có thể tái chế.',
+    samplePizzaStep2: 'Bỏ hoặc ủ phần dính dầu mỡ nếu địa phương chấp nhận.',
+    samplePizzaHandling: 'Tách các bộ phận trước khi bỏ',
+    samplePizzaSafety: 'Không có cảnh báo an toàn đặc biệt.',
+    samplePizzaMistake: 'Không tái chế bìa dính dầu mỡ cùng giấy sạch.',
+    samplePizzaPart: 'Bìa dính dầu mỡ',
+    samplePizzaMaterial: 'Giấy bị nhiễm bẩn',
+    samplePizzaInstruction: 'Không bỏ vào luồng tái chế giấy sạch.',
+    savedLanguageNote: 'Một số chi tiết quét đã lưu có thể vẫn ở ngôn ngữ được dùng khi tạo.',
+    promptBatchExample: '{"language":"vi","scanType":"batch","objects":[{"id":1,"name":"Chai nhựa","category":"Nhựa","gridCell":3,"recyclable":true,"confidence":0.92,"ecoScore":15,"disposalAction":"Đổ hết, rửa sạch và tái chế nếu địa phương chấp nhận.","disposalPlan":{"immediateAction":"Đổ hết phần nước còn lại và rửa sạch chai ngay.","steps":["Đổ hết chất lỏng còn lại.","Rửa sạch trước khi tái chế.","Bỏ vào thùng tái chế nếu địa phương chấp nhận."],"handlingType":"Thùng tái chế","safetyWarning":"Không có rủi ro an toàn đặc biệt nếu chai đã rỗng.","mistakeToAvoid":"Không tái chế chai khi vẫn còn chất lỏng bên trong."},"components":[{"part":"Thân chai","material":"Nhựa PET","recyclable":true,"instruction":"Đổ hết và rửa sạch."}],"preparationSteps":["Đổ hết chất lỏng còn lại.","Rửa sạch trước khi tái chế."],"education":"Nhựa PET thường được tái chế nếu sạch và không bị nhiễm bẩn.","carbonSavedGrams":20}],"overallSummary":"Phát hiện chai nhựa có thể tái chế sau khi làm sạch.","totalEcoScore":20,"carbonSavedGrams":20}',
+    promptSingleExample: '{"language":"vi","scanType":"single","mainItem":"Chai nước nhựa","category":"Bao bì nhiều vật liệu","recyclable":"partial","confidence":0.9,"ecoScore":18,"disposalPlan":{"immediateAction":"Tách nhãn nếu có thể, sau đó đổ hết và rửa sạch chai.","steps":["Đổ hết chất lỏng còn lại.","Rửa sạch chai.","Gỡ nhãn nếu có thể.","Tái chế các phần nhựa được chấp nhận."],"handlingType":"Tách các bộ phận trước khi bỏ","safetyWarning":"Cẩn thận cạnh sắc nếu chai bị vỡ hoặc biến dạng.","mistakeToAvoid":"Không tái chế bao bì còn bẩn hoặc còn đầy."},"components":[{"part":"Thân chai PET","material":"Nhựa PET","recyclable":true,"instruction":"Đổ hết và rửa sạch trước khi tái chế."}],"preparationSteps":["Đổ hết chất lỏng còn lại.","Rửa sạch chai."],"overallSummary":"Chai nước nhựa có thể tái chế một phần nếu được làm sạch và tách nhãn.","carbonSavedGrams":15}'
+});
+
 let stream = null;
 let video = null;
 let canvasContext = null;
@@ -269,14 +879,136 @@ let animationFrameId = null;
 let capturedImageData = null;
 let capturedHistoryImageData = null;
 let lastAnalysisResult = null;
-let currentLanguage = 'en';
+let currentLanguage = ['en', 'vi'].includes(localStorage.getItem(STORAGE_KEYS.language))
+    ? localStorage.getItem(STORAGE_KEYS.language)
+    : 'en';
 let selectedScanMode = localStorage.getItem(STORAGE_KEYS.selectedMode) || 'quick';
 let selectedProvider = localStorage.getItem(STORAGE_KEYS.provider) || 'openai';
 let statsChartInstance = null;
 let currentQuiz = null;
+let dragDepth = 0;
+let currentFocusedGridCell = null;
 
-function t(key) {
-    return translations[currentLanguage][key] || translations.en[key] || key;
+function t(key, params = {}) {
+    const activeTranslations = translations[currentLanguage] || translations.en;
+    let template = activeTranslations[key];
+    if (template === undefined) {
+        template = translations.en[key];
+        if (template === undefined) {
+            console.warn(`[i18n] Missing translation key: ${key}`);
+            return '';
+        }
+        console.warn(`[i18n] Missing ${currentLanguage} translation for key: ${key}`);
+    }
+
+    return String(template).replace(/\{(\w+)\}/g, (_, paramKey) => (
+        params[paramKey] !== undefined ? String(params[paramKey]) : ''
+    ));
+}
+
+function setText(selector, key, params = {}) {
+    const element = typeof selector === 'string' ? document.querySelector(selector) : selector;
+    if (element && key) element.textContent = t(key, params);
+    return element;
+}
+
+function setPlaceholder(element, key) {
+    if (element) element.placeholder = t(key);
+}
+
+function applyStaticTranslations() {
+    document.documentElement.lang = currentLanguage;
+    setText('h1', 'appTitle');
+    dom.langToggleBtn.textContent = currentLanguage === 'en' ? 'EN' : 'VI';
+    dom.settingsBtn.title = t('settings');
+
+    setText('#dropZoneHint span:not(.paste-shortcut-hint)', 'uploadPasteDropPhoto');
+    setText('.paste-shortcut-hint', 'pasteShortcut');
+    setText('#dropZoneTitle', 'dropImagePreview');
+    setText('#dropZoneMessage', 'onlyImagesAccepted');
+    setText('#loadingOverlay p.font-semibold', 'analyzingWaste');
+    setText('#loadingModeText', 'loadingGuidance');
+    setText('#cameraFallback h3', 'cameraRequired');
+    setText('#cameraFallback p', 'cameraDesc');
+    setText('#cameraFallback label span', 'uploadImage');
+
+    const scanModeSection = dom.scanModeOptions?.closest('.bg-white');
+    setText(scanModeSection?.querySelector('h2'), 'scanMode');
+    setText(scanModeSection?.querySelector('p'), 'scanModeDesc');
+    dom.scanModeOptions?.querySelectorAll('[data-mode]').forEach(button => {
+        const keys = scanModeTranslationKeys[button.dataset.mode];
+        if (!keys) return;
+        setText(button.querySelector('span'), keys.label);
+        setText(button.querySelector('small'), keys.description);
+    });
+
+    const dashboardTitle = dom.impactStatsGrid?.closest('.bg-white')?.querySelector('h2 span');
+    setText(dashboardTitle, 'impactDashboard');
+    const totalTrackedLabel = dom.totalRecycledCount?.previousElementSibling;
+    setText(totalTrackedLabel, 'totalItemsTracked');
+    const categoryTitle = dom.categoryBreakdownList?.previousElementSibling?.querySelector('h3');
+    setText(categoryTitle, 'categoryBreakdown');
+    const co2Note = dom.categoryBreakdownList?.previousElementSibling?.querySelector('p');
+    setText(co2Note, 'co2Note');
+
+    setText(dom.achievementList?.closest('.bg-white')?.querySelector('h2 span'), 'achievements');
+    setText('#quizIntroText', 'quizIntro');
+    setText('#startQuizBtn', 'startQuiz');
+    setText(dom.quizStatsInline?.closest('.bg-white')?.querySelector('h2 span'), 'ecoQuiz');
+    setText(document.querySelector('#recentList')?.closest('section')?.querySelector('h2'), 'recentScans');
+    setText('#clearHistoryBtn', 'clearAll');
+    setText('#emptyRecent p', 'noScans');
+
+    setText('#settingsModal h2', 'settings');
+    setText('#settingsModal label[for="providerSelect"]', 'aiProvider');
+    const settingsAmberSpans = document.querySelectorAll('#settingsModal .bg-amber-50 span');
+    setText(settingsAmberSpans[settingsAmberSpans.length - 1], 'visionWarning');
+    setText('#settingsModal label[for="modelSelect"]', 'recommendedVisionModel');
+    setText('#modelHint', 'recommendedVisionHint');
+    setText('#settingsModal label[for="modelInput"]', 'customModelOptional');
+    setPlaceholder(dom.modelInput, 'customModelPlaceholder');
+    const customHelp = dom.modelInput?.closest('div')?.querySelector('p');
+    setText(customHelp, 'customModelHelp');
+    setText('#cancelSettingsBtn', 'cancel');
+    setText('#saveSettingsBtn', 'saveChanges');
+    setText('#settingsModal .uppercase', 'offlineDemoMode');
+    const demoDesc = document.querySelector('#settingsModal .uppercase')?.nextElementSibling;
+    setText(demoDesc, 'offlineDemoDesc');
+
+    setText('#resultsModal h2', 'analysisResults');
+    setText('#resultsDemoBadge span', 'offlineDemoData');
+    setText('#closeResultsBtn', 'done');
+    setText('#resultSummaryCard h5', 'summary');
+    setText('#detectedObjectsSection h5', 'detectedItems');
+    setText('#statusCard p', 'recyclabilityStatus');
+    setText('#disposalPlanSection h5', 'whatNow');
+    if (dom.disposalPlanItemName && dom.disposalPlanItemName.textContent === translations.en.selectItemPlan) {
+        setText(dom.disposalPlanItemName, 'selectItemPlan');
+    }
+    setText('#disposalPlanSection h6', 'steps');
+    setText(dom.compositionBars?.closest('.bg-white')?.querySelector('h5'), 'materialBreakdown');
+    setText(dom.actionSteps?.closest('.bg-white')?.querySelector('h5'), 'preparationSteps');
+    setText(dom.ecoScoreValue?.closest('.bg-white')?.querySelector('h5'), 'sustainabilityTracker');
+    setText(dom.ecoScoreValue?.previousElementSibling, 'ecoScore');
+    setText(dom.carbonSavedValue?.previousElementSibling, 'carbonSaved');
+    setText('#saveToHistoryBtn span', 'saveToHistory');
+
+    setText('#quizModalTitle', 'ecoQuiz');
+    setText('#closeQuizBtn', 'close');
+    setText('#nextQuizBtn', 'done');
+
+    setText('#demoSelectorPanel .uppercase', 'demoActive');
+    setText('#demoSelectorPanel .text-\\[10px\\]', 'demoSelectSeeing');
+    const options = dom.demoScenarioSelect?.querySelectorAll('option');
+    if (options?.length >= 4) {
+        options[0].textContent = t('scenarioBottle');
+        options[1].textContent = t('scenarioBattery');
+        options[2].textContent = t('scenarioBag');
+        options[3].textContent = t('scenarioMixed');
+    }
+
+    setText('#retakeBtn span', 'retake');
+    setText('#analyzeBtn span', 'analyze');
 }
 
 function createElement(tag, options = {}, children = []) {
@@ -477,7 +1209,7 @@ function normalizeGeminiModelName(model) {
 
 function extractJsonObject(text) {
     if (typeof text !== 'string' || !text.trim()) {
-        throw new Error('The provider returned an empty response.');
+        throw new Error(t('providerEmptyResponse'));
     }
 
     try {
@@ -486,7 +1218,7 @@ function extractJsonObject(text) {
         const firstBrace = text.indexOf('{');
         const lastBrace = text.lastIndexOf('}');
         if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-            throw new Error('The provider did not return valid JSON.');
+            throw new Error(t('providerInvalidJson'));
         }
         return JSON.parse(text.slice(firstBrace, lastBrace + 1));
     }
@@ -494,10 +1226,10 @@ function extractJsonObject(text) {
 
 function normalizeComponent(component) {
     return {
-        part: safeString(component.part || component.material || 'Material'),
-        material: safeString(component.material || component.part || 'Unknown material'),
+        part: safeString(component.part || component.material || t('material')),
+        material: safeString(component.material || component.part || t('unknownMaterial')),
         recyclable: component.recyclable === true || component.recyclable === 'true' || component.recyclable === 'partial' || component.recyclable === 'special' || component.recyclable === 'special handling' ? component.recyclable : false,
-        instruction: safeString(component.instruction || component.disposalAction || 'Check local recycling rules.')
+        instruction: safeString(component.instruction || component.disposalAction || t('checkLocalRules'))
     };
 }
 
@@ -510,11 +1242,11 @@ function normalizeDisposalPlan(rawPlan, fallback = {}) {
         .slice(0, 8);
 
     return {
-        immediateAction: safeString(plan.immediateAction || fallback.immediateAction || 'Check the item condition and follow local disposal rules.'),
+        immediateAction: safeString(plan.immediateAction || fallback.immediateAction || t('checkConditionLocalRules')),
         steps: (steps.length > 0 ? steps : fallbackSteps).slice(0, 8),
-        handlingType: safeString(plan.handlingType || fallback.handlingType || 'Check local rules'),
-        safetyWarning: safeString(plan.safetyWarning || fallback.safetyWarning || 'No special safety warning identified.'),
-        mistakeToAvoid: safeString(plan.mistakeToAvoid || fallback.mistakeToAvoid || 'Do not guess if local recycling rules are unclear.')
+        handlingType: safeString(plan.handlingType || fallback.handlingType || t('checkLocalRules')),
+        safetyWarning: safeString(plan.safetyWarning || fallback.safetyWarning || t('noSafetyWarning')),
+        mistakeToAvoid: safeString(plan.mistakeToAvoid || fallback.mistakeToAvoid || t('doNotGuess'))
     };
 }
 
@@ -522,24 +1254,24 @@ function getFallbackDisposalPlan(rawObject, recyclable, components, preparationS
     const kind = getStatusKind(recyclable);
     const hasSpecialComponent = components.some(component => getStatusKind(component.recyclable) === 'special' || /battery|e-waste|sharp|hazard/i.test(`${component.part} ${component.material}`));
     const handlingType = hasSpecialComponent
-        ? 'Special handling'
+        ? t('special')
         : kind === 'recyclable'
-            ? 'Recycling bin'
+            ? t('recycleBin')
             : kind === 'partial'
-                ? 'Separate parts before disposal'
-                : 'General waste or local drop-off';
+                ? t('separateParts')
+                : t('generalWasteDropoff');
     const immediateAction = rawObject.disposalAction || rawObject.status_message || (kind === 'recyclable'
-        ? 'Empty, clean, and place the item in the appropriate recycling stream.'
+        ? t('emptyCleanRecycle')
         : kind === 'partial'
-            ? 'Separate recyclable parts from non-recyclable parts before disposal.'
-            : 'Keep this out of standard recycling unless local rules say otherwise.');
+            ? t('separateParts')
+            : t('keepOutRecycling'));
 
     return {
         immediateAction,
         steps: preparationSteps.length > 0 ? preparationSteps : [immediateAction],
         handlingType,
-        safetyWarning: hasSpecialComponent ? 'Handle carefully and use a dedicated collection point if available.' : '',
-        mistakeToAvoid: kind === 'recyclable' ? 'Do not recycle it while dirty or full.' : 'Do not place it in recycling just because part of it looks recyclable.'
+        safetyWarning: hasSpecialComponent ? t('handleCarefullyDropoff') : '',
+        mistakeToAvoid: kind === 'recyclable' ? t('dirtyRecycleMistake') : t('partialRecycleMistake')
     };
 }
 
@@ -548,7 +1280,7 @@ function normalizeObject(rawObject, index) {
     const components = asArray(rawObject.components || rawObject.composition).map(normalizeComponent);
     const fallbackSteps = rawObject.disposalAction ? [rawObject.disposalAction] : [];
     const preparationSteps = asArray(rawObject.preparationSteps || rawObject.action_steps).map(step => safeString(step)).filter(Boolean).slice(0, 8).concat(fallbackSteps).slice(0, 8);
-    const disposalAction = safeString(rawObject.disposalAction || rawObject.status_message || 'Check local disposal rules.');
+    const disposalAction = safeString(rawObject.disposalAction || rawObject.status_message || t('checkLocalRules'));
     const disposalPlan = normalizeDisposalPlan(
         rawObject.disposalPlan,
         getFallbackDisposalPlan({ ...rawObject, disposalAction }, recyclable, components, preparationSteps)
@@ -556,8 +1288,8 @@ function normalizeObject(rawObject, index) {
 
     return {
         id: clampNumber(rawObject.id, 1, 99, index + 1),
-        name: safeString(rawObject.name || rawObject.scanned_item || rawObject.mainItem || 'Unknown item'),
-        category: safeString(rawObject.category || 'Unknown'),
+        name: safeString(rawObject.name || rawObject.scanned_item || rawObject.mainItem || t('unknown')),
+        category: safeString(rawObject.category || t('unknown')),
         gridCell: rawObject.gridCell ? clampNumber(rawObject.gridCell, 1, 16, null) : null,
         recyclable,
         confidence: clampNumber(rawObject.confidence, 0, 1, 0.7),
@@ -575,7 +1307,7 @@ function normalizeResult(rawResult) {
     if (!rawResult || typeof rawResult !== 'object') {
         return {
             scanType: 'unclear',
-            message: 'The AI response was empty. Please try again with better lighting.',
+            message: t('aiEmptyResponse'),
             confidence: 0.2,
             objects: [],
             totalEcoScore: 0
@@ -585,7 +1317,7 @@ function normalizeResult(rawResult) {
     if (rawResult.scanType === 'unclear') {
         return {
             scanType: 'unclear',
-            message: safeString(rawResult.message, 'The image is unclear. Please retake the photo with better lighting and place the object in the center.'),
+            message: safeString(rawResult.message, t('unclearRetakeMessage')),
             confidence: clampNumber(rawResult.confidence, 0, 1, 0.3),
             objects: [],
             totalEcoScore: 0
@@ -620,8 +1352,8 @@ function normalizeResult(rawResult) {
 
     return {
         scanType: inferredBatch ? 'batch' : 'single',
-        mainItem: safeString(rawResult.mainItem || rawResult.scanned_item || objects[0]?.name || 'Waste scan'),
-        category: safeString(rawResult.category || objects[0]?.category || 'Unknown'),
+        mainItem: safeString(rawResult.mainItem || rawResult.scanned_item || objects[0]?.name || t('wasteScan')),
+        category: safeString(rawResult.category || objects[0]?.category || t('unknown')),
         recyclable: rawResult.recyclable ?? rawResult.is_recyclable ?? objects[0]?.recyclable ?? false,
         confidence: clampNumber(rawResult.confidence, 0, 1, objects[0]?.confidence || 0.7),
         overallSummary: safeString(rawResult.overallSummary || rawResult.summary || buildSummary(objects)),
@@ -632,26 +1364,31 @@ function normalizeResult(rawResult) {
 }
 
 function buildSummary(objects) {
-    if (objects.length === 0) return 'No clear waste item was detected.';
+    if (objects.length === 0) return t('noClearWaste');
     if (objects.length === 1) {
         const item = objects[0];
         return `${item.name}: ${getStatusLabel(item.recyclable)}. ${item.disposalAction}`;
     }
-    return `This image contains ${objects.length} detected waste items with separate disposal guidance.`;
+    return t('multipleWasteSummary', { count: objects.length });
 }
 
 function buildSystemPrompt(modeName = selectedScanMode) {
     const mode = scanModes[modeName] || scanModes.quick;
+    const responseLanguage = currentLanguage === 'vi'
+        ? 'Vietnamese with natural wording and full Vietnamese accents'
+        : 'English';
+    const unclearMessage = t('unclearRetakeMessage');
     return [
         'You are an expert waste sorting AI for a browser-only recycling demo.',
         'Return JSON only. No markdown. No explanation outside JSON.',
         'Use consistent fields and short practical language.',
+        `Return all human-readable JSON values in ${responseLanguage}. Keep JSON field names in English exactly as requested.`,
         'If uncertain, use confidence below 0.7 and suggest retaking the photo.',
         'If the image has multiple objects, use scanType = "batch".',
         'If an item has multiple materials, include components.',
         'Every single result or detected object must include disposalPlan with immediateAction, steps, handlingType, safetyWarning, and mistakeToAvoid.',
         'Use handlingType values such as Recycling bin, General waste, Compost, Special handling, E-waste drop-off, Battery drop-off, or Separate parts before disposal.',
-        'If the image is unclear, return exactly: {"scanType":"unclear","message":"The image is unclear. Please retake the photo with better lighting and place the object in the center.","confidence":0.3}',
+        `If the image is unclear, return exactly: {"scanType":"unclear","message":"${unclearMessage}","confidence":0.3}`,
         `Selected mode: ${mode.label}. ${mode.instruction}`,
         'Expected batch JSON: {"scanType":"batch","objects":[{"id":1,"name":"Plastic Bottle","category":"Plastic","gridCell":3,"recyclable":true,"confidence":0.92,"ecoScore":15,"disposalAction":"Empty, rinse, and recycle if accepted locally.","disposalPlan":{"immediateAction":"Empty and rinse the bottle now.","steps":["Empty remaining liquid.","Rinse before recycling.","Put in recycling if accepted locally."],"handlingType":"Recycling bin","safetyWarning":"No special safety risk if empty.","mistakeToAvoid":"Do not recycle it with liquid inside."},"components":[{"part":"Bottle body","material":"PET plastic","recyclable":true,"instruction":"Empty and rinse."}],"preparationSteps":["Empty remaining liquid.","Rinse before recycling."],"education":"Brief reason.","carbonSavedGrams":20}],"overallSummary":"Short summary.","totalEcoScore":20,"carbonSavedGrams":20}',
         'Expected single JSON: {"scanType":"single","mainItem":"Plastic Water Bottle","category":"Composite Packaging","recyclable":"partial","confidence":0.9,"ecoScore":18,"disposalPlan":{"immediateAction":"Separate the label if possible, then empty and rinse the bottle.","steps":["Empty remaining liquid.","Rinse the bottle.","Remove label if possible.","Recycle accepted plastic parts."],"handlingType":"Separate parts before disposal","safetyWarning":"Avoid sharp edges if the bottle is damaged.","mistakeToAvoid":"Do not recycle contaminated or full packaging."},"components":[{"part":"PET bottle body","material":"Plastic PET","recyclable":true,"instruction":"Empty and rinse before recycling."}],"preparationSteps":["Empty remaining liquid.","Rinse the bottle."],"overallSummary":"Short summary.","carbonSavedGrams":15}'
@@ -1070,6 +1807,11 @@ async function analyzeWithGemini({ apiKey, model, imageBase64, prompt }) {
     return extractJsonObject(content);
 }
 
+function getScanModeText(mode, field) {
+    const keys = scanModeTranslationKeys[mode] || scanModeTranslationKeys.quick;
+    return t(keys[field] || keys.label);
+}
+
 function setScanMode(mode) {
     selectedScanMode = scanModes[mode] ? mode : 'quick';
     localStorage.setItem(STORAGE_KEYS.selectedMode, selectedScanMode);
@@ -1189,26 +1931,140 @@ async function captureImage() {
     }, 100);
 }
 
+function validateImageFile(file) {
+    if (!file) {
+        return t('noFileFound');
+    }
+    if (!file.type.startsWith('image/')) {
+        return t('chooseImageFile');
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+        return t('chooseSmallImage');
+    }
+    return '';
+}
+
+function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = event => resolve(event.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+async function processImageFile(file, successMessage, noteMessage = '') {
+    const validationError = validateImageFile(file);
+    if (validationError) {
+        showToast(validationError);
+        return false;
+    }
+
+    try {
+        const imageDataUrl = await readFileAsDataUrl(file);
+        capturedImageData = await compressImage(imageDataUrl, MAX_IMAGE_DIMENSION, 0.82);
+        capturedHistoryImageData = await compressImage(imageDataUrl, HISTORY_IMAGE_DIMENSION, 0.72);
+        showSnappedPhoto(capturedImageData);
+        showPreviewModal(capturedImageData);
+        showToast(noteMessage ? `${successMessage} ${noteMessage}` : successMessage);
+        return true;
+    } catch (error) {
+        console.error('Image import error:', error);
+        showToast(t('imageLoadFailed'));
+        return false;
+    }
+}
+
 async function handleFileUpload(event) {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-        showToast('Please upload a valid image file.');
-        return;
-    }
-    if (file.size > 12 * 1024 * 1024) {
-        showToast('Please choose an image smaller than 12 MB.');
+    await processImageFile(file, t('imageUploaded'));
+}
+
+function isTextEntryElement(element) {
+    if (!element) return false;
+    const tagName = element.tagName?.toLowerCase();
+    return tagName === 'input' || tagName === 'textarea' || tagName === 'select' || element.isContentEditable;
+}
+
+function getClipboardImageFile(event) {
+    const clipboardData = event.clipboardData;
+    if (!clipboardData) return null;
+
+    const files = Array.from(clipboardData.files || []);
+    const fileImage = files.find(file => file.type.startsWith('image/'));
+    if (fileImage) return fileImage;
+
+    const items = Array.from(clipboardData.items || []);
+    const imageItem = items.find(item => item.kind === 'file' && item.type.startsWith('image/'));
+    return imageItem ? imageItem.getAsFile() : null;
+}
+
+async function handlePaste(event) {
+    if (isTextEntryElement(document.activeElement)) {
         return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async uploadEvent => {
-        capturedImageData = await compressImage(uploadEvent.target.result, MAX_IMAGE_DIMENSION, 0.82);
-        capturedHistoryImageData = await compressImage(uploadEvent.target.result, HISTORY_IMAGE_DIMENSION, 0.72);
-        showSnappedPhoto(capturedImageData);
-        showPreviewModal(capturedImageData);
-    };
-    reader.readAsDataURL(file);
+    const imageFile = getClipboardImageFile(event);
+    if (!imageFile) {
+        showToast(t('noClipboardImage'));
+        return;
+    }
+
+    event.preventDefault();
+    await processImageFile(imageFile, t('imagePasted'));
+}
+
+function hasDraggedFiles(event) {
+    return Array.from(event.dataTransfer?.types || []).includes('Files');
+}
+
+function setDropZoneActive(isActive, title = t('dropImagePreview'), message = t('onlyImagesAccepted')) {
+    dom.cameraSection.classList.toggle('drag-over', isActive);
+    dom.dropZoneOverlay.classList.toggle('hidden', !isActive);
+    dom.dropZoneTitle.textContent = title;
+    dom.dropZoneMessage.textContent = message;
+}
+
+function handleDragEnter(event) {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    dragDepth += 1;
+    setDropZoneActive(true);
+}
+
+function handleDragOver(event) {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    setDropZoneActive(true);
+}
+
+function handleDragLeave(event) {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) {
+        setDropZoneActive(false);
+    }
+}
+
+async function handleDrop(event) {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    dragDepth = 0;
+    setDropZoneActive(false);
+
+    const files = Array.from(event.dataTransfer?.files || []);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+
+    if (imageFiles.length === 0) {
+        showToast(t('dropImageFile'));
+        return;
+    }
+
+    const note = imageFiles.length > 1 || files.length > 1 ? t('firstImageOnly') : '';
+    await processImageFile(imageFiles[0], t('imageDropped'), note);
 }
 
 function showSnappedPhoto(imageData) {
@@ -1267,22 +2123,22 @@ async function analyzeWithAI() {
     if (!isDemoMode) {
         if (!config.apiKey) {
             openSettings();
-            showToast(`Add a ${providerMeta.label} API key before scanning.`);
+            showToast(t('addProviderKey', { provider: providerMeta.label }));
             return;
         }
         if (!config.model) {
             openSettings();
-            showToast(`Choose a vision-capable ${providerMeta.label} model before scanning.`);
+            showToast(t('chooseProviderModel', { provider: providerMeta.label }));
             return;
         }
     }
     if (!capturedImageData) {
-        showToast('Capture or upload an image first.');
+        showToast(t('captureFirst'));
         return;
     }
 
     hidePreviewModal();
-    dom.loadingModeText.textContent = scanModes[selectedScanMode].loading;
+    dom.loadingModeText.textContent = getScanModeText(selectedScanMode, 'loading');
     dom.loadingOverlay.classList.add('active');
 
     try {
@@ -1305,7 +2161,9 @@ async function analyzeWithAI() {
     } catch (error) {
         console.error('AI analysis error:', error);
         dom.loadingOverlay.classList.remove('active');
-        showToast(isDemoMode ? `Demo analysis failed: ${error.message}` : `${providerMeta.label} analysis failed: ${error.message}`);
+        showToast(isDemoMode
+            ? t('demoAnalysisFailed', { message: error.message })
+            : t('analysisFailed', { provider: providerMeta.label, message: error.message }));
     }
 }
 
@@ -1334,9 +2192,10 @@ function showResults(result, shouldSave) {
         renderUnclearResult(result);
     } else {
         const title = result.scanType === 'batch'
-            ? `${result.objects.length} items detected`
+            ? t('itemDetected', { count: result.objects.length })
             : result.mainItem;
         dom.resultItemName.textContent = title;
+        dom.resultSummaryEcoScore.textContent = result.totalEcoScore || 0;
         renderSummary(result);
         renderStatus(result);
         renderDetectedObjects(result);
@@ -1361,12 +2220,13 @@ function renderUnclearResult(result) {
     dom.resultSummaryText.textContent = result.message;
     dom.statusCard.className = 'rounded-2xl p-6 shadow-sm bg-gradient-to-r from-gray-500 to-gray-600';
     setIcon(dom.statusIcon, 'ph ph-warning text-white text-3xl');
-    dom.statusMessage.textContent = `${t('unclear')} (${Math.round(result.confidence * 100)}% confidence)`;
+    dom.statusMessage.textContent = t('unclearConfidence', { percent: Math.round(result.confidence * 100) });
     dom.detectedObjectsSection.classList.add('hidden');
     dom.gridOverlay.classList.add('hidden');
     dom.objectFocusBox.classList.add('hidden');
     renderObjectDetails(null);
     renderDisposalPlan(null);
+    dom.resultSummaryEcoScore.textContent = '0';
     dom.ecoScoreValue.textContent = '0';
     dom.carbonSavedValue.textContent = '0g';
 }
@@ -1394,8 +2254,8 @@ function renderStatus(result) {
     dom.statusCard.className = `rounded-2xl p-6 shadow-sm bg-gradient-to-r ${gradient}`;
     setIcon(dom.statusIcon, iconClass);
     dom.statusMessage.textContent = result.scanType === 'batch'
-        ? `${result.objects.length} items analyzed`
-        : `${getStatusLabel(status)} (${Math.round(result.confidence * 100)}% confidence)`;
+        ? t('itemAnalyzed', { count: result.objects.length })
+        : t('statusWithConfidence', { status: getStatusLabel(status), percent: Math.round(result.confidence * 100) });
 }
 
 function summarizeBatchStatus(objects) {
@@ -1420,11 +2280,11 @@ function renderDetectedObjects(result) {
         });
         const score = createElement('span', {
             className: 'inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold',
-            text: `${item.ecoScore} eco`
+            text: `${item.ecoScore} ${t('ecoShort')}`
         });
         const confidence = createElement('span', {
             className: 'text-xs text-gray-500',
-            text: `${Math.round(item.confidence * 100)}% confidence${item.gridCell ? ` | cell ${item.gridCell}` : ''}`
+            text: `${Math.round(item.confidence * 100)}% ${t('confidence')}${item.gridCell ? ` | ${t('cell')} ${item.gridCell}` : ''}`
         });
         const title = createElement('h6', {
             className: 'font-bold text-gray-800',
@@ -1441,7 +2301,7 @@ function renderDetectedObjects(result) {
         const card = createElement('button', {
             type: 'button',
             className: 'result-card text-left border border-gray-100 rounded-2xl p-4 hover:border-emerald-200 hover:bg-emerald-50/40 transition-colors',
-            dataset: { cell: item.gridCell || '' }
+            dataset: { cell: item.gridCell || '', objectId: item.id }
         }, [
             createElement('div', { className: 'flex items-start justify-between gap-3' }, [
                 createElement('div', {}, [title, category, confidence]),
@@ -1452,11 +2312,22 @@ function renderDetectedObjects(result) {
 
         card.style.animationDelay = `${index * 70}ms`;
         card.addEventListener('click', () => {
+            setActiveDetectedObject(item.id);
             renderObjectDetails(item);
             renderDisposalPlan(item);
             focusGridCell(item.gridCell);
         });
         dom.detectedObjectsList.appendChild(card);
+    });
+
+    if (result.objects[0]) {
+        setActiveDetectedObject(result.objects[0].id);
+    }
+}
+
+function setActiveDetectedObject(objectId) {
+    dom.detectedObjectsList.querySelectorAll('.result-card').forEach(card => {
+        card.classList.toggle('active', String(card.dataset.objectId) === String(objectId));
     });
 }
 
@@ -1466,6 +2337,7 @@ function renderGrid(result) {
         dom.gridOverlay.classList.add('hidden');
         dom.objectFocusBox.classList.add('hidden');
         dom.gridOverlay.replaceChildren();
+        currentFocusedGridCell = null;
         return;
     }
 
@@ -1477,21 +2349,64 @@ function renderGrid(result) {
         }));
     }
     dom.gridOverlay.classList.remove('hidden');
+    updateResultImageOverlayBounds();
     focusGridCell([...detectedCells][0]);
+}
+
+function getContainedImageRect() {
+    const frame = dom.resultImageFrame;
+    const image = dom.resultImage;
+    if (!frame || !image) {
+        return { left: 0, top: 0, width: 0, height: 0 };
+    }
+
+    const frameWidth = frame.clientWidth;
+    const frameHeight = frame.clientHeight;
+    const naturalWidth = image.naturalWidth || frameWidth;
+    const naturalHeight = image.naturalHeight || frameHeight;
+    const scale = Math.min(frameWidth / naturalWidth, frameHeight / naturalHeight);
+    const width = naturalWidth * scale;
+    const height = naturalHeight * scale;
+
+    return {
+        left: (frameWidth - width) / 2,
+        top: (frameHeight - height) / 2,
+        width,
+        height
+    };
+}
+
+function applyBounds(element, bounds) {
+    element.style.left = `${bounds.left}px`;
+    element.style.top = `${bounds.top}px`;
+    element.style.width = `${bounds.width}px`;
+    element.style.height = `${bounds.height}px`;
+}
+
+function updateResultImageOverlayBounds() {
+    if (!dom.resultImageFrame || dom.gridOverlay.classList.contains('hidden')) return;
+    const bounds = getContainedImageRect();
+    applyBounds(dom.gridOverlay, bounds);
+    if (currentFocusedGridCell) {
+        focusGridCell(currentFocusedGridCell);
+    }
 }
 
 function focusGridCell(cell) {
     if (!cell) {
         dom.objectFocusBox.classList.add('hidden');
+        currentFocusedGridCell = null;
         return;
     }
+    currentFocusedGridCell = cell;
+    const bounds = getContainedImageRect();
     const zeroIndex = cell - 1;
     const row = Math.floor(zeroIndex / 4);
     const column = zeroIndex % 4;
-    dom.objectFocusBox.style.left = `${column * 25}%`;
-    dom.objectFocusBox.style.top = `${row * 25}%`;
-    dom.objectFocusBox.style.width = '25%';
-    dom.objectFocusBox.style.height = '25%';
+    dom.objectFocusBox.style.left = `${bounds.left + (column * bounds.width / 4)}px`;
+    dom.objectFocusBox.style.top = `${bounds.top + (row * bounds.height / 4)}px`;
+    dom.objectFocusBox.style.width = `${bounds.width / 4}px`;
+    dom.objectFocusBox.style.height = `${bounds.height / 4}px`;
     dom.objectFocusBox.classList.remove('hidden');
 }
 
@@ -1502,11 +2417,11 @@ function renderObjectDetails(item) {
     if (!item) {
         dom.compositionBars.appendChild(createElement('p', {
             className: 'text-gray-400 text-sm',
-            text: 'No material breakdown available.'
+            text: t('noMaterialBreakdown')
         }));
         dom.actionSteps.appendChild(createElement('p', {
             className: 'text-gray-400 text-sm',
-            text: 'No preparation steps available.'
+            text: t('noPreparationSteps')
         }));
         return;
     }
@@ -1514,7 +2429,7 @@ function renderObjectDetails(item) {
     if (item.components.length === 0) {
         dom.compositionBars.appendChild(createElement('p', {
             className: 'text-gray-400 text-sm',
-            text: 'No component details were returned for this item.'
+            text: t('noComponentDetails')
         }));
     } else {
         item.components.forEach(component => {
@@ -1554,7 +2469,7 @@ function renderObjectDetails(item) {
         dom.actionSteps.appendChild(createElement('div', {
             className: 'result-card p-4 bg-blue-50 text-blue-800 rounded-xl text-sm'
         }, [
-            createElement('p', { className: 'font-semibold mb-1', text: 'Why this matters' }),
+            createElement('p', { className: 'font-semibold mb-1', text: t('whyThisMatters') }),
             createElement('p', { text: item.education })
         ]));
     }
@@ -1565,10 +2480,10 @@ function renderDisposalPlan(item) {
     dom.disposalPlanSteps.replaceChildren();
 
     if (!item) {
-        dom.disposalPlanItemName.textContent = 'No disposal plan available for this scan.';
+        dom.disposalPlanItemName.textContent = t('noDisposalPlan');
         dom.disposalPlanGrid.appendChild(createElement('p', {
             className: 'text-sm text-gray-400',
-            text: 'Try retaking the photo with better lighting or selecting a detected item.'
+            text: t('retakeForPlan')
         }));
         return;
     }
@@ -1579,25 +2494,25 @@ function renderDisposalPlan(item) {
     const cards = [
         {
             iconClass: 'ph ph-lightning text-emerald-600 text-xl',
-            label: 'Immediate action',
+            label: t('immediateAction'),
             value: plan.immediateAction,
             color: 'bg-emerald-50 border-emerald-100'
         },
         {
             iconClass: 'ph ph-trash text-blue-600 text-xl',
-            label: 'Correct bin / handling',
+            label: t('correctBinHandling'),
             value: plan.handlingType,
             color: 'bg-blue-50 border-blue-100'
         },
         {
             iconClass: 'ph ph-warning text-amber-600 text-xl',
-            label: 'Safety warning',
-            value: plan.safetyWarning || 'No special safety warning identified.',
+            label: t('safetyWarning'),
+            value: plan.safetyWarning || t('noSafetyWarning'),
             color: 'bg-amber-50 border-amber-100'
         },
         {
             iconClass: 'ph ph-prohibit text-orange-600 text-xl',
-            label: 'Common mistake to avoid',
+            label: t('mistakeToAvoid'),
             value: plan.mistakeToAvoid,
             color: 'bg-orange-50 border-orange-100'
         }
@@ -1619,7 +2534,7 @@ function renderDisposalPlan(item) {
     if (steps.length === 0) {
         dom.disposalPlanSteps.appendChild(createElement('p', {
             className: 'text-sm text-gray-400',
-            text: 'No step-by-step plan was returned. Follow the immediate action and local disposal rules.'
+            text: t('noStepPlan')
         }));
         return;
     }
@@ -1686,8 +2601,8 @@ function loadHistory() {
         const result = entry.result || {};
         const firstObject = result.objects?.[0];
         const title = result.scanType === 'batch'
-            ? `${result.objects.length} items`
-            : firstObject?.name || result.mainItem || 'Waste scan';
+            ? t('itemCount', { count: result.objects.length })
+            : firstObject?.name || result.mainItem || t('wasteScan');
         const status = result.scanType === 'batch' ? summarizeBatchStatus(result.objects || []) : firstObject?.recyclable;
         const date = new Date(entry.timestamp).toLocaleDateString(currentLanguage === 'vi' ? 'vi-VN' : 'en-US', {
             month: 'short',
@@ -1711,7 +2626,7 @@ function loadHistory() {
                     icon(getStatusKind(status) === 'recyclable' ? 'ph ph-recycle text-emerald-500' : 'ph ph-warning text-orange-500'),
                     createElement('h4', { className: 'font-semibold text-gray-800 truncate', text: title })
                 ]),
-                createElement('p', { className: 'text-xs text-gray-500', text: `${date} | ${scanModes[entry.mode]?.label || 'Scan'} | ${aiProviders[entry.provider]?.label || 'AI'}` })
+                createElement('p', { className: 'text-xs text-gray-500', text: `${date} | ${getScanModeText(entry.mode || 'quick', 'label')} | ${aiProviders[entry.provider]?.label || 'AI'}` })
             ]),
             createElement('span', {
                 className: 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700',
@@ -1730,7 +2645,7 @@ function loadHistory() {
 }
 
 function clearHistory() {
-    if (!confirm('Clear all local scan history and progress?')) return;
+    if (!confirm(t('clearHistoryConfirm'))) return;
     localStorage.removeItem(STORAGE_KEYS.history);
     localStorage.removeItem(STORAGE_KEYS.achievements);
     loadHistory();
@@ -1850,57 +2765,57 @@ function getSampleQuizItems() {
     return [
         normalizeObject({
             id: 1,
-            name: 'Plastic water bottle',
-            category: 'Plastic',
+            name: t('sampleBottleName'),
+            category: t('sampleBottleCategory'),
             recyclable: 'partial',
             ecoScore: 12,
-            disposalAction: 'Empty, rinse, and recycle accepted plastic parts.',
+            disposalAction: t('sampleBottleAction'),
             disposalPlan: {
-                immediateAction: 'Empty and rinse the bottle.',
-                steps: ['Empty remaining liquid.', 'Rinse the bottle.', 'Remove label if possible.', 'Recycle accepted plastic parts.'],
-                handlingType: 'Separate parts before disposal',
-                safetyWarning: 'No special safety warning if empty.',
-                mistakeToAvoid: 'Do not recycle it while full or dirty.'
+                immediateAction: t('sampleBottleImmediate'),
+                steps: [t('sampleBottleStep1'), t('sampleBottleStep2'), t('sampleBottleStep3'), t('sampleBottleStep4')],
+                handlingType: t('sampleBottleHandling'),
+                safetyWarning: t('sampleBottleSafety'),
+                mistakeToAvoid: t('sampleBottleMistake')
             },
             components: [
-                { part: 'Bottle body', material: 'PET plastic', recyclable: true, instruction: 'Empty and rinse.' },
-                { part: 'Glossy label', material: 'Coated paper or film', recyclable: false, instruction: 'Remove if possible.' }
+                { part: t('sampleBottleBody'), material: t('sampleBottleBodyMaterial'), recyclable: true, instruction: t('sampleBottleBodyInstruction') },
+                { part: t('sampleBottleLabel'), material: t('sampleBottleLabelMaterial'), recyclable: false, instruction: t('sampleBottleLabelInstruction') }
             ],
-            preparationSteps: ['Empty remaining liquid.', 'Rinse the bottle.', 'Remove label if possible.']
+            preparationSteps: [t('sampleBottleStep1'), t('sampleBottleStep2'), t('sampleBottleStep3')]
         }, 0),
         normalizeObject({
             id: 2,
-            name: 'Used battery',
-            category: 'Battery',
+            name: t('sampleBatteryName'),
+            category: t('sampleBatteryCategory'),
             recyclable: 'special',
             ecoScore: 18,
-            disposalAction: 'Take to a battery drop-off point.',
+            disposalAction: t('sampleBatteryAction'),
             disposalPlan: {
-                immediateAction: 'Keep it out of normal trash and recycling.',
-                steps: ['Tape exposed terminals if needed.', 'Store in a dry place.', 'Bring to a battery drop-off point.'],
-                handlingType: 'Battery drop-off',
-                safetyWarning: 'Damaged batteries can leak or overheat.',
-                mistakeToAvoid: 'Do not put batteries in regular recycling bins.'
+                immediateAction: t('sampleBatteryImmediate'),
+                steps: [t('sampleBatteryStep1'), t('sampleBatteryStep2'), t('sampleBatteryStep3')],
+                handlingType: t('sampleBatteryHandling'),
+                safetyWarning: t('sampleBatterySafety'),
+                mistakeToAvoid: t('sampleBatteryMistake')
             },
-            components: [{ part: 'Battery cell', material: 'Mixed metals and chemicals', recyclable: 'special', instruction: 'Use special collection.' }],
-            preparationSteps: ['Store safely.', 'Bring to a collection point.']
+            components: [{ part: t('sampleBatteryCell'), material: t('sampleBatteryMaterial'), recyclable: 'special', instruction: t('sampleBatteryInstruction') }],
+            preparationSteps: [t('sampleBatteryStep2'), t('sampleBatteryStep3')]
         }, 1),
         normalizeObject({
             id: 3,
-            name: 'Greasy pizza box',
-            category: 'Paper',
+            name: t('samplePizzaName'),
+            category: t('samplePizzaCategory'),
             recyclable: false,
             ecoScore: 4,
-            disposalAction: 'Compost clean paper if allowed; discard greasy sections.',
+            disposalAction: t('samplePizzaAction'),
             disposalPlan: {
-                immediateAction: 'Separate clean cardboard from greasy parts.',
-                steps: ['Tear off clean lid if recyclable.', 'Discard or compost greasy sections if accepted locally.'],
-                handlingType: 'Separate parts before disposal',
-                safetyWarning: 'No special safety warning.',
-                mistakeToAvoid: 'Do not recycle greasy cardboard with clean paper.'
+                immediateAction: t('samplePizzaImmediate'),
+                steps: [t('samplePizzaStep1'), t('samplePizzaStep2')],
+                handlingType: t('samplePizzaHandling'),
+                safetyWarning: t('samplePizzaSafety'),
+                mistakeToAvoid: t('samplePizzaMistake')
             },
-            components: [{ part: 'Greasy cardboard', material: 'Contaminated paper', recyclable: false, instruction: 'Keep out of clean recycling.' }],
-            preparationSteps: ['Separate clean and greasy parts.']
+            components: [{ part: t('samplePizzaPart'), material: t('samplePizzaMaterial'), recyclable: false, instruction: t('samplePizzaInstruction') }],
+            preparationSteps: [t('samplePizzaImmediate')]
         }, 2)
     ];
 }
@@ -1920,7 +2835,7 @@ function uniqueOptions(correctAnswer, distractors) {
         .filter(Boolean);
     const unique = [...new Set(options)];
     while (unique.length < 3) {
-        unique.push(['Check local rules', 'Put it in regular recycling', 'Throw it away without sorting'][unique.length - 1] || 'Ask a local waste guide');
+        unique.push([t('checkLocalRules'), t('putInRegularRecycling'), t('throwAwayWithoutSorting')][unique.length - 1] || t('askLocalWasteGuide'));
     }
     return shuffleArray(unique.slice(0, 3));
 }
@@ -1943,11 +2858,11 @@ function buildQuestionFromItem(item, type, sourceLabel, index) {
     if (type === 'disposal') {
         return {
             id: `${idBase}-disposal`,
-            typeLabel: 'Disposal action',
-            prompt: `What should you do first with ${item.name}?`,
-            options: uniqueOptions(plan.immediateAction, ['Put it in any recycling bin', 'Ignore labels and throw it away']),
+            typeLabel: t('disposalAction'),
+            prompt: t('qFirstActionPrompt', { item: item.name }),
+            options: uniqueOptions(plan.immediateAction, [t('anyRecyclingBin'), t('ignoreLabelsThrowAway')]),
             correctAnswer: plan.immediateAction,
-            explanation: `Best immediate action: ${plan.immediateAction}`,
+            explanation: t('qBestImmediate', { action: plan.immediateAction }),
             source: sourceLabel
         };
     }
@@ -1956,11 +2871,11 @@ function buildQuestionFromItem(item, type, sourceLabel, index) {
         const correct = plan.steps[0] || preparationSteps[0] || item.disposalAction;
         return {
             id: `${idBase}-prep`,
-            typeLabel: 'Preparation step',
-            prompt: `Which preparation step is recommended for ${item.name}?`,
-            options: uniqueOptions(correct, ['Recycle it without cleaning', 'Mix it with food waste']),
+            typeLabel: t('preparationStep'),
+            prompt: t('qPrepPrompt', { item: item.name }),
+            options: uniqueOptions(correct, [t('recycleWithoutCleaning'), t('mixWithFoodWaste')]),
             correctAnswer: correct,
-            explanation: `Preparation matters because contamination can make recycling fail.`,
+            explanation: t('qPrepExplain'),
             source: sourceLabel
         };
     }
@@ -1969,11 +2884,11 @@ function buildQuestionFromItem(item, type, sourceLabel, index) {
         const correct = getStatusLabel(item.recyclable);
         return {
             id: `${idBase}-status`,
-            typeLabel: 'Recyclable status',
-            prompt: `How should ${item.name} be classified?`,
+            typeLabel: t('recyclableStatus'),
+            prompt: t('qClassifyPrompt', { item: item.name }),
             options: uniqueOptions(correct, [t('recyclable'), t('nonRecyclable'), t('special')].filter(label => label !== correct)),
             correctAnswer: correct,
-            explanation: `${item.name} is marked as ${correct}.`,
+            explanation: t('qClassifyExplain', { item: item.name, status: correct }),
             source: sourceLabel
         };
     }
@@ -1981,11 +2896,11 @@ function buildQuestionFromItem(item, type, sourceLabel, index) {
     if (type === 'special') {
         return {
             id: `${idBase}-special`,
-            typeLabel: 'Special handling',
-            prompt: `What handling type is best for ${item.name}?`,
-            options: uniqueOptions(plan.handlingType, ['Regular recycling bin', 'Regular trash with no sorting']),
+            typeLabel: t('specialHandling'),
+            prompt: t('qHandlingPrompt', { item: item.name }),
+            options: uniqueOptions(plan.handlingType, [t('regularRecyclingBin'), t('regularTrashNoSorting')]),
             correctAnswer: plan.handlingType,
-            explanation: plan.safetyWarning || `Recommended handling: ${plan.handlingType}.`,
+            explanation: plan.safetyWarning || t('qRecommendedHandling', { handling: plan.handlingType }),
             source: sourceLabel
         };
     }
@@ -1993,9 +2908,9 @@ function buildQuestionFromItem(item, type, sourceLabel, index) {
     const component = components[0] || normalizeComponent({ part: item.name, material: item.category, recyclable: item.recyclable, instruction: item.disposalAction });
     return {
         id: `${idBase}-material`,
-        typeLabel: 'Material breakdown',
-        prompt: `Which material or part needs attention in ${item.name}?`,
-        options: uniqueOptions(`${component.part}: ${component.material}`, [`${item.name}: no parts to separate`, 'All parts are always recycled together']),
+        typeLabel: t('quizMaterialBreakdown'),
+        prompt: t('qMaterialPrompt', { item: item.name }),
+        options: uniqueOptions(`${component.part}: ${component.material}`, [t('noPartsToSeparate', { item: item.name }), t('allPartsTogether')]),
         correctAnswer: `${component.part}: ${component.material}`,
         explanation: component.instruction,
         source: sourceLabel
@@ -2046,10 +2961,10 @@ function renderQuizInlineStats() {
     const totalAnswers = stats.correctAnswers + stats.incorrectAnswers;
     const accuracy = totalAnswers > 0 ? Math.round((stats.correctAnswers / totalAnswers) * 100) : 0;
     const cards = [
-        { label: 'Quiz XP', value: stats.quizXp },
-        { label: 'Completed', value: stats.quizzesCompleted },
-        { label: 'Correct', value: stats.correctAnswers },
-        { label: 'Accuracy', value: `${accuracy}%` }
+        { label: t('quizXp'), value: stats.quizXp },
+        { label: t('completed'), value: stats.quizzesCompleted },
+        { label: t('correctShort'), value: stats.correctAnswers },
+        { label: t('accuracy'), value: `${accuracy}%` }
     ];
 
     dom.quizStatsInline.replaceChildren();
@@ -2076,8 +2991,8 @@ function startEcoQuiz() {
         completedAlready: stats.completedQuizIds.includes(quiz.id)
     };
 
-    dom.quizModalTitle.textContent = quiz.isSample ? 'Eco Quiz - Sample Quiz' : 'Eco Quiz';
-    dom.quizSourceBadge.textContent = quiz.isSample ? 'Sample Quiz' : 'Personalized';
+    dom.quizModalTitle.textContent = quiz.isSample ? t('quizTitleSample') : t('ecoQuiz');
+    dom.quizSourceBadge.textContent = quiz.isSample ? t('sampleQuiz') : t('personalized');
     dom.quizEmptyState.classList.toggle('hidden', !quiz.isSample);
     dom.quizQuestionCard.classList.remove('hidden');
     dom.quizSummaryCard.classList.add('hidden');
@@ -2087,10 +3002,10 @@ function startEcoQuiz() {
     if (quiz.isSample) {
         dom.quizEmptyState.replaceChildren(
             icon('ph ph-info text-emerald-500 text-4xl'),
-            createElement('h3', { className: 'text-lg font-bold text-gray-800 mt-3', text: 'Sample Quiz' }),
+            createElement('h3', { className: 'text-lg font-bold text-gray-800 mt-3', text: t('sampleQuiz') }),
             createElement('p', {
                 className: 'text-sm text-gray-500 mt-2',
-                text: 'Your personalized quiz becomes richer after you complete scans. This sample uses common waste items.'
+                text: t('quizSampleDesc')
             })
         );
     }
@@ -2108,15 +3023,18 @@ function renderQuizQuestion() {
     const question = currentQuiz.questions[currentQuiz.currentIndex];
     const answered = currentQuiz.selectedAnswers[currentQuiz.currentIndex];
 
-    dom.quizProgressText.textContent = `Question ${currentQuiz.currentIndex + 1} of ${currentQuiz.questions.length}`;
+    dom.quizProgressText.textContent = t('questionProgress', {
+        current: currentQuiz.currentIndex + 1,
+        total: currentQuiz.questions.length
+    });
     dom.quizTypeBadge.textContent = question.typeLabel;
-    dom.quizSourceBadge.textContent = currentQuiz.isSample ? 'Sample Quiz' : 'Personalized';
+    dom.quizSourceBadge.textContent = currentQuiz.isSample ? t('sampleQuiz') : t('personalized');
     dom.quizQuestionText.textContent = question.prompt;
     dom.quizOptionsList.replaceChildren();
     dom.quizFeedback.classList.add('hidden');
     dom.nextQuizBtn.disabled = !answered;
-    dom.nextQuizBtn.textContent = currentQuiz.currentIndex === currentQuiz.questions.length - 1 ? 'Finish' : 'Next';
-    dom.quizScoreText.textContent = `Score: ${currentQuiz.score}/${currentQuiz.selectedAnswers.length}`;
+    dom.nextQuizBtn.textContent = currentQuiz.currentIndex === currentQuiz.questions.length - 1 ? t('finish') : t('nextButton');
+    dom.quizScoreText.textContent = t('score', { score: currentQuiz.score, total: currentQuiz.selectedAnswers.length });
 
     question.options.forEach(option => {
         const isSelected = answered?.selectedAnswer === option;
@@ -2168,7 +3086,7 @@ function renderQuizFeedback(question, isCorrect) {
     dom.quizFeedback.replaceChildren(
         createElement('p', {
             className: 'font-bold mb-1',
-            text: isCorrect ? 'Correct' : 'Not quite'
+            text: isCorrect ? t('correct') : t('notQuite')
         }),
         createElement('p', {
             className: 'text-sm',
@@ -2176,7 +3094,7 @@ function renderQuizFeedback(question, isCorrect) {
         })
     );
     dom.nextQuizBtn.disabled = false;
-    dom.quizScoreText.textContent = `Score: ${currentQuiz.score}/${currentQuiz.selectedAnswers.length}`;
+    dom.quizScoreText.textContent = t('score', { score: currentQuiz.score, total: currentQuiz.selectedAnswers.length });
 }
 
 function goToNextQuizQuestion() {
@@ -2213,17 +3131,20 @@ function finishEcoQuiz() {
     dom.quizSummaryCard.classList.remove('hidden');
     dom.quizSummaryCard.replaceChildren(
         icon(currentQuiz.score === currentQuiz.questions.length ? 'ph ph-trophy text-amber-500 text-5xl' : 'ph ph-graduation-cap text-emerald-500 text-5xl'),
-        createElement('h3', { className: 'text-2xl font-bold text-gray-800 mt-3', text: `Score: ${currentQuiz.score}/${currentQuiz.questions.length}` }),
+        createElement('h3', { className: 'text-2xl font-bold text-gray-800 mt-3', text: t('score', { score: currentQuiz.score, total: currentQuiz.questions.length }) }),
         createElement('p', {
             className: 'text-sm text-gray-500 mt-2',
             text: alreadyCompleted
-                ? 'You already completed this quiz, so XP was not awarded again.'
-                : `XP earned: ${awardedXp} (+5 per correct, +2 completion${currentQuiz.score === currentQuiz.questions.length ? ', +5 perfect bonus' : ''}).`
+                ? t('quizNoXpAgain')
+                : t('quizCompleteXp', {
+                    xp: awardedXp,
+                    bonus: currentQuiz.score === currentQuiz.questions.length ? t('perfectBonus') : ''
+                })
         }),
         createElement('button', {
             type: 'button',
             className: 'mt-5 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold transition-colors',
-            text: 'Done'
+            text: t('done')
         })
     );
     dom.quizSummaryCard.querySelector('button').addEventListener('click', closeEcoQuiz);
@@ -2286,14 +3207,40 @@ function renderAchievements() {
     dom.achievementList.replaceChildren();
     achievements.forEach(achievement => {
         const unlocked = unlockedIds.has(achievement.id);
+        const title = getAchievementTitle(achievement);
         dom.achievementList.appendChild(createElement('div', {
             className: `achievement-card border rounded-xl p-4 ${unlocked ? 'border-amber-200 bg-amber-50' : 'locked border-gray-100 bg-gray-50'}`
         }, [
-            createElement('p', { className: 'font-bold text-gray-800', text: achievement.title }),
-            createElement('p', { className: 'text-xs text-gray-500 mt-1', text: achievement.description }),
-            createElement('p', { className: `text-xs font-semibold mt-2 ${unlocked ? 'text-amber-700' : 'text-gray-400'}`, text: unlocked ? 'Unlocked' : 'Locked' })
+            createElement('p', { className: 'font-bold text-gray-800', text: title }),
+            createElement('p', { className: 'text-xs text-gray-500 mt-1', text: getAchievementDescription(achievement) }),
+            createElement('p', { className: `text-xs font-semibold mt-2 ${unlocked ? 'text-amber-700' : 'text-gray-400'}`, text: unlocked ? t('unlocked') : t('locked') })
         ]));
     });
+}
+
+function getAchievementTranslationBase(achievement) {
+    const bases = {
+        eco_starter: 'achEcoStarter',
+        recycling_hero: 'achRecyclingHero',
+        plastic_hunter: 'achPlasticHunter',
+        battery_guardian: 'achBatteryGuardian',
+        batch_master: 'achBatchMaster',
+        eco_learner: 'achEcoLearner',
+        sorting_student: 'achSortingStudent',
+        perfect_sorter: 'achPerfectSorter',
+        waste_wisdom: 'achWasteWisdom'
+    };
+    return bases[achievement.id] || '';
+}
+
+function getAchievementTitle(achievement) {
+    const base = getAchievementTranslationBase(achievement);
+    return base ? t(base) : achievement.title;
+}
+
+function getAchievementDescription(achievement) {
+    const base = getAchievementTranslationBase(achievement);
+    return base ? t(`${base}Desc`) : achievement.description;
 }
 
 function checkAchievements() {
@@ -2318,7 +3265,7 @@ function checkAchievements() {
 }
 
 function showAchievementBanner(achievement) {
-    dom.achievementBanner.textContent = `Achievement unlocked: ${achievement.title}`;
+    dom.achievementBanner.textContent = t('achievementUnlocked', { title: getAchievementTitle(achievement) });
     dom.achievementBanner.classList.remove('hidden');
     setTimeout(() => dom.achievementBanner.classList.add('hidden'), 4500);
 }
@@ -2341,15 +3288,15 @@ function triggerConfetti() {
 
 function formatCategoryName(category) {
     const labels = {
-        plastic: 'Plastic',
-        metal: 'Metal',
-        paper: 'Paper',
-        glass: 'Glass',
-        special: 'E-waste / Battery',
-        other: 'Other',
-        none: 'None yet'
+        plastic: t('plastic'),
+        metal: t('metal'),
+        paper: t('paper'),
+        glass: t('glass'),
+        special: t('eWasteBattery'),
+        other: t('other'),
+        none: t('noneYet')
     };
-    return labels[category] || 'Other';
+    return labels[category] || t('other');
 }
 
 function formatCo2(valueKg) {
@@ -2365,18 +3312,18 @@ function renderImpactDashboard(metrics = getMetrics()) {
     dom.categoryBreakdownList.replaceChildren();
 
     const statCards = [
-        { label: 'Total scans', value: metrics.totalScans, iconClass: 'ph ph-camera text-emerald-600' },
-        { label: 'Eco score', value: metrics.totalEcoScore, iconClass: 'ph ph-leaf text-emerald-600' },
-        { label: 'Recyclable items', value: metrics.recyclableCount, iconClass: 'ph ph-recycle text-emerald-600' },
-        { label: 'Non-recyclable', value: metrics.nonRecyclableCount, iconClass: 'ph ph-warning text-orange-600' },
-        { label: 'Special handling', value: metrics.specialHandlingCount, iconClass: 'ph ph-shield-warning text-amber-600' },
-        { label: 'Most common', value: formatCategoryName(metrics.mostCommonCategory), iconClass: 'ph ph-stack text-blue-600' },
-        { label: 'Estimated CO2 saved', value: formatCo2(metrics.estimatedCo2Kg), iconClass: 'ph ph-cloud text-blue-600' },
-        { label: 'Quiz XP', value: metrics.quizStats.quizXp, iconClass: 'ph ph-graduation-cap text-emerald-600' },
-        { label: 'Quizzes completed', value: metrics.quizStats.quizzesCompleted, iconClass: 'ph ph-check-circle text-emerald-600' },
-        { label: 'Correct answers', value: metrics.quizStats.correctAnswers, iconClass: 'ph ph-thumbs-up text-blue-600' },
-        { label: 'Incorrect answers', value: metrics.quizStats.incorrectAnswers, iconClass: 'ph ph-x-circle text-orange-600' },
-        { label: 'Quiz accuracy', value: `${metrics.quizAccuracy}%`, iconClass: 'ph ph-target text-purple-600' }
+        { label: t('totalScans'), value: metrics.totalScans, iconClass: 'ph ph-camera text-emerald-600' },
+        { label: t('ecoScore'), value: metrics.totalEcoScore, iconClass: 'ph ph-leaf text-emerald-600' },
+        { label: t('recyclableItems'), value: metrics.recyclableCount, iconClass: 'ph ph-recycle text-emerald-600' },
+        { label: t('nonRecyclableItems'), value: metrics.nonRecyclableCount, iconClass: 'ph ph-warning text-orange-600' },
+        { label: t('specialHandlingItems'), value: metrics.specialHandlingCount, iconClass: 'ph ph-shield-warning text-amber-600' },
+        { label: t('mostCommon'), value: formatCategoryName(metrics.mostCommonCategory), iconClass: 'ph ph-stack text-blue-600' },
+        { label: t('estimatedCo2Saved'), value: formatCo2(metrics.estimatedCo2Kg), iconClass: 'ph ph-cloud text-blue-600' },
+        { label: t('quizXp'), value: metrics.quizStats.quizXp, iconClass: 'ph ph-graduation-cap text-emerald-600' },
+        { label: t('quizzesCompleted'), value: metrics.quizStats.quizzesCompleted, iconClass: 'ph ph-check-circle text-emerald-600' },
+        { label: t('correctAnswers'), value: metrics.quizStats.correctAnswers, iconClass: 'ph ph-thumbs-up text-blue-600' },
+        { label: t('incorrectAnswers'), value: metrics.quizStats.incorrectAnswers, iconClass: 'ph ph-x-circle text-orange-600' },
+        { label: t('quizAccuracy'), value: `${metrics.quizAccuracy}%`, iconClass: 'ph ph-target text-purple-600' }
     ];
 
     statCards.forEach(card => {
@@ -2391,7 +3338,10 @@ function renderImpactDashboard(metrics = getMetrics()) {
         ]));
     });
 
-    dom.impactSummaryText.textContent = `${metrics.totalScans} scans | ${formatCo2(metrics.estimatedCo2Kg)} estimated CO2 saved`;
+    dom.impactSummaryText.textContent = t('scansSummary', {
+        count: metrics.totalScans,
+        co2: formatCo2(metrics.estimatedCo2Kg)
+    });
 
     const maxCategoryCount = Math.max(1, ...Object.values(metrics.categoryCounts));
     const orderedCategories = ['plastic', 'metal', 'paper', 'glass', 'special', 'other'];
@@ -2405,7 +3355,7 @@ function renderImpactDashboard(metrics = getMetrics()) {
         }, [
             createElement('div', { className: 'flex items-center justify-between text-sm mb-1' }, [
                 createElement('span', { className: 'font-semibold text-gray-700', text: formatCategoryName(category) }),
-                createElement('span', { className: 'text-gray-500', text: `${count} items | ${formatCo2(co2)}` })
+                createElement('span', { className: 'text-gray-500', text: t('itemCountWithCo2', { count, co2: formatCo2(co2) }) })
             ]),
             createElement('div', { className: 'h-2.5 rounded-full bg-gray-100 overflow-hidden' }, [
                 createElement('div', {
@@ -2494,7 +3444,9 @@ function updateApiKeyStatus(isConfigured) {
         : 'p-3 rounded-xl text-sm flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200';
     dom.apiKeyStatus.replaceChildren(
         icon(isConfigured ? 'ph ph-check-circle' : 'ph ph-warning'),
-        document.createTextNode(isConfigured ? `${providerMeta.label} API key is configured for this browser.` : `No ${providerMeta.label} API key found. Analysis will fail until one is added.`)
+        document.createTextNode(isConfigured
+            ? t('keyConfigured', { provider: providerMeta.label })
+            : t('keyMissing', { provider: providerMeta.label }))
     );
 }
 
@@ -2504,7 +3456,7 @@ function loadProviderSettings(provider) {
     const config = getProviderConfig(normalizedProvider);
 
     dom.providerSelect.value = normalizedProvider;
-    dom.apiKeyLabel.textContent = `${providerMeta.label} API Key`;
+    dom.apiKeyLabel.textContent = t('apiKeyLabel', { provider: providerMeta.label });
     dom.apiKeyInput.placeholder = providerMeta.keyPlaceholder;
     dom.apiKeyInput.value = config.apiKey;
     dom.modelSelect.replaceChildren();
@@ -2518,11 +3470,11 @@ function loadProviderSettings(provider) {
         ? config.selectedModel
         : providerMeta.defaultModel;
     dom.modelInput.value = config.customModel;
-    dom.modelInput.placeholder = `Optional custom ${providerMeta.label} model`;
-    dom.modelHint.textContent = providerMeta.modelHint;
+    dom.modelInput.placeholder = t('optionalCustomModel', { provider: providerMeta.label });
+    dom.modelHint.textContent = t('recommendedVisionHint');
 
     dom.apiKeyHelp.replaceChildren(
-        document.createTextNode(`${providerMeta.keyHelpText} `),
+        document.createTextNode(`${t('keyHelpText', { provider: providerMeta.label })} `),
         createElement('a', {
             className: 'text-emerald-600 hover:underline',
             text: providerMeta.label
@@ -2545,18 +3497,18 @@ function saveSettings() {
     const effectiveModel = customModel || selectedModel;
 
     if (!key) {
-        showToast(`Enter a valid ${providerMeta.label} API key.`);
+        showToast(t('invalidProviderKey', { provider: providerMeta.label }));
         return;
     }
     if (!effectiveModel) {
-        showToast(`Enter a vision-capable ${providerMeta.label} model name.`);
+        showToast(t('invalidProviderModel', { provider: providerMeta.label }));
         return;
     }
 
     saveProviderConfig({ provider, apiKey: key, selectedModel, customModel });
     updateApiKeyStatus(true);
     closeSettings();
-    showToast(`${providerMeta.label} settings saved locally.`);
+    showToast(t('providerSettingsSaved', { provider: providerMeta.label }));
 }
 
 function showToast(message) {
@@ -2574,12 +3526,61 @@ function showToast(message) {
     toast.hideTimer = setTimeout(() => toast.classList.add('hidden'), 3200);
 }
 
-function toggleLanguage() {
-    currentLanguage = currentLanguage === 'en' ? 'vi' : 'en';
-    dom.langToggleBtn.textContent = currentLanguage === 'en' ? 'EN' : 'VI';
+function refreshLanguage() {
+    applyStaticTranslations();
+    setScanMode(selectedScanMode);
     loadHistory();
     renderChart();
     updateUserLevel();
+    renderAchievements();
+    renderQuizInlineStats();
+    updateDemoModeUI(localStorage.getItem(STORAGE_KEYS.demoMode) === 'true');
+
+    if (dom.settingsModal && !dom.settingsModal.classList.contains('hidden')) {
+        loadProviderSettings(dom.providerSelect.value);
+    }
+
+    if (dom.resultsModal && !dom.resultsModal.classList.contains('hidden') && lastAnalysisResult) {
+        if (lastAnalysisResult.scanType === 'unclear') {
+            renderUnclearResult(lastAnalysisResult);
+        } else {
+            dom.resultItemName.textContent = lastAnalysisResult.scanType === 'batch'
+                ? t('itemDetected', { count: lastAnalysisResult.objects.length })
+                : lastAnalysisResult.mainItem;
+            renderSummary(lastAnalysisResult);
+            renderStatus(lastAnalysisResult);
+            renderDetectedObjects(lastAnalysisResult);
+            renderGrid(lastAnalysisResult);
+            renderObjectDetails(lastAnalysisResult.objects[0]);
+            renderDisposalPlan(lastAnalysisResult.objects[0]);
+            renderSustainability(lastAnalysisResult);
+        }
+    }
+
+    if (dom.quizModal && !dom.quizModal.classList.contains('hidden') && currentQuiz) {
+        const quiz = buildQuizQuestions();
+        const stats = getQuizStats();
+        currentQuiz = {
+            id: quiz.id,
+            isSample: quiz.isSample,
+            questions: quiz.questions,
+            currentIndex: 0,
+            selectedAnswers: [],
+            score: 0,
+            completedAlready: stats.completedQuizIds.includes(quiz.id)
+        };
+        dom.quizEmptyState.classList.toggle('hidden', !quiz.isSample);
+        dom.quizQuestionCard.classList.remove('hidden');
+        dom.quizSummaryCard.classList.add('hidden');
+        dom.quizModalTitle.textContent = currentQuiz.isSample ? t('quizTitleSample') : t('ecoQuiz');
+        renderQuizQuestion();
+    }
+}
+
+function toggleLanguage() {
+    currentLanguage = currentLanguage === 'en' ? 'vi' : 'en';
+    localStorage.setItem(STORAGE_KEYS.language, currentLanguage);
+    refreshLanguage();
 }
 
 function closeResults() {
@@ -2619,6 +3620,13 @@ function bindEvents() {
         captureImage();
     });
     dom.fileInput.addEventListener('change', handleFileUpload);
+    window.addEventListener('paste', handlePaste);
+    window.addEventListener('resize', updateResultImageOverlayBounds);
+    dom.resultImage.addEventListener('load', updateResultImageOverlayBounds);
+    dom.cameraSection.addEventListener('dragenter', handleDragEnter);
+    dom.cameraSection.addEventListener('dragover', handleDragOver);
+    dom.cameraSection.addEventListener('dragleave', handleDragLeave);
+    dom.cameraSection.addEventListener('drop', handleDrop);
     dom.closePreviewBtn.addEventListener('click', resetToCamera);
     dom.retakeBtn.addEventListener('click', resetToCamera);
     dom.analyzeBtn.addEventListener('click', analyzeWithAI);
@@ -2632,7 +3640,7 @@ function bindEvents() {
             const isActive = event.target.checked;
             localStorage.setItem(STORAGE_KEYS.demoMode, String(isActive));
             updateDemoModeUI(isActive);
-            showToast(isActive ? 'Offline Demo Mode activated.' : 'Offline Demo Mode deactivated.');
+            showToast(isActive ? t('demoActivated') : t('demoDeactivated'));
         });
     }
     window.addEventListener('beforeunload', stopCamera);
@@ -2652,6 +3660,7 @@ function updateDemoModeUI(isActive) {
 function initializeApp() {
     setupPwa();
     bindEvents();
+    applyStaticTranslations();
     setScanMode(selectedScanMode);
     
     const isDemoMode = localStorage.getItem(STORAGE_KEYS.demoMode) === 'true';

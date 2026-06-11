@@ -64,6 +64,21 @@
                 <!-- Canvas for displaying camera feed -->
                 <canvas id="videoCanvas" class="w-full h-full object-cover"></canvas>
 
+                <!-- Upload / Paste / Drop Guidance -->
+                <div id="dropZoneHint" class="drop-zone-hint">
+                    <div class="flex items-center gap-2">
+                        <i class="ph ph-upload-simple text-lg text-emerald-400"></i>
+                        <span>Upload, paste, drag & drop, or take a photo</span>
+                    </div>
+                    <span class="paste-shortcut-hint">Tip: Press Ctrl+V to paste a screenshot</span>
+                </div>
+
+                <div id="dropZoneOverlay" class="drop-zone-overlay hidden">
+                    <i class="ph ph-image-square text-5xl text-emerald-300"></i>
+                    <p id="dropZoneTitle" class="font-bold text-white text-lg mt-3">Drop image to preview</p>
+                    <p id="dropZoneMessage" class="text-sm text-white/70 mt-1">Only image files are accepted</p>
+                </div>
+
                 <!-- Demo Mode Floating Indicator & Selector -->
                 <div id="demoSelectorPanel" class="hidden absolute top-4 left-4 right-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur border border-amber-200 dark:border-amber-900/50 rounded-xl p-3 shadow-lg z-20 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div class="flex items-center gap-2 text-left">
@@ -268,9 +283,9 @@
     </div>
 
         <!-- Settings Modal -->
-    <div id="settingsModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div class="flex justify-between items-center p-6 border-b border-gray-100">
+    <div id="settingsModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3 sm:p-4 backdrop-blur-sm overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col">
+            <div class="flex justify-between items-center p-5 sm:p-6 border-b border-gray-100 bg-white flex-shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
                         <i class="ph ph-key text-xl text-emerald-600"></i>
@@ -282,7 +297,7 @@
                 </button>
             </div>
             
-            <div class="p-6 space-y-6">
+            <div class="p-5 sm:p-6 space-y-6 overflow-y-auto overscroll-contain flex-1 min-h-0">
                 <!-- Demo Mode Toggle -->
                 <div class="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50 rounded-xl">
                     <div class="flex items-center gap-2 text-left">
@@ -340,7 +355,7 @@
                 </div>
             </div>
             
-            <div class="p-6 bg-gray-50 flex justify-end gap-3">
+            <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
                 <button id="cancelSettingsBtn" class="px-5 py-2.5 text-gray-600 hover:bg-gray-200 rounded-xl font-medium transition-colors">
                     Cancel
                 </button>
@@ -352,9 +367,9 @@
     </div>
 
     <!-- Results Modal -->
-    <div id="resultsModal" class="fixed inset-0 bg-gray-50 z-50 hidden flex flex-col overflow-y-auto">
+    <div id="resultsModal" class="fixed inset-0 bg-gray-50 z-50 hidden flex flex-col overflow-hidden">
         <!-- Results Header -->
-        <header class="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-10">
+        <header class="bg-white/90 backdrop-blur-md border-b border-gray-100 z-10 flex-shrink-0">
             <div class="max-w-2xl mx-auto px-6 py-4 flex justify-between items-center">
                 <div class="flex items-center gap-3">
                     <div class="flex items-center gap-2">
@@ -373,19 +388,30 @@
         </header>
 
         <!-- Results Content -->
-        <main class="flex-1 max-w-2xl mx-auto w-full px-6 py-8 space-y-6">
+        <main class="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+            <div class="max-w-2xl mx-auto w-full px-4 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-6">
             
-            <!-- Scanned Item & Image -->
-            <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
-                <div class="relative h-64 bg-gray-100">
-                    <img id="resultImage" src="" alt="Scanned item" class="w-full h-full object-cover">
+            <!-- Result Summary -->
+            <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                        <h3 id="resultItemName" class="text-2xl font-bold text-gray-800">Item Name</h3>
+                        <p id="resultTimestamp" class="text-sm text-gray-500 mt-1">Date</p>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm">
+                        <span class="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full font-bold">
+                            <span id="resultSummaryEcoScore">0</span> eco
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scanned Item Image/Grid -->
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden p-3 sm:p-4">
+                <div id="resultImageFrame" class="result-image-frame">
+                    <img id="resultImage" src="" alt="Scanned item" class="result-image">
                     <div id="gridOverlay" class="grid-overlay hidden"></div>
                     <div id="objectFocusBox" class="object-focus-box hidden"></div>
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                    <div class="absolute bottom-4 left-4 right-4">
-                        <h3 id="resultItemName" class="text-white text-2xl font-bold">Item Name</h3>
-                        <p id="resultTimestamp" class="text-white/70 text-sm mt-1">Date</p>
-                    </div>
                 </div>
             </div>
 
@@ -399,12 +425,12 @@
             </div>
 
             <!-- Detected Objects -->
-            <div id="detectedObjectsSection" class="bg-white rounded-2xl p-6 shadow-sm hidden">
+            <div id="detectedObjectsSection" class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm hidden">
                 <h5 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <i class="ph ph-diamonds-four text-emerald-500"></i>
                     Detected Items
                 </h5>
-                <div id="detectedObjectsList" class="grid grid-cols-1 gap-3"></div>
+                <div id="detectedObjectsList" class="detected-objects-list"></div>
             </div>
 
             <!-- Status Card -->
@@ -488,6 +514,7 @@
                     <i class="ph ph-plus-circle text-emerald-500 text-xl"></i>
                     <span>Save to History</span>
                 </button>
+            </div>
             </div>
         </main>
     </div>
