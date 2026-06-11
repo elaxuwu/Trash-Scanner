@@ -654,6 +654,8 @@ Object.assign(translations.en, {
     unclearRetakeMessage: 'The image is unclear. Please retake the photo with better lighting and place the object in the center.',
     providerEmptyResponse: 'The provider returned an empty response.',
     providerInvalidJson: 'The provider did not return valid JSON.',
+    unsupportedProvider: 'Unsupported AI provider.',
+    imageAnalysisUserPrompt: 'Analyze this waste image. Return JSON only. All user-facing string values must be in English.',
     achEcoStarter: 'Eco Starter',
     achEcoStarterDesc: 'Reach 50 eco points',
     achRecyclingHero: 'Recycling Hero',
@@ -783,6 +785,8 @@ Object.assign(translations.vi, {
     unclearRetakeMessage: 'Ảnh chưa rõ. Vui lòng chụp lại với ánh sáng tốt hơn và đặt vật phẩm ở giữa khung hình.',
     providerEmptyResponse: 'Nhà cung cấp trả về phản hồi trống.',
     providerInvalidJson: 'Nhà cung cấp không trả về JSON hợp lệ.',
+    unsupportedProvider: 'Nhà cung cấp AI không được hỗ trợ.',
+    imageAnalysisUserPrompt: 'Phân tích ảnh rác này. Chỉ trả về JSON. Tất cả giá trị chuỗi hiển thị cho người dùng phải bằng tiếng Việt có đầy đủ dấu.',
     achEcoStarter: 'Người mới xanh',
     achEcoStarterDesc: 'Đạt 50 điểm sinh thái',
     achRecyclingHero: 'Anh hùng tái chế',
@@ -1307,6 +1311,7 @@ function normalizeResult(rawResult) {
     if (!rawResult || typeof rawResult !== 'object') {
         return {
             scanType: 'unclear',
+            language: currentLanguage,
             message: t('aiEmptyResponse'),
             confidence: 0.2,
             objects: [],
@@ -1317,6 +1322,7 @@ function normalizeResult(rawResult) {
     if (rawResult.scanType === 'unclear') {
         return {
             scanType: 'unclear',
+            language: safeString(rawResult.language || currentLanguage),
             message: safeString(rawResult.message, t('unclearRetakeMessage')),
             confidence: clampNumber(rawResult.confidence, 0, 1, 0.3),
             objects: [],
@@ -1352,6 +1358,7 @@ function normalizeResult(rawResult) {
 
     return {
         scanType: inferredBatch ? 'batch' : 'single',
+        language: safeString(rawResult.language || currentLanguage),
         mainItem: safeString(rawResult.mainItem || rawResult.scanned_item || objects[0]?.name || t('wasteScan')),
         category: safeString(rawResult.category || objects[0]?.category || t('unknown')),
         recyclable: rawResult.recyclable ?? rawResult.is_recyclable ?? objects[0]?.recyclable ?? false,
@@ -1377,27 +1384,453 @@ function buildSystemPrompt(modeName = selectedScanMode) {
     const responseLanguage = currentLanguage === 'vi'
         ? 'Vietnamese with natural wording and full Vietnamese accents'
         : 'English';
+    const strictLanguageInstruction = currentLanguage === 'vi'
+        ? 'Return all user-facing text in Vietnamese with full accents. Do not mix English and Vietnamese. Keep JSON keys in English, but translate every string value shown to users.'
+        : 'Return all user-facing text in English. Keep JSON keys in English.';
     const unclearMessage = t('unclearRetakeMessage');
     return [
         'You are an expert waste sorting AI for a browser-only recycling demo.',
         'Return JSON only. No markdown. No explanation outside JSON.',
         'Use consistent fields and short practical language.',
-        `Return all human-readable JSON values in ${responseLanguage}. Keep JSON field names in English exactly as requested.`,
+        `App language: ${currentLanguage}. Response language: ${responseLanguage}.`,
+        strictLanguageInstruction,
+        'Translate all user-facing string values, including item names where possible, category, disposalAction, overallSummary, disposalPlan.immediateAction, disposalPlan.handlingType, disposalPlan.safetyWarning, disposalPlan.mistakeToAvoid, disposalPlan.steps, components.part, components.material, components.instruction, preparationSteps, education, and unclear/error messages.',
+        'Do not translate JSON keys. Include a top-level "language" field with value "en" or "vi".',
         'If uncertain, use confidence below 0.7 and suggest retaking the photo.',
         'If the image has multiple objects, use scanType = "batch".',
         'If an item has multiple materials, include components.',
         'Every single result or detected object must include disposalPlan with immediateAction, steps, handlingType, safetyWarning, and mistakeToAvoid.',
-        'Use handlingType values such as Recycling bin, General waste, Compost, Special handling, E-waste drop-off, Battery drop-off, or Separate parts before disposal.',
-        `If the image is unclear, return exactly: {"scanType":"unclear","message":"${unclearMessage}","confidence":0.3}`,
-        `Selected mode: ${mode.label}. ${mode.instruction}`,
-        'Expected batch JSON: {"scanType":"batch","objects":[{"id":1,"name":"Plastic Bottle","category":"Plastic","gridCell":3,"recyclable":true,"confidence":0.92,"ecoScore":15,"disposalAction":"Empty, rinse, and recycle if accepted locally.","disposalPlan":{"immediateAction":"Empty and rinse the bottle now.","steps":["Empty remaining liquid.","Rinse before recycling.","Put in recycling if accepted locally."],"handlingType":"Recycling bin","safetyWarning":"No special safety risk if empty.","mistakeToAvoid":"Do not recycle it with liquid inside."},"components":[{"part":"Bottle body","material":"PET plastic","recyclable":true,"instruction":"Empty and rinse."}],"preparationSteps":["Empty remaining liquid.","Rinse before recycling."],"education":"Brief reason.","carbonSavedGrams":20}],"overallSummary":"Short summary.","totalEcoScore":20,"carbonSavedGrams":20}',
-        'Expected single JSON: {"scanType":"single","mainItem":"Plastic Water Bottle","category":"Composite Packaging","recyclable":"partial","confidence":0.9,"ecoScore":18,"disposalPlan":{"immediateAction":"Separate the label if possible, then empty and rinse the bottle.","steps":["Empty remaining liquid.","Rinse the bottle.","Remove label if possible.","Recycle accepted plastic parts."],"handlingType":"Separate parts before disposal","safetyWarning":"Avoid sharp edges if the bottle is damaged.","mistakeToAvoid":"Do not recycle contaminated or full packaging."},"components":[{"part":"PET bottle body","material":"Plastic PET","recyclable":true,"instruction":"Empty and rinse before recycling."}],"preparationSteps":["Empty remaining liquid.","Rinse the bottle."],"overallSummary":"Short summary.","carbonSavedGrams":15}'
+        currentLanguage === 'vi'
+            ? 'Use Vietnamese handlingType values such as Thùng tái chế, Rác thường, Ủ phân, Xử lý đặc biệt, Điểm thu gom rác điện tử, Điểm thu gom pin, or Tách các bộ phận trước khi bỏ.'
+            : 'Use handlingType values such as Recycling bin, General waste, Compost, Special handling, E-waste drop-off, Battery drop-off, or Separate parts before disposal.',
+        `If the image is unclear, return exactly: {"language":"${currentLanguage}","scanType":"unclear","message":"${unclearMessage}","confidence":0.3}`,
+        `Selected mode: ${getScanModeText(modeName, 'label')}. ${mode.instruction}`,
+        `Expected batch JSON: ${t('promptBatchExample')}`,
+        `Expected single JSON: ${t('promptSingleExample')}`
     ].join(' ');
+}
+
+function getLocalizedDemoData(scenario) {
+    const demoData = {
+        en: {
+            bottle: {
+                scanType: 'single',
+                language: 'en',
+                mainItem: 'PET Plastic Water Bottle',
+                category: 'Plastic Packaging',
+                recyclable: 'partial',
+                confidence: 0.96,
+                overallSummary: 'PET plastic bottle is partially recyclable. The bottle body and cap can usually be recycled after rinsing; remove the label if local rules require it.',
+                totalEcoScore: 85,
+                carbonSavedGrams: 42,
+                objects: [{
+                    id: 1,
+                    name: 'Plastic Bottle Body',
+                    category: 'Plastic #1 PET',
+                    gridCell: 6,
+                    recyclable: true,
+                    confidence: 0.98,
+                    ecoScore: 90,
+                    disposalAction: 'Empty, rinse, and place accepted plastic parts in recycling.',
+                    disposalPlan: {
+                        immediateAction: 'Empty and rinse the bottle now.',
+                        steps: ['Empty remaining liquid.', 'Rinse the bottle.', 'Remove the label if possible.', 'Recycle the bottle and cap if accepted locally.'],
+                        handlingType: 'Recycling bin',
+                        safetyWarning: 'No special safety risk if the bottle is empty.',
+                        mistakeToAvoid: 'Do not recycle it with liquid or food residue inside.'
+                    },
+                    components: [
+                        { part: 'Bottle body', material: 'PET plastic', recyclable: true, instruction: 'Empty and rinse before recycling.' },
+                        { part: 'Bottle cap', material: 'HDPE plastic', recyclable: true, instruction: 'Keep attached if your local program accepts caps.' },
+                        { part: 'Label', material: 'Laminated paper or plastic film', recyclable: false, instruction: 'Remove if required locally and discard as general waste.' }
+                    ],
+                    preparationSteps: ['Empty remaining liquid.', 'Rinse the bottle.', 'Remove the label if possible.', 'Recycle accepted plastic parts.'],
+                    education: 'PET plastic is widely recycled when it is clean and dry.',
+                    carbonSavedGrams: 45
+                }]
+            },
+            battery: {
+                scanType: 'single',
+                language: 'en',
+                mainItem: 'Lithium Household Battery',
+                category: 'Hazardous Waste',
+                recyclable: 'special',
+                confidence: 0.94,
+                overallSummary: 'Batteries require special handling because they can leak, overheat, or contaminate waste streams.',
+                totalEcoScore: 10,
+                carbonSavedGrams: 5,
+                objects: [{
+                    id: 1,
+                    name: 'Used Battery',
+                    category: 'Battery',
+                    gridCell: 11,
+                    recyclable: 'special',
+                    confidence: 0.95,
+                    ecoScore: 10,
+                    disposalAction: 'Take the battery to a dedicated battery drop-off point.',
+                    disposalPlan: {
+                        immediateAction: 'Keep it out of regular trash and recycling.',
+                        steps: ['Tape exposed terminals if needed.', 'Store it in a dry non-metal container.', 'Bring it to a battery drop-off point.'],
+                        handlingType: 'Battery drop-off',
+                        safetyWarning: 'Damaged batteries can leak or overheat.',
+                        mistakeToAvoid: 'Do not put batteries in curbside recycling bins.'
+                    },
+                    components: [
+                        { part: 'Battery cell', material: 'Mixed metals and chemicals', recyclable: 'special', instruction: 'Use a dedicated battery collection point.' },
+                        { part: 'Metal casing', material: 'Steel or aluminum', recyclable: 'special', instruction: 'Recovered only through battery recycling programs.' }
+                    ],
+                    preparationSteps: ['Tape exposed terminals if needed.', 'Store it dry.', 'Bring it to a battery collection point.'],
+                    education: 'Battery recycling prevents hazardous metals and electrolytes from entering landfill and water systems.',
+                    carbonSavedGrams: 5
+                }]
+            },
+            bag: {
+                scanType: 'single',
+                language: 'en',
+                mainItem: 'Soft Plastic Grocery Bag',
+                category: 'Plastic #4 LDPE',
+                recyclable: 'special',
+                confidence: 0.88,
+                overallSummary: 'Soft plastic bags are not suitable for most curbside bins because they jam sorting equipment. Use a store drop-off if available.',
+                totalEcoScore: 40,
+                carbonSavedGrams: 20,
+                objects: [{
+                    id: 1,
+                    name: 'Plastic Shopping Bag',
+                    category: 'LDPE Plastic',
+                    gridCell: 7,
+                    recyclable: 'special',
+                    confidence: 0.89,
+                    ecoScore: 40,
+                    disposalAction: 'Drop it at a supermarket soft-plastic collection bin if clean and dry.',
+                    disposalPlan: {
+                        immediateAction: 'Remove receipts and food debris.',
+                        steps: ['Empty the bag.', 'Make sure it is clean and dry.', 'Bundle it with other soft plastics.', 'Use a store soft-plastic drop-off.'],
+                        handlingType: 'Store soft-plastic drop-off',
+                        safetyWarning: 'No special safety warning, but keep it away from small children and wildlife.',
+                        mistakeToAvoid: 'Do not put loose soft plastic bags in standard curbside recycling.'
+                    },
+                    components: [{ part: 'Bag body', material: 'LDPE plastic film', recyclable: 'special', instruction: 'Recycle only through soft-plastic collection programs.' }],
+                    preparationSteps: ['Empty the bag.', 'Keep it clean and dry.', 'Bundle with other soft plastics.'],
+                    education: 'Soft plastics can wrap around sorting machinery and contaminate curbside recycling.',
+                    carbonSavedGrams: 20
+                }]
+            },
+            mixed: {
+                scanType: 'batch',
+                language: 'en',
+                mainItem: 'Mixed Waste Scene',
+                category: 'Mixed Waste',
+                recyclable: 'partial',
+                confidence: 0.95,
+                overallSummary: 'Detected four waste items. Select an item card to see the correct disposal plan for each one.',
+                totalEcoScore: 213,
+                carbonSavedGrams: 106,
+                objects: [
+                    {
+                        id: 1,
+                        name: 'Aluminum Soda Can',
+                        category: 'Metal',
+                        gridCell: 2,
+                        recyclable: true,
+                        confidence: 0.98,
+                        ecoScore: 95,
+                        disposalAction: 'Empty, rinse, and place in metal recycling.',
+                        disposalPlan: {
+                            immediateAction: 'Empty and rinse the can.',
+                            steps: ['Empty remaining liquid.', 'Rinse out sticky residue.', 'Crush only if your local program allows it.', 'Place in metal recycling.'],
+                            handlingType: 'Recycling bin',
+                            safetyWarning: 'Watch for sharp edges if the can is crushed.',
+                            mistakeToAvoid: 'Do not recycle cans filled with liquid.'
+                        },
+                        components: [{ part: 'Can body', material: 'Aluminum', recyclable: true, instruction: 'Rinse and recycle as metal.' }],
+                        preparationSteps: ['Empty remaining liquid.', 'Rinse out residue.', 'Place in metal recycling.'],
+                        education: 'Recycling aluminum saves substantial energy compared with making new aluminum.',
+                        carbonSavedGrams: 47
+                    },
+                    {
+                        id: 2,
+                        name: 'Cardboard Box',
+                        category: 'Paper',
+                        gridCell: 4,
+                        recyclable: true,
+                        confidence: 0.96,
+                        ecoScore: 88,
+                        disposalAction: 'Remove tape, flatten, and recycle as paper.',
+                        disposalPlan: {
+                            immediateAction: 'Remove plastic tape and flatten the box.',
+                            steps: ['Remove plastic tape.', 'Flatten the cardboard.', 'Keep it dry and clean.', 'Place in paper recycling.'],
+                            handlingType: 'Paper recycling bin',
+                            safetyWarning: 'No special safety warning.',
+                            mistakeToAvoid: 'Do not recycle wet or greasy cardboard.'
+                        },
+                        components: [
+                            { part: 'Cardboard body', material: 'Paper fiber', recyclable: true, instruction: 'Flatten before recycling.' },
+                            { part: 'Plastic tape', material: 'Polypropylene adhesive', recyclable: false, instruction: 'Remove and discard as general waste.' }
+                        ],
+                        preparationSteps: ['Remove plastic tape.', 'Flatten the cardboard.', 'Keep it dry.'],
+                        education: 'Clean cardboard can be pulped into new paper packaging.',
+                        carbonSavedGrams: 44
+                    },
+                    {
+                        id: 3,
+                        name: 'AA Battery',
+                        category: 'Battery',
+                        gridCell: 9,
+                        recyclable: 'special',
+                        confidence: 0.97,
+                        ecoScore: 10,
+                        disposalAction: 'Take it to a battery recycling point.',
+                        disposalPlan: {
+                            immediateAction: 'Keep the battery out of regular bins.',
+                            steps: ['Tape the terminals if needed.', 'Store in a dry container.', 'Bring to a battery drop-off point.'],
+                            handlingType: 'Battery drop-off',
+                            safetyWarning: 'Do not crush, heat, or burn batteries.',
+                            mistakeToAvoid: 'Do not mix batteries into normal recycling.'
+                        },
+                        components: [{ part: 'Battery cell', material: 'Zinc, manganese, steel, and electrolyte', recyclable: 'special', instruction: 'Handle through battery recycling only.' }],
+                        preparationSteps: ['Tape terminals if needed.', 'Store dry.', 'Use a battery drop-off point.'],
+                        education: 'Battery collection prevents corrosive chemicals from entering landfill.',
+                        carbonSavedGrams: 5
+                    },
+                    {
+                        id: 4,
+                        name: 'Soiled Styrofoam Box',
+                        category: 'Polystyrene',
+                        gridCell: 15,
+                        recyclable: false,
+                        confidence: 0.9,
+                        ecoScore: 20,
+                        disposalAction: 'Discard in general waste unless a specialty foam recycler accepts it.',
+                        disposalPlan: {
+                            immediateAction: 'Scrape off food and place it in general waste.',
+                            steps: ['Remove leftover food.', 'Bag it with general waste.', 'Avoid breaking it into small fragments.'],
+                            handlingType: 'General waste',
+                            safetyWarning: 'Do not burn foam packaging.',
+                            mistakeToAvoid: 'Do not place greasy foam in paper or plastic recycling.'
+                        },
+                        components: [{ part: 'Foam tray', material: 'Polystyrene foam', recyclable: false, instruction: 'Not accepted by most curbside recycling programs.' }],
+                        preparationSteps: ['Remove leftover food.', 'Place in general waste.'],
+                        education: 'Foam breaks into persistent microplastic fragments and is rarely recycled curbside.',
+                        carbonSavedGrams: 10
+                    }
+                ]
+            }
+        },
+        vi: {
+            bottle: {
+                scanType: 'single',
+                language: 'vi',
+                mainItem: 'Chai nước nhựa PET',
+                category: 'Bao bì nhựa',
+                recyclable: 'partial',
+                confidence: 0.96,
+                overallSummary: 'Chai nhựa PET có thể tái chế một phần. Thân chai và nắp thường có thể tái chế sau khi rửa sạch; hãy gỡ nhãn nếu quy định địa phương yêu cầu.',
+                totalEcoScore: 85,
+                carbonSavedGrams: 42,
+                objects: [{
+                    id: 1,
+                    name: 'Thân chai nhựa',
+                    category: 'Nhựa PET số 1',
+                    gridCell: 6,
+                    recyclable: true,
+                    confidence: 0.98,
+                    ecoScore: 90,
+                    disposalAction: 'Đổ hết, rửa sạch và bỏ các phần nhựa được chấp nhận vào thùng tái chế.',
+                    disposalPlan: {
+                        immediateAction: 'Đổ hết phần nước còn lại và rửa sạch chai ngay.',
+                        steps: ['Đổ hết chất lỏng còn lại.', 'Rửa sạch chai.', 'Gỡ nhãn nếu có thể.', 'Tái chế thân chai và nắp nếu địa phương chấp nhận.'],
+                        handlingType: 'Thùng tái chế',
+                        safetyWarning: 'Không có rủi ro an toàn đặc biệt nếu chai đã rỗng.',
+                        mistakeToAvoid: 'Không tái chế chai khi vẫn còn chất lỏng hoặc cặn thức ăn bên trong.'
+                    },
+                    components: [
+                        { part: 'Thân chai', material: 'Nhựa PET', recyclable: true, instruction: 'Đổ hết và rửa sạch trước khi tái chế.' },
+                        { part: 'Nắp chai', material: 'Nhựa HDPE', recyclable: true, instruction: 'Giữ nắp gắn với chai nếu chương trình địa phương chấp nhận.' },
+                        { part: 'Nhãn', material: 'Giấy phủ hoặc màng nhựa', recyclable: false, instruction: 'Gỡ ra nếu địa phương yêu cầu và bỏ vào rác thường.' }
+                    ],
+                    preparationSteps: ['Đổ hết chất lỏng còn lại.', 'Rửa sạch chai.', 'Gỡ nhãn nếu có thể.', 'Tái chế các phần nhựa được chấp nhận.'],
+                    education: 'Nhựa PET thường được tái chế rộng rãi khi sạch và khô.',
+                    carbonSavedGrams: 45
+                }]
+            },
+            battery: {
+                scanType: 'single',
+                language: 'vi',
+                mainItem: 'Pin gia dụng lithium',
+                category: 'Chất thải nguy hại',
+                recyclable: 'special',
+                confidence: 0.94,
+                overallSummary: 'Pin cần xử lý đặc biệt vì có thể rò rỉ, quá nhiệt hoặc làm nhiễm bẩn luồng rác.',
+                totalEcoScore: 10,
+                carbonSavedGrams: 5,
+                objects: [{
+                    id: 1,
+                    name: 'Pin đã dùng',
+                    category: 'Pin',
+                    gridCell: 11,
+                    recyclable: 'special',
+                    confidence: 0.95,
+                    ecoScore: 10,
+                    disposalAction: 'Mang pin đến điểm thu gom pin chuyên dụng.',
+                    disposalPlan: {
+                        immediateAction: 'Không bỏ pin vào rác thường hoặc thùng tái chế.',
+                        steps: ['Dán băng keo lên cực pin hở nếu cần.', 'Cất pin trong hộp khô, không bằng kim loại.', 'Mang đến điểm thu gom pin.'],
+                        handlingType: 'Điểm thu gom pin',
+                        safetyWarning: 'Pin hư hỏng có thể rò rỉ hoặc quá nhiệt.',
+                        mistakeToAvoid: 'Không bỏ pin vào thùng tái chế lề đường.'
+                    },
+                    components: [
+                        { part: 'Lõi pin', material: 'Kim loại và hóa chất hỗn hợp', recyclable: 'special', instruction: 'Dùng điểm thu gom pin chuyên dụng.' },
+                        { part: 'Vỏ kim loại', material: 'Thép hoặc nhôm', recyclable: 'special', instruction: 'Chỉ được thu hồi qua chương trình tái chế pin.' }
+                    ],
+                    preparationSteps: ['Dán băng keo lên cực pin hở nếu cần.', 'Cất pin ở nơi khô ráo.', 'Mang đến điểm thu gom pin.'],
+                    education: 'Tái chế pin giúp ngăn kim loại nguy hại và chất điện phân đi vào bãi chôn lấp hoặc nguồn nước.',
+                    carbonSavedGrams: 5
+                }]
+            },
+            bag: {
+                scanType: 'single',
+                language: 'vi',
+                mainItem: 'Túi nhựa mềm đi chợ',
+                category: 'Nhựa LDPE số 4',
+                recyclable: 'special',
+                confidence: 0.88,
+                overallSummary: 'Túi nhựa mềm không phù hợp với hầu hết thùng tái chế lề đường vì có thể kẹt máy phân loại. Hãy dùng điểm thu gom tại cửa hàng nếu có.',
+                totalEcoScore: 40,
+                carbonSavedGrams: 20,
+                objects: [{
+                    id: 1,
+                    name: 'Túi nhựa mua sắm',
+                    category: 'Nhựa LDPE',
+                    gridCell: 7,
+                    recyclable: 'special',
+                    confidence: 0.89,
+                    ecoScore: 40,
+                    disposalAction: 'Bỏ vào thùng thu gom nhựa mềm tại siêu thị nếu túi sạch và khô.',
+                    disposalPlan: {
+                        immediateAction: 'Lấy hóa đơn và cặn thức ăn ra khỏi túi.',
+                        steps: ['Làm rỗng túi.', 'Đảm bảo túi sạch và khô.', 'Gom chung với các túi nhựa mềm khác.', 'Đem đến điểm thu gom nhựa mềm tại cửa hàng.'],
+                        handlingType: 'Điểm thu gom nhựa mềm tại cửa hàng',
+                        safetyWarning: 'Không có cảnh báo an toàn đặc biệt, nhưng hãy tránh để trẻ nhỏ hoặc động vật tiếp xúc.',
+                        mistakeToAvoid: 'Không bỏ túi nhựa mềm rời vào thùng tái chế lề đường.'
+                    },
+                    components: [{ part: 'Thân túi', material: 'Màng nhựa LDPE', recyclable: 'special', instruction: 'Chỉ tái chế qua chương trình thu gom nhựa mềm.' }],
+                    preparationSteps: ['Làm rỗng túi.', 'Giữ túi sạch và khô.', 'Gom chung với nhựa mềm khác.'],
+                    education: 'Nhựa mềm có thể quấn vào máy phân loại và làm nhiễm bẩn luồng tái chế lề đường.',
+                    carbonSavedGrams: 20
+                }]
+            },
+            mixed: {
+                scanType: 'batch',
+                language: 'vi',
+                mainItem: 'Cảnh rác hỗn hợp',
+                category: 'Rác hỗn hợp',
+                recyclable: 'partial',
+                confidence: 0.95,
+                overallSummary: 'Phát hiện bốn vật phẩm rác. Chọn từng thẻ vật phẩm để xem kế hoạch xử lý phù hợp.',
+                totalEcoScore: 213,
+                carbonSavedGrams: 106,
+                objects: [
+                    {
+                        id: 1,
+                        name: 'Lon nước ngọt nhôm',
+                        category: 'Kim loại',
+                        gridCell: 2,
+                        recyclable: true,
+                        confidence: 0.98,
+                        ecoScore: 95,
+                        disposalAction: 'Đổ hết, rửa sạch và bỏ vào thùng tái chế kim loại.',
+                        disposalPlan: {
+                            immediateAction: 'Đổ hết và rửa sạch lon.',
+                            steps: ['Đổ hết chất lỏng còn lại.', 'Rửa sạch phần cặn dính.', 'Chỉ ép dẹp nếu địa phương cho phép.', 'Bỏ vào thùng tái chế kim loại.'],
+                            handlingType: 'Thùng tái chế',
+                            safetyWarning: 'Cẩn thận cạnh sắc nếu lon bị ép dẹp.',
+                            mistakeToAvoid: 'Không tái chế lon vẫn còn chất lỏng.'
+                        },
+                        components: [{ part: 'Thân lon', material: 'Nhôm', recyclable: true, instruction: 'Rửa sạch và tái chế như kim loại.' }],
+                        preparationSteps: ['Đổ hết chất lỏng còn lại.', 'Rửa sạch cặn dính.', 'Bỏ vào thùng tái chế kim loại.'],
+                        education: 'Tái chế nhôm tiết kiệm nhiều năng lượng so với sản xuất nhôm mới.',
+                        carbonSavedGrams: 47
+                    },
+                    {
+                        id: 2,
+                        name: 'Hộp bìa carton',
+                        category: 'Giấy',
+                        gridCell: 4,
+                        recyclable: true,
+                        confidence: 0.96,
+                        ecoScore: 88,
+                        disposalAction: 'Gỡ băng keo, ép phẳng và tái chế như giấy.',
+                        disposalPlan: {
+                            immediateAction: 'Gỡ băng keo nhựa và ép phẳng hộp.',
+                            steps: ['Gỡ băng keo nhựa.', 'Ép phẳng bìa carton.', 'Giữ khô và sạch.', 'Bỏ vào thùng tái chế giấy.'],
+                            handlingType: 'Thùng tái chế giấy',
+                            safetyWarning: 'Không có cảnh báo an toàn đặc biệt.',
+                            mistakeToAvoid: 'Không tái chế bìa carton ướt hoặc dính dầu mỡ.'
+                        },
+                        components: [
+                            { part: 'Thân hộp carton', material: 'Sợi giấy', recyclable: true, instruction: 'Ép phẳng trước khi tái chế.' },
+                            { part: 'Băng keo nhựa', material: 'Keo polypropylene', recyclable: false, instruction: 'Gỡ ra và bỏ vào rác thường.' }
+                        ],
+                        preparationSteps: ['Gỡ băng keo nhựa.', 'Ép phẳng bìa carton.', 'Giữ khô.'],
+                        education: 'Bìa carton sạch có thể được nghiền thành bột giấy để làm bao bì mới.',
+                        carbonSavedGrams: 44
+                    },
+                    {
+                        id: 3,
+                        name: 'Pin AA',
+                        category: 'Pin',
+                        gridCell: 9,
+                        recyclable: 'special',
+                        confidence: 0.97,
+                        ecoScore: 10,
+                        disposalAction: 'Mang đến điểm tái chế pin.',
+                        disposalPlan: {
+                            immediateAction: 'Không bỏ pin vào các thùng rác thông thường.',
+                            steps: ['Dán băng keo lên cực pin nếu cần.', 'Cất trong hộp khô.', 'Mang đến điểm thu gom pin.'],
+                            handlingType: 'Điểm thu gom pin',
+                            safetyWarning: 'Không nghiền, làm nóng hoặc đốt pin.',
+                            mistakeToAvoid: 'Không trộn pin vào rác tái chế thông thường.'
+                        },
+                        components: [{ part: 'Lõi pin', material: 'Kẽm, mangan, thép và chất điện phân', recyclable: 'special', instruction: 'Chỉ xử lý qua chương trình tái chế pin.' }],
+                        preparationSteps: ['Dán băng keo lên cực pin nếu cần.', 'Cất khô ráo.', 'Dùng điểm thu gom pin.'],
+                        education: 'Thu gom pin giúp ngăn hóa chất ăn mòn đi vào bãi chôn lấp.',
+                        carbonSavedGrams: 5
+                    },
+                    {
+                        id: 4,
+                        name: 'Hộp xốp dính bẩn',
+                        category: 'Nhựa polystyrene',
+                        gridCell: 15,
+                        recyclable: false,
+                        confidence: 0.9,
+                        ecoScore: 20,
+                        disposalAction: 'Bỏ vào rác thường trừ khi có cơ sở chuyên tái chế xốp chấp nhận.',
+                        disposalPlan: {
+                            immediateAction: 'Gạt bỏ thức ăn thừa và bỏ vào rác thường.',
+                            steps: ['Loại bỏ thức ăn thừa.', 'Bỏ vào túi rác thường.', 'Tránh bẻ vụn thành mảnh nhỏ.'],
+                            handlingType: 'Rác thường',
+                            safetyWarning: 'Không đốt bao bì xốp.',
+                            mistakeToAvoid: 'Không bỏ xốp dính dầu mỡ vào thùng tái chế giấy hoặc nhựa.'
+                        },
+                        components: [{ part: 'Khay xốp', material: 'Xốp polystyrene', recyclable: false, instruction: 'Hầu hết chương trình tái chế lề đường không chấp nhận.' }],
+                        preparationSteps: ['Loại bỏ thức ăn thừa.', 'Bỏ vào rác thường.'],
+                        education: 'Xốp dễ vỡ thành vi nhựa tồn tại lâu dài trong môi trường.',
+                        carbonSavedGrams: 10
+                    }
+                ]
+            }
+        }
+    };
+
+    return (demoData[currentLanguage] || demoData.en)[scenario] || (demoData[currentLanguage] || demoData.en).bottle;
 }
 
 function getMockDemoResponse() {
     const selector = dom.demoScenarioSelect;
     const selectedScenario = selector ? selector.value : 'bottle';
+    return normalizeResult(getLocalizedDemoData(selectedScenario));
     const isVietnamese = currentLanguage === 'vi';
 
     const mockData = {
@@ -1684,7 +2117,7 @@ async function analyzeWasteImage({ provider, apiKey, model, imageBase64, mode })
     } else if (normalizedProvider === 'gemini') {
         rawResult = await analyzeWithGemini(adapterInput);
     } else {
-        throw new Error('Unsupported AI provider.');
+        throw new Error(t('unsupportedProvider'));
     }
 
     return normalizeResult(rawResult);
@@ -1705,6 +2138,10 @@ async function analyzeWithOpenAI({ apiKey, model, imageBase64, mode, prompt }) {
                 {
                     role: 'user',
                     content: [
+                        {
+                            type: 'text',
+                            text: t('imageAnalysisUserPrompt')
+                        },
                         {
                             type: 'image_url',
                             image_url: {
@@ -1745,6 +2182,10 @@ async function analyzeWithOpenRouter({ apiKey, model, imageBase64, prompt }) {
                     role: 'user',
                     content: [
                         {
+                            type: 'text',
+                            text: t('imageAnalysisUserPrompt')
+                        },
+                        {
                             type: 'image_url',
                             image_url: { url: imageBase64 }
                         }
@@ -1780,6 +2221,7 @@ async function analyzeWithGemini({ apiKey, model, imageBase64, prompt }) {
                     role: 'user',
                     parts: [
                         { text: prompt },
+                        { text: t('imageAnalysisUserPrompt') },
                         {
                             inlineData: {
                                 mimeType: 'image/jpeg',
@@ -2218,6 +2660,7 @@ function renderUnclearResult(result) {
     dom.resultItemName.textContent = t('unclear');
     dom.resultSummaryCard.classList.remove('hidden');
     dom.resultSummaryText.textContent = result.message;
+    renderSavedLanguageNote(result);
     dom.statusCard.className = 'rounded-2xl p-6 shadow-sm bg-gradient-to-r from-gray-500 to-gray-600';
     setIcon(dom.statusIcon, 'ph ph-warning text-white text-3xl');
     dom.statusMessage.textContent = t('unclearConfidence', { percent: Math.round(result.confidence * 100) });
@@ -2234,6 +2677,23 @@ function renderUnclearResult(result) {
 function renderSummary(result) {
     dom.resultSummaryCard.classList.remove('hidden');
     dom.resultSummaryText.textContent = result.overallSummary || buildSummary(result.objects);
+    renderSavedLanguageNote(result);
+}
+
+function renderSavedLanguageNote(result) {
+    const existingNote = document.getElementById('savedLanguageNote');
+    if (existingNote) existingNote.remove();
+
+    const savedLanguage = result.savedLanguage || result.language || '';
+    const shouldShow = Boolean(result.isFromHistory) && (!savedLanguage || savedLanguage !== currentLanguage);
+    if (!shouldShow) return;
+
+    const note = createElement('p', {
+        className: 'mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2',
+        text: t('savedLanguageNote')
+    });
+    note.id = 'savedLanguageNote';
+    dom.resultSummaryCard.appendChild(note);
 }
 
 function renderStatus(result) {
@@ -2575,6 +3035,7 @@ function addToHistory(result) {
         model: isDemoMode ? 'offline-mock' : config.model,
         imageData: capturedHistoryImageData || capturedImageData,
         isDemo: isDemoMode,
+        language: result.language || currentLanguage,
         result
     };
     history.unshift(entry);
@@ -2638,6 +3099,8 @@ function loadHistory() {
             capturedImageData = entry.imageData;
             // Transfer stored demo state to preview results badge
             result.isDemo = entry.isDemo;
+            result.isFromHistory = true;
+            result.savedLanguage = entry.language || result.language || '';
             showResults(result, false);
         });
         recentList.appendChild(historyItem);
