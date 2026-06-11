@@ -1,4 +1,4 @@
-        // App Logic
+// App Logic
         const videoFeed = document.getElementById('videoFeed');
         const videoCanvas = document.getElementById('videoCanvas');
         const scanBtn = document.getElementById('scanBtn');
@@ -39,11 +39,174 @@
         const saveHistoryContainer = document.getElementById('saveHistoryContainer');
         const saveToHistoryBtn = document.getElementById('saveToHistoryBtn');
 
+        // UI Elements
+        const userLevelBadge = document.getElementById('userLevelBadge');
+        const levelIcon = document.getElementById('levelIcon');
+        const levelText = document.getElementById('levelText');
+        const langToggleBtn = document.getElementById('langToggleBtn');
+        const statsChartCanvas = document.getElementById('statsChart');
+        const totalRecycledCount = document.getElementById('totalRecycledCount');
+
         let stream = null;
         let ctx = null;
         let video = null;
         let capturedImageData = null;
         let lastAnalysisResult = null;
+        let currentLanguage = 'en';
+        let statsChartInstance = null;
+
+        // --- PWA REGISTRATION ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('[App] Service Worker registered:', reg.scope))
+                    .catch(err => console.log('[App] SW registration failed:', err));
+            });
+        }
+
+        // --- LANGUAGE MANAGEMENT ---
+        const translations = {
+            en: {
+                appTitle: 'RecycleCheck AI',
+                recentScans: 'Recent Scans',
+                clearAll: 'Clear All',
+                noScans: 'No recent scans yet.',
+                settings: 'Settings',
+                done: 'Done',
+                retake: 'Retake',
+                analyze: 'Analyze',
+                uploading: 'Upload Image',
+                analyzing: 'Analyzing waste...',
+                cameraRequired: 'Camera Access Required',
+                cameraDesc: 'To identify your waste instantly, please allow camera access or upload an image.',
+                apiSettings: 'API Settings',
+                cancel: 'Cancel',
+                saveChanges: 'Save Changes',
+                status: 'Recyclability Status',
+                composition: 'Material Composition',
+                disposalGuide: 'Disposal Guide',
+                sustainability: 'Sustainability Tracker',
+                ecoScore: 'Eco Score',
+                carbonSaved: 'CO₂ Saved',
+                saveToHistory: 'Save to History',
+                levelSprout: 'Sprout',
+                levelWarrior: 'Eco Warrior',
+                levelMaster: 'Recycle Master',
+                analysisResults: 'Analysis Results',
+                itemName: 'Item Name',
+                analytics: 'Analytics',
+                totalRecycled: 'Total Items Recycled',
+                recycled: 'Recycled',
+                notRecycled: 'Not Recycled'
+            },
+            vi: {
+                appTitle: 'RecycleCheck AI',
+                recentScans: 'Lịch Sử Quét',
+                clearAll: 'Xóa Tất Cả',
+                noScans: 'Chưa có quét nào gần đây.',
+                settings: 'Cài Đặt',
+                done: 'Xong',
+                retake: 'Chụp Lại',
+                analyze: 'Phân Tích',
+                uploading: 'Tải Ảnh Lên',
+                analyzing: 'Đang phân tích rác...',
+                cameraRequired: 'Yêu Cầu Quyền Camera',
+                cameraDesc: 'Để nhận diện rác ngay lập tức, vui lòng cho phép truy cập camera hoặc tải ảnh lên.',
+                apiSettings: 'Cài Đặt API',
+                cancel: 'Hủy',
+                saveChanges: 'Lưu Thay Đổi',
+                status: 'Tình Trạng Tái Chế',
+                composition: 'Thành Phần Vật Liệu',
+                disposalGuide: 'Hướng Dẫn Xử Lý',
+                sustainability: 'Theo Dõi Bền Vững',
+                ecoScore: 'Điểm Sinh Thái',
+                carbonSaved: 'CO₂ Tiết Kiệm',
+                saveToHistory: 'Lưu Vào Lịch Sử',
+                levelSprout: 'Mầm Non',
+                levelWarrior: 'Chiến Binh Xanh',
+                levelMaster: 'Bậc Thầy Tái Chế',
+                analysisResults: 'Kết Quả Phân Tích',
+                itemName: 'Tên Sản Phẩm',
+                analytics: 'Phân Tích',
+                totalRecycled: 'Tổng Vật Phẩm Tái Chế',
+                recycled: 'Tái Chế Được',
+                notRecycled: 'Không Tái Chế'
+            }
+        };
+
+        function t(key) {
+            return translations[currentLanguage][key] || translations['en'][key] || key;
+        }
+
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'en' ? 'vi' : 'en';
+            langToggleBtn.textContent = currentLanguage === 'en' ? 'EN' : 'VI';
+            updateUITexts();
+        }
+
+        function updateUITexts() {
+            // Header
+            document.querySelector('h1').textContent = t('appTitle');
+            
+            // Recent Scans
+            document.querySelector('#recentList').previousElementSibling.querySelector('h2').textContent = t('recentScans');
+            const clearBtn = document.getElementById('clearHistoryBtn');
+            if (clearBtn) clearBtn.textContent = t('clearAll');
+            const emptyRecent = document.getElementById('emptyRecent');
+            if (emptyRecent) emptyRecent.querySelector('p').textContent = t('noScans');
+
+            // Preview Modal
+            const retakeSpan = retakeBtn.querySelector('span');
+            if (retakeSpan) retakeSpan.textContent = t('retake');
+            const analyzeSpan = analyzeBtn.querySelector('span');
+            if (analyzeSpan) analyzeSpan.textContent = t('analyze');
+            
+            // Loading
+            const loadingText = loadingOverlay.querySelector('p');
+            if (loadingText) loadingText.textContent = t('analyzing');
+
+            // Camera Fallback
+            const cameraTitle = cameraFallback.querySelector('h3');
+            if (cameraTitle) cameraTitle.textContent = t('cameraRequired');
+            const cameraDesc = cameraFallback.querySelector('p');
+            if (cameraDesc) cameraDesc.textContent = t('cameraDesc');
+            const uploadLabel = cameraFallback.querySelector('label span');
+            if (uploadLabel) uploadLabel.textContent = t('uploading');
+
+            // Settings Modal
+            document.querySelector('#settingsModal h2').textContent = t('apiSettings');
+            cancelSettingsBtn.textContent = t('cancel');
+            saveSettingsBtn.textContent = t('saveChanges');
+
+            // Results Modal
+            document.querySelector('#resultsModal h2').textContent = t('analysisResults');
+            closeResultsBtn.textContent = t('done');
+            
+            // Labels in results
+            statusMessage.previousElementSibling.textContent = t('status');
+            document.querySelector('#compositionBars').previousElementSibling.querySelector('h5').textContent = t('composition');
+            document.querySelector('#actionSteps').previousElementSibling.querySelector('h5').textContent = t('disposalGuide');
+            
+            // Tracker
+            const trackerTitle = document.querySelector('#ecoScoreValue').closest('.bg-white').querySelector('h5');
+            if (trackerTitle) trackerTitle.textContent = t('sustainability');
+            document.querySelector('#ecoScoreValue').previousElementSibling.textContent = t('ecoScore');
+            document.querySelector('#carbonSavedValue').previousElementSibling.textContent = t('carbonSaved');
+            
+            // Save btn
+            const saveBtnSpan = saveToHistoryBtn.querySelector('span');
+            if (saveBtnSpan) saveBtnSpan.textContent = t('saveToHistory');
+
+            // Analytics
+            const analyticsTitle = document.querySelector('#statsChart').closest('.bg-white').querySelector('h2');
+            if (analyticsTitle) analyticsTitle.textContent = t('analytics');
+            document.querySelector('#totalRecycledCount').previousElementSibling.textContent = t('totalRecycled');
+
+            // User Level
+            updateUserLevel();
+        }
+
+        langToggleBtn.addEventListener('click', toggleLanguage);
 
         // --- HISTORY MANAGEMENT ---
         
@@ -83,6 +246,8 @@
 
             saveHistory(history);
             loadHistory();
+            updateUserLevel();
+            renderChart();
         }
 
         function loadHistory() {
@@ -102,7 +267,7 @@
 
             history.forEach(item => {
                 const date = new Date(item.timestamp);
-                const formattedDate = date.toLocaleDateString('en-US', { 
+                const formattedDate = date.toLocaleDateString(currentLanguage === 'vi' ? 'vi-VN' : 'en-US', { 
                     month: 'short', 
                     day: 'numeric',
                     hour: '2-digit',
@@ -110,10 +275,9 @@
                 });
 
                 const isRecyclable = item.isRecyclable;
-                const statusIcon = isRecyclable 
+                const statusIconHtml = isRecyclable 
                     ? '<i class="ph ph-recycle text-emerald-500"></i>' 
                     : '<i class="ph ph-warning text-orange-500"></i>';
-                const statusColor = isRecyclable ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-orange-700';
                 const scoreColor = isRecyclable ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600';
 
                 const historyItem = document.createElement('div');
@@ -127,7 +291,7 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 mb-1">
-                            ${statusIcon}
+                            ${statusIconHtml}
                             <h4 class="font-semibold text-gray-800 truncate">${item.itemName}</h4>
                         </div>
                         <p class="text-xs text-gray-500">${formattedDate}</p>
@@ -206,7 +370,7 @@
             carbonSavedValue.textContent = `${item.carbonSaved}g`;
 
             // Hide the save button for history view
-            saveToHistoryBtn.classList.add('hidden');
+            saveHistoryContainer.classList.add('hidden');
 
             // Show modal
             resultsModal.classList.remove('hidden');
@@ -214,10 +378,128 @@
         }
 
         function clearHistory() {
-            if (confirm('Are you sure you want to clear all scan history?')) {
+            if (confirm(currentLanguage === 'vi' ? 'Bạn có chắc muốn xóa tất cả lịch sử?' : 'Are you sure you want to clear all scan history?')) {
                 localStorage.removeItem(HISTORY_KEY);
                 loadHistory();
+                updateUserLevel();
+                renderChart();
             }
+        }
+
+        // --- GAMIFICATION ---
+        function getTotalEcoScore() {
+            const history = getHistory();
+            return history.reduce((total, item) => total + (item.ecoScore || 0), 0);
+        }
+
+        function updateUserLevel() {
+            const totalScore = getTotalEcoScore();
+            let level = {
+                icon: '🌱',
+                name: t('levelSprout'),
+                color: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            };
+
+            if (totalScore >= 500) {
+                level = {
+                    icon: '👑',
+                    name: t('levelMaster'),
+                    color: 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                };
+            } else if (totalScore >= 100) {
+                level = {
+                    icon: '🛡️',
+                    name: t('levelWarrior'),
+                    color: 'bg-blue-50 text-blue-700 border-blue-200'
+                };
+            }
+
+            levelIcon.textContent = level.icon;
+            levelText.textContent = level.name;
+            userLevelBadge.className = `hidden md:flex items-center gap-1.5 px-3 py-1.5 ${level.color} rounded-full text-xs font-bold border`;
+        }
+
+        function triggerConfetti() {
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 2000 };
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            var interval = setInterval(function() {
+                var timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+
+                var particleCount = 50 * (timeLeft / duration);
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        }
+
+        // --- ANALYTICS (CHART.JS) ---
+        function renderChart() {
+            const chartCanvas = document.getElementById('statsChart');
+            if (!chartCanvas) return;
+
+            // Destroy existing chart to avoid "Canvas already in use" error
+            if (statsChartInstance) {
+                statsChartInstance.destroy();
+                statsChartInstance = null;
+            }
+
+            const history = getHistory();
+            const totalItems = history.length;
+            
+            // Update counter
+            totalRecycledCount.textContent = totalItems;
+
+            // Count Recyclable vs Not Recyclable
+            const recyclableCount = history.filter(item => item.isRecyclable).length;
+            const notRecyclableCount = totalItems - recyclableCount;
+
+            // Ensure there's at least some data to display a chart
+            if (totalItems === 0) return;
+
+            const data = {
+                labels: [t('recycled'), t('notRecycled')],
+                datasets: [{
+                    data: [recyclableCount, notRecyclableCount],
+                    backgroundColor: [
+                        '#10b981', // emerald-500
+                        '#f97316'  // orange-500
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            };
+
+            statsChartInstance = new Chart(chartCanvas, {
+                type: 'doughnut',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: {
+                                    size: 12,
+                                    family: 'inherit'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         // --- SETTINGS MODAL LOGIC ---
@@ -243,11 +525,11 @@
         function updateApiKeyStatus(isConfigured) {
             apiKeyStatus.classList.remove('hidden');
             if (isConfigured) {
-                apiKeyStatus.className = 'hidden p-3 rounded-xl text-sm flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200';
-                apiKeyStatus.innerHTML = '<i class="ph ph-check-circle"></i> API Key is configured';
+                apiKeyStatus.className = 'p-3 rounded-xl text-sm flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200';
+                apiKeyStatus.innerHTML = '<i class="ph ph-check-circle"></i> ' + (currentLanguage === 'vi' ? 'API Key đã được cấu hình' : 'API Key is configured');
             } else {
-                apiKeyStatus.className = 'hidden p-3 rounded-xl text-sm flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200';
-                apiKeyStatus.innerHTML = '<i class="ph ph-warning"></i> No API Key found. Analysis will fail.';
+                apiKeyStatus.className = 'p-3 rounded-xl text-sm flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200';
+                apiKeyStatus.innerHTML = '<i class="ph ph-warning"></i> ' + (currentLanguage === 'vi' ? 'Không tìm thấy API Key. Phân tích sẽ thất bại.' : 'No API Key found. Analysis will fail.');
             }
         }
 
@@ -255,10 +537,10 @@
             const key = apiKeyInput.value.trim();
             if (key) {
                 localStorage.setItem('openai_api_key', key);
-                alert('Settings saved successfully!');
+                alert(currentLanguage === 'vi' ? 'Cài đặt đã được lưu!' : 'Settings saved successfully!');
                 closeSettings();
             } else {
-                alert('Please enter a valid API Key.');
+                alert(currentLanguage === 'vi' ? 'Vui lòng nhập API Key hợp lệ.' : 'Please enter a valid API Key.');
             }
         }
 
@@ -418,13 +700,21 @@
 
         // --- OPENAI API INTEGRATION ---
 
-        const SYSTEM_PROMPT = `You are an expert waste sorting AI. Analyze the uploaded image and return ONLY a JSON object matching exactly this structure: { "scanned_item": "Short item name", "is_recyclable": boolean, "status_message": "Short status like RECYCLABLE or CONTAMINATED", "composition": [ { "material": "Name", "percentage": number } ], "action_steps": [ "Step 1", "Step 2" ], "eco_score": number (0-100) }`;
+        function getSystemPrompt() {
+            const langRule = currentLanguage === 'vi' 
+                ? 'The output JSON text for fields "scanned_item", "status_message", "material", and "action_steps" MUST be written in Vietnamese. Keep the JSON keys in English.'
+                : 'The output JSON text for fields "scanned_item", "status_message", "material", and "action_steps" MUST be written in English.';
+
+            return `You are an expert waste sorting AI. Analyze the uploaded image and return ONLY a JSON object matching exactly this structure: { "scanned_item": "Short item name", "is_recyclable": boolean, "status_message": "Short status like RECYCLABLE or CONTAMINATED", "composition": [ { "material": "Name", "percentage": number } ], "action_steps": [ "Step 1", "Step 2" ], "eco_score": number (0-100) }. ${langRule}`;
+        }
 
         async function analyzeWithAI() {
             const apiKey = localStorage.getItem('openai_api_key');
 
             if (!apiKey) {
-                const userChoice = confirm('No API Key found. Would you like to set it up now?');
+                const userChoice = confirm(currentLanguage === 'vi' 
+                    ? 'Không tìm thấy API Key. Bạn có muốn cài đặt ngay không?' 
+                    : 'No API Key found. Would you like to set it up now?');
                 if (userChoice) {
                     openSettings();
                 }
@@ -448,7 +738,7 @@
                         messages: [
                             {
                                 role: 'system',
-                                content: SYSTEM_PROMPT
+                                content: getSystemPrompt()
                             },
                             {
                                 role: 'user',
@@ -480,7 +770,9 @@
             } catch (error) {
                 console.error('AI Analysis Error:', error);
                 loadingOverlay.classList.remove('active');
-                alert(`Analysis Failed: ${error.message}\n\nPlease check your API key and internet connection.`);
+                alert(currentLanguage === 'vi'
+                    ? `Phân tích thất bại: ${error.message}\n\nVui lòng kiểm tra API key và kết nối internet.`
+                    : `Analysis Failed: ${error.message}\n\nPlease check your API key and internet connection.`);
             }
         }
 
@@ -573,7 +865,17 @@
         
         saveToHistoryBtn.addEventListener('click', () => {
             if (lastAnalysisResult) {
+                const oldLevel = getTotalEcoScore();
                 addToHistory(lastAnalysisResult);
+                const newLevel = getTotalEcoScore();
+                
+                // Check for level up
+                if (oldLevel < 100 && newLevel >= 100) {
+                    triggerConfetti();
+                } else if (oldLevel < 500 && newLevel >= 500) {
+                    triggerConfetti();
+                }
+                
                 closeResults();
             }
         });
@@ -592,3 +894,5 @@
         // Start
         initCamera();
         loadHistory();
+        updateUserLevel();
+        renderChart();
