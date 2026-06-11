@@ -1,1165 +1,1495 @@
-// App Logic
-        const videoFeed = document.getElementById('videoFeed');
-        const videoCanvas = document.getElementById('videoCanvas');
-        const scanBtn = document.getElementById('scanBtn');
-        const scanActionSection = document.getElementById('scanActionSection');
-        const flashOverlay = document.getElementById('flashOverlay');
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        const cameraFallback = document.getElementById('cameraFallback');
-        const fileInput = document.getElementById('fileInput');
-        const cameraSection = document.getElementById('cameraSection');
-        const previewModal = document.getElementById('previewModal');
-        const previewImage = document.getElementById('previewImage');
-        const closePreviewBtn = document.getElementById('closePreviewBtn');
-        const retakeBtn = document.getElementById('retakeBtn');
-        const analyzeBtn = document.getElementById('analyzeBtn');
+const dom = {
+    videoCanvas: document.getElementById('videoCanvas'),
+    scanBtn: document.getElementById('scanBtn'),
+    scanActionSection: document.getElementById('scanActionSection'),
+    flashOverlay: document.getElementById('flashOverlay'),
+    loadingOverlay: document.getElementById('loadingOverlay'),
+    loadingModeText: document.getElementById('loadingModeText'),
+    cameraFallback: document.getElementById('cameraFallback'),
+    fileInput: document.getElementById('fileInput'),
+    cameraSection: document.getElementById('cameraSection'),
+    previewModal: document.getElementById('previewModal'),
+    previewImage: document.getElementById('previewImage'),
+    closePreviewBtn: document.getElementById('closePreviewBtn'),
+    retakeBtn: document.getElementById('retakeBtn'),
+    analyzeBtn: document.getElementById('analyzeBtn'),
+    settingsBtn: document.getElementById('settingsBtn'),
+    settingsModal: document.getElementById('settingsModal'),
+    closeSettingsBtn: document.getElementById('closeSettingsBtn'),
+    cancelSettingsBtn: document.getElementById('cancelSettingsBtn'),
+    saveSettingsBtn: document.getElementById('saveSettingsBtn'),
+    providerSelect: document.getElementById('providerSelect'),
+    modelInput: document.getElementById('modelInput'),
+    modelHint: document.getElementById('modelHint'),
+    apiKeyLabel: document.getElementById('apiKeyLabel'),
+    apiKeyHelp: document.getElementById('apiKeyHelp'),
+    apiKeyInput: document.getElementById('apiKeyInput'),
+    toggleApiKeyBtn: document.getElementById('toggleApiKeyBtn'),
+    apiKeyStatus: document.getElementById('apiKeyStatus'),
+    resultsModal: document.getElementById('resultsModal'),
+    closeResultsBtn: document.getElementById('closeResultsBtn'),
+    resultImage: document.getElementById('resultImage'),
+    resultItemName: document.getElementById('resultItemName'),
+    resultTimestamp: document.getElementById('resultTimestamp'),
+    resultSummaryCard: document.getElementById('resultSummaryCard'),
+    resultSummaryText: document.getElementById('resultSummaryText'),
+    statusCard: document.getElementById('statusCard'),
+    statusIcon: document.getElementById('statusIcon'),
+    statusMessage: document.getElementById('statusMessage'),
+    detectedObjectsSection: document.getElementById('detectedObjectsSection'),
+    detectedObjectsList: document.getElementById('detectedObjectsList'),
+    compositionBars: document.getElementById('compositionBars'),
+    actionSteps: document.getElementById('actionSteps'),
+    ecoScoreValue: document.getElementById('ecoScoreValue'),
+    carbonSavedValue: document.getElementById('carbonSavedValue'),
+    saveHistoryContainer: document.getElementById('saveHistoryContainer'),
+    saveToHistoryBtn: document.getElementById('saveToHistoryBtn'),
+    userLevelBadge: document.getElementById('userLevelBadge'),
+    levelIcon: document.getElementById('levelIcon'),
+    levelText: document.getElementById('levelText'),
+    langToggleBtn: document.getElementById('langToggleBtn'),
+    statsChartCanvas: document.getElementById('statsChart'),
+    totalRecycledCount: document.getElementById('totalRecycledCount'),
+    clearHistoryBtn: document.getElementById('clearHistoryBtn'),
+    gridOverlay: document.getElementById('gridOverlay'),
+    objectFocusBox: document.getElementById('objectFocusBox'),
+    scanModeOptions: document.getElementById('scanModeOptions'),
+    achievementList: document.getElementById('achievementList'),
+    achievementBanner: document.getElementById('achievementBanner')
+};
 
-        // Settings Modal Elements
-        const settingsBtn = document.getElementById('settingsBtn');
-        const settingsModal = document.getElementById('settingsModal');
-        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-        const cancelSettingsBtn = document.getElementById('cancelSettingsBtn');
-        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-        const apiKeyInput = document.getElementById('apiKeyInput');
-        const toggleApiKeyBtn = document.getElementById('toggleApiKeyBtn');
-        const apiKeyStatus = document.getElementById('apiKeyStatus');
-        
-        // Developer Menu Elements
-        const developerSettingsSection = document.getElementById('developerSettingsSection');
-        const providerOpenAI = document.getElementById('providerOpenAI');
-        const providerGemini = document.getElementById('providerGemini');
-        const geminiKeyContainer = document.getElementById('geminiKeyContainer');
-        const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
-        const toggleGeminiKeyBtn = document.getElementById('toggleGeminiKeyBtn');
+const STORAGE_KEYS = {
+    apiKey: 'openai_api_key',
+    provider: 'ai_provider',
+    providerKeys: 'ai_provider_api_keys',
+    providerModels: 'ai_provider_models',
+    history: 'recycle_history',
+    selectedMode: 'recycle_selected_mode',
+    achievements: 'recycle_achievements'
+};
 
-        // Results Modal Elements
-        const resultsModal = document.getElementById('resultsModal');
-        const closeResultsBtn = document.getElementById('closeResultsBtn');
-        const resultImage = document.getElementById('resultImage');
-        const resultItemName = document.getElementById('resultItemName');
-        const statusCard = document.getElementById('statusCard');
-        const statusIcon = document.getElementById('statusIcon');
-        const statusMessage = document.getElementById('statusMessage');
-        const compositionBars = document.getElementById('compositionBars');
-        const actionSteps = document.getElementById('actionSteps');
-        const ecoScoreValue = document.getElementById('ecoScoreValue');
-        const carbonSavedValue = document.getElementById('carbonSavedValue');
-        const saveHistoryContainer = document.getElementById('saveHistoryContainer');
-        const saveToHistoryBtn = document.getElementById('saveToHistoryBtn');
+const MAX_HISTORY_ITEMS = 12;
+const MAX_IMAGE_DIMENSION = 1280;
+const HISTORY_IMAGE_DIMENSION = 420;
 
-        // UI Elements
-        const userLevelBadge = document.getElementById('userLevelBadge');
-        const levelIcon = document.getElementById('levelIcon');
-        const levelText = document.getElementById('levelText');
-        const langToggleBtn = document.getElementById('langToggleBtn');
-        const statsChartCanvas = document.getElementById('statsChart');
-        const totalRecycledCount = document.getElementById('totalRecycledCount');
+const scanModes = {
+    quick: {
+        label: 'Quick Scan',
+        loading: 'Fast recyclable / not recyclable check',
+        instruction: 'Return a concise result with one or more detected waste items.'
+    },
+    detailed: {
+        label: 'Detailed Scan',
+        loading: 'Analyzing materials and preparation steps',
+        instruction: 'Include material components, preparation steps, confidence, and disposal action.'
+    },
+    batch: {
+        label: 'Batch Scan',
+        loading: 'Finding multiple objects across the 4x4 grid',
+        instruction: 'Prioritize detecting every visible waste item. Use scanType batch when more than one object is present and assign each object a 4x4 gridCell from 1 to 16.'
+    },
+    education: {
+        label: 'Education Mode',
+        loading: 'Explaining recycling decisions',
+        instruction: 'Explain why each item is recyclable, non-recyclable, partial, or special handling.'
+    },
+    carbon: {
+        label: 'Carbon Impact Mode',
+        loading: 'Estimating environmental impact',
+        instruction: 'Estimate potential CO2 saved in grams and include practical impact guidance.'
+    }
+};
 
-        let stream = null;
-        let ctx = null;
-        let video = null;
-        let capturedImageData = null;
-        let lastAnalysisResult = null;
-        let currentLanguage = 'en';
-        let statsChartInstance = null;
-        
-        // Secret Developer Menu State
-        let tapCount = 0;
-        let tapTimer = null;
-        let developerMode = false;
-        let currentProvider = localStorage.getItem('ai_provider') || 'openai';
+const aiProviders = {
+    openai: {
+        label: 'OpenAI',
+        defaultModel: 'gpt-4o-mini',
+        keyPlaceholder: 'sk-...',
+        modelHint: 'Use a vision-capable OpenAI model, such as gpt-4o-mini.',
+        keyHelpText: 'Get your API key from OpenAI Platform.',
+        keyHelpUrl: 'https://platform.openai.com/api-keys'
+    },
+    openrouter: {
+        label: 'OpenRouter',
+        defaultModel: 'openai/gpt-4o-mini',
+        keyPlaceholder: 'sk-or-...',
+        modelHint: 'Use a vision-capable OpenRouter model, such as openai/gpt-4o-mini or google/gemini-2.0-flash-001.',
+        keyHelpText: 'Get your API key from OpenRouter.',
+        keyHelpUrl: 'https://openrouter.ai/keys'
+    },
+    gemini: {
+        label: 'Gemini',
+        defaultModel: 'gemini-1.5-flash',
+        keyPlaceholder: 'AI...',
+        modelHint: 'Use a vision-capable Gemini model, such as gemini-1.5-flash or gemini-1.5-pro.',
+        keyHelpText: 'Get your API key from Google AI Studio.',
+        keyHelpUrl: 'https://aistudio.google.com/app/apikey'
+    }
+};
 
-        // Storage Keys
-        const STORAGE_KEYS = {
-            OPENAI_KEY: 'openai_api_key',
-            GEMINI_KEY: 'gemini_api_key',
-            PROVIDER: 'ai_provider'
+const achievements = [
+    {
+        id: 'eco_starter',
+        title: 'Eco Starter',
+        description: 'Reach 50 eco points',
+        unlocked: metrics => metrics.totalEcoScore >= 50
+    },
+    {
+        id: 'recycling_hero',
+        title: 'Recycling Hero',
+        description: 'Reach 200 eco points',
+        unlocked: metrics => metrics.totalEcoScore >= 200
+    },
+    {
+        id: 'plastic_hunter',
+        title: 'Plastic Hunter',
+        description: 'Scan 10 plastic items',
+        unlocked: metrics => metrics.plasticCount >= 10
+    },
+    {
+        id: 'battery_guardian',
+        title: 'Battery Guardian',
+        description: 'Detect 3 batteries',
+        unlocked: metrics => metrics.batteryCount >= 3
+    },
+    {
+        id: 'batch_master',
+        title: 'Batch Master',
+        description: 'Complete 5 batch scans',
+        unlocked: metrics => metrics.batchScans >= 5
+    }
+];
+
+const translations = {
+    en: {
+        noScans: 'No recent scans yet.',
+        recyclable: 'Recyclable',
+        nonRecyclable: 'Non-Recyclable',
+        partial: 'Partial',
+        special: 'Special Handling',
+        unclear: 'Unclear Image',
+        sprout: 'Sprout',
+        warrior: 'Eco Warrior',
+        master: 'Recycle Master',
+        next: 'Next:',
+        xp: 'XP'
+    },
+    vi: {
+        noScans: 'Chua co lan quet nao gan day.',
+        recyclable: 'Co the tai che',
+        nonRecyclable: 'Khong the tai che',
+        partial: 'Tai che mot phan',
+        special: 'Xu ly dac biet',
+        unclear: 'Anh chua ro',
+        sprout: 'Mam Non',
+        warrior: 'Chien Binh Xanh',
+        master: 'Bac Thay Tai Che',
+        next: 'Ke tiep:',
+        xp: 'XP'
+    }
+};
+
+let stream = null;
+let video = null;
+let canvasContext = null;
+let animationFrameId = null;
+let capturedImageData = null;
+let capturedHistoryImageData = null;
+let lastAnalysisResult = null;
+let currentLanguage = 'en';
+let selectedScanMode = localStorage.getItem(STORAGE_KEYS.selectedMode) || 'quick';
+let selectedProvider = localStorage.getItem(STORAGE_KEYS.provider) || 'openai';
+let statsChartInstance = null;
+
+function t(key) {
+    return translations[currentLanguage][key] || translations.en[key] || key;
+}
+
+function createElement(tag, options = {}, children = []) {
+    const node = document.createElement(tag);
+    if (options.className) node.className = options.className;
+    if (options.text !== undefined) node.textContent = String(options.text);
+    if (options.title) node.title = options.title;
+    if (options.type) node.type = options.type;
+    if (options.src) node.src = options.src;
+    if (options.alt) node.alt = options.alt;
+    if (options.dataset) {
+        Object.entries(options.dataset).forEach(([key, value]) => {
+            node.dataset[key] = value;
+        });
+    }
+    children.forEach(child => node.appendChild(child));
+    return node;
+}
+
+function icon(className) {
+    return createElement('i', { className });
+}
+
+function clampNumber(value, min, max, fallback = min) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return fallback;
+    return Math.min(Math.max(number, min), max);
+}
+
+function safeString(value, fallback = '') {
+    if (typeof value !== 'string') return fallback;
+    return value.trim().slice(0, 500);
+}
+
+function asArray(value) {
+    return Array.isArray(value) ? value : [];
+}
+
+function getStatusLabel(status) {
+    if (status === true || status === 'true' || status === 'recyclable') return t('recyclable');
+    if (status === 'partial') return t('partial');
+    if (status === 'special') return t('special');
+    return t('nonRecyclable');
+}
+
+function getStatusKind(status) {
+    if (status === true || status === 'true' || status === 'recyclable') return 'recyclable';
+    if (status === 'partial') return 'partial';
+    if (status === 'special') return 'special';
+    return 'nonRecyclable';
+}
+
+function getStatusClasses(status) {
+    const kind = getStatusKind(status);
+    if (kind === 'recyclable') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    if (kind === 'partial') return 'bg-blue-100 text-blue-700 border-blue-200';
+    if (kind === 'special') return 'bg-amber-100 text-amber-700 border-amber-200';
+    return 'bg-orange-100 text-orange-700 border-orange-200';
+}
+
+function getHistory() {
+    try {
+        const data = localStorage.getItem(STORAGE_KEYS.history);
+        const parsed = data ? JSON.parse(data) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        localStorage.removeItem(STORAGE_KEYS.history);
+        return [];
+    }
+}
+
+function saveHistory(history) {
+    localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(history.slice(0, MAX_HISTORY_ITEMS)));
+}
+
+function getUnlockedAchievementIds() {
+    try {
+        const data = localStorage.getItem(STORAGE_KEYS.achievements);
+        const parsed = data ? JSON.parse(data) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveUnlockedAchievementIds(ids) {
+    localStorage.setItem(STORAGE_KEYS.achievements, JSON.stringify(ids));
+}
+
+function readJsonMap(key) {
+    try {
+        const data = localStorage.getItem(key);
+        const parsed = data ? JSON.parse(data) : {};
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+function saveJsonMap(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+}
+
+function getProviderConfig(provider = selectedProvider) {
+    const normalizedProvider = aiProviders[provider] ? provider : 'openai';
+    const keys = readJsonMap(STORAGE_KEYS.providerKeys);
+    const models = readJsonMap(STORAGE_KEYS.providerModels);
+    const legacyOpenAiKey = localStorage.getItem(STORAGE_KEYS.apiKey) || '';
+
+    return {
+        provider: normalizedProvider,
+        apiKey: keys[normalizedProvider] || (normalizedProvider === 'openai' ? legacyOpenAiKey : ''),
+        model: models[normalizedProvider] || aiProviders[normalizedProvider].defaultModel
+    };
+}
+
+function saveProviderConfig({ provider, apiKey, model }) {
+    const normalizedProvider = aiProviders[provider] ? provider : 'openai';
+    const keys = readJsonMap(STORAGE_KEYS.providerKeys);
+    const models = readJsonMap(STORAGE_KEYS.providerModels);
+
+    keys[normalizedProvider] = apiKey;
+    models[normalizedProvider] = model || aiProviders[normalizedProvider].defaultModel;
+    selectedProvider = normalizedProvider;
+
+    localStorage.setItem(STORAGE_KEYS.provider, normalizedProvider);
+    saveJsonMap(STORAGE_KEYS.providerKeys, keys);
+    saveJsonMap(STORAGE_KEYS.providerModels, models);
+
+    if (normalizedProvider === 'openai') {
+        localStorage.setItem(STORAGE_KEYS.apiKey, apiKey);
+    }
+}
+
+function stripDataUrlPrefix(imageBase64) {
+    return imageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
+}
+
+function normalizeGeminiModelName(model) {
+    return String(model || aiProviders.gemini.defaultModel).replace(/^models\//, '');
+}
+
+function extractJsonObject(text) {
+    if (typeof text !== 'string' || !text.trim()) {
+        throw new Error('The provider returned an empty response.');
+    }
+
+    try {
+        return JSON.parse(text);
+    } catch {
+        const firstBrace = text.indexOf('{');
+        const lastBrace = text.lastIndexOf('}');
+        if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+            throw new Error('The provider did not return valid JSON.');
+        }
+        return JSON.parse(text.slice(firstBrace, lastBrace + 1));
+    }
+}
+
+function normalizeComponent(component) {
+    return {
+        part: safeString(component.part || component.material || 'Material'),
+        material: safeString(component.material || component.part || 'Unknown material'),
+        recyclable: component.recyclable === true || component.recyclable === 'true' || component.recyclable === 'partial' ? component.recyclable : false,
+        instruction: safeString(component.instruction || component.disposalAction || 'Check local recycling rules.')
+    };
+}
+
+function normalizeObject(rawObject, index) {
+    const recyclable = rawObject.recyclable ?? rawObject.is_recyclable ?? false;
+    const components = asArray(rawObject.components || rawObject.composition).map(normalizeComponent);
+    const fallbackSteps = rawObject.disposalAction ? [rawObject.disposalAction] : [];
+
+    return {
+        id: clampNumber(rawObject.id, 1, 99, index + 1),
+        name: safeString(rawObject.name || rawObject.scanned_item || rawObject.mainItem || 'Unknown item'),
+        category: safeString(rawObject.category || 'Unknown'),
+        gridCell: rawObject.gridCell ? clampNumber(rawObject.gridCell, 1, 16, null) : null,
+        recyclable,
+        confidence: clampNumber(rawObject.confidence, 0, 1, 0.7),
+        ecoScore: clampNumber(rawObject.ecoScore ?? rawObject.eco_score, 0, 100, 0),
+        disposalAction: safeString(rawObject.disposalAction || rawObject.status_message || 'Check local disposal rules.'),
+        components,
+        preparationSteps: asArray(rawObject.preparationSteps || rawObject.action_steps).map(step => safeString(step)).filter(Boolean).slice(0, 8).concat(fallbackSteps).slice(0, 8),
+        education: safeString(rawObject.education || rawObject.explanation || ''),
+        carbonSavedGrams: clampNumber(rawObject.carbonSavedGrams ?? rawObject.carbon_saved_grams, 0, 5000, 0)
+    };
+}
+
+function normalizeResult(rawResult) {
+    if (!rawResult || typeof rawResult !== 'object') {
+        return {
+            scanType: 'unclear',
+            message: 'The AI response was empty. Please try again with better lighting.',
+            confidence: 0.2,
+            objects: [],
+            totalEcoScore: 0
         };
-        
-        // API Configuration
-        const API_CONFIG = {
-            OPENAI: {
-                url: 'https://api.openai.com/v1/chat/completions',
-                model: 'gpt-4o-mini'
-            },
-            GEMINI: {
-                url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent/',
-                model: 'gemini-2.5-flash'
-            }
+    }
+
+    if (rawResult.scanType === 'unclear') {
+        return {
+            scanType: 'unclear',
+            message: safeString(rawResult.message, 'The image is unclear. Please retake the photo with better lighting and place the object in the center.'),
+            confidence: clampNumber(rawResult.confidence, 0, 1, 0.3),
+            objects: [],
+            totalEcoScore: 0
         };
+    }
 
-        // --- PWA REGISTRATION ---
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('[App] Service Worker registered:', reg.scope))
-                    .catch(err => console.log('[App] SW registration failed:', err));
-            });
-        }
+    const rawObjects = asArray(rawResult.objects);
+    const inferredBatch = rawObjects.length > 1 || rawResult.scanType === 'batch';
+    const objects = rawObjects.length > 0
+        ? rawObjects.map(normalizeObject)
+        : [normalizeObject({
+            id: 1,
+            name: rawResult.mainItem || rawResult.scanned_item,
+            category: rawResult.category,
+            recyclable: rawResult.recyclable ?? rawResult.is_recyclable,
+            confidence: rawResult.confidence,
+            ecoScore: rawResult.ecoScore ?? rawResult.eco_score,
+            disposalAction: rawResult.disposalAction || rawResult.status_message,
+            components: rawResult.components || rawResult.composition,
+            preparationSteps: rawResult.preparationSteps || rawResult.action_steps,
+            education: rawResult.education || rawResult.explanation,
+            carbonSavedGrams: rawResult.carbonSavedGrams
+        }, 0)];
 
-        // --- LANGUAGE MANAGEMENT ---
-        const translations = {
-            en: {
-                appTitle: 'RecycleCheck AI',
-                recentScans: 'Recent Scans',
-                clearAll: 'Clear All',
-                noScans: 'No recent scans yet.',
-                settings: 'Settings',
-                done: 'Done',
-                retake: 'Retake',
-                analyze: 'Analyze',
-                uploading: 'Upload Image',
-                analyzing: 'Analyzing waste...',
-                cameraRequired: 'Camera Access Required',
-                cameraDesc: 'To identify your waste instantly, please allow camera access or upload an image.',
-                apiSettings: 'API Settings',
-                cancel: 'Cancel',
-                saveChanges: 'Save Changes',
-                status: 'Recyclability Status',
-                composition: 'Material Composition',
-                disposalGuide: 'Disposal Guide',
-                sustainability: 'Sustainability Tracker',
-                ecoScore: 'Eco Score',
-                carbonSaved: 'CO₂ Saved',
-                saveToHistory: 'Save to History',
-                levelSprout: 'Sprout',
-                levelWarrior: 'Eco Warrior',
-                levelMaster: 'Recycle Master',
-                analysisResults: 'Analysis Results',
-                itemName: 'Item Name',
-                analytics: 'Analytics',
-                totalRecycled: 'Total Items Recycled',
-                recyclable: 'Recyclable',
-                nonRecyclable: 'Non-Recyclable',
-                currentXp: 'XP',
-                nextLevel: 'Next:',
-                // Developer Menu
-                devOptions: 'Developer Options',
-                aiProvider: 'AI Provider',
-                geminiKeyLabel: 'Gemini API Key'
-            },
-            vi: {
-                appTitle: 'RecycleCheck AI',
-                recentScans: 'Lịch Sử Quét',
-                clearAll: 'Xóa Tất Cả',
-                noScans: 'Chưa có quét nào gần đây.',
-                settings: 'Cài Đặt',
-                done: 'Xong',
-                retake: 'Chụp Lại',
-                analyze: 'Phân Tích',
-                uploading: 'Tải Ảnh Lên',
-                analyzing: 'Đang phân tích rác...',
-                cameraRequired: 'Yêu Cầu Quyền Camera',
-                cameraDesc: 'Để nhận diện rác ngay lập tức, vui lòng cho phép truy cập camera hoặc tải ảnh lên.',
-                apiSettings: 'Cài Đặt API',
-                cancel: 'Hủy',
-                saveChanges: 'Lưu Thay Đổi',
-                status: 'Tình Trạng Tái Chế',
-                composition: 'Thành Phần Vật Liệu',
-                disposalGuide: 'Hướng Dẫn Xử Lý',
-                sustainability: 'Theo Dõi Bền Vững',
-                ecoScore: 'Điểm Sinh Thái',
-                carbonSaved: 'CO₂ Tiết Kiệm',
-                saveToHistory: 'Lưu Vào Lịch Sử',
-                levelSprout: 'Mầm Non',
-                levelWarrior: 'Chiến Binh Xanh',
-                levelMaster: 'Bậc Thầy Tái Chế',
-                analysisResults: 'Kết Quả Phân Tích',
-                itemName: 'Tên Sản Phẩm',
-                analytics: 'Phân Tích',
-                totalRecycled: 'Tổng Vật Phẩm Tái Chế',
-                recyclable: 'Có Thể Tái Chế',
-                nonRecyclable: 'Không Thể Tái Chế',
-                currentXp: 'XP',
-                nextLevel: 'Kế tiếp:',
-                // Developer Menu
-                devOptions: 'Tùy Chọn Nhà Phát Triển',
-                aiProvider: 'Nhà Cung Cấp AI',
-                geminiKeyLabel: 'Khóa API Gemini'
-            }
-        };
+    const totalEcoScore = clampNumber(
+        rawResult.totalEcoScore,
+        0,
+        500,
+        objects.reduce((total, item) => total + item.ecoScore, 0)
+    );
 
-        function t(key) {
-            return translations[currentLanguage][key] || translations['en'][key] || key;
-        }
+    return {
+        scanType: inferredBatch ? 'batch' : 'single',
+        mainItem: safeString(rawResult.mainItem || rawResult.scanned_item || objects[0]?.name || 'Waste scan'),
+        category: safeString(rawResult.category || objects[0]?.category || 'Unknown'),
+        recyclable: rawResult.recyclable ?? rawResult.is_recyclable ?? objects[0]?.recyclable ?? false,
+        confidence: clampNumber(rawResult.confidence, 0, 1, objects[0]?.confidence || 0.7),
+        overallSummary: safeString(rawResult.overallSummary || rawResult.summary || buildSummary(objects)),
+        objects,
+        totalEcoScore,
+        carbonSavedGrams: clampNumber(rawResult.carbonSavedGrams ?? rawResult.carbon_saved_grams, 0, 10000, Math.round(totalEcoScore * 0.5))
+    };
+}
 
-        function toggleLanguage() {
-            currentLanguage = currentLanguage === 'en' ? 'vi' : 'en';
-            langToggleBtn.textContent = currentLanguage === 'en' ? 'EN' : 'VI';
-            updateUITexts();
-        }
+function buildSummary(objects) {
+    if (objects.length === 0) return 'No clear waste item was detected.';
+    if (objects.length === 1) {
+        const item = objects[0];
+        return `${item.name}: ${getStatusLabel(item.recyclable)}. ${item.disposalAction}`;
+    }
+    return `This image contains ${objects.length} detected waste items with separate disposal guidance.`;
+}
 
-        function updateUITexts() {
-            // Header
-            document.querySelector('h1').textContent = t('appTitle');
-            
-            // Recent Scans
-            document.querySelector('#recentList').previousElementSibling.querySelector('h2').textContent = t('recentScans');
-            const clearBtn = document.getElementById('clearHistoryBtn');
-            if (clearBtn) clearBtn.textContent = t('clearAll');
-            const emptyRecent = document.getElementById('emptyRecent');
-            if (emptyRecent) emptyRecent.querySelector('p').textContent = t('noScans');
+function buildSystemPrompt(modeName = selectedScanMode) {
+    const mode = scanModes[modeName] || scanModes.quick;
+    return [
+        'You are an expert waste sorting AI for a browser-only recycling demo.',
+        'Return JSON only. No markdown. No explanation outside JSON.',
+        'Use consistent fields and short practical language.',
+        'If uncertain, use confidence below 0.7 and suggest retaking the photo.',
+        'If the image has multiple objects, use scanType = "batch".',
+        'If an item has multiple materials, include components.',
+        'If the image is unclear, return exactly: {"scanType":"unclear","message":"The image is unclear. Please retake the photo with better lighting and place the object in the center.","confidence":0.3}',
+        `Selected mode: ${mode.label}. ${mode.instruction}`,
+        'Expected batch JSON: {"scanType":"batch","objects":[{"id":1,"name":"Plastic Bottle","category":"Plastic","gridCell":3,"recyclable":true,"confidence":0.92,"ecoScore":15,"disposalAction":"Empty, rinse, and recycle if accepted locally.","components":[{"part":"Bottle body","material":"PET plastic","recyclable":true,"instruction":"Empty and rinse."}],"preparationSteps":["Empty remaining liquid.","Rinse before recycling."],"education":"Brief reason.","carbonSavedGrams":20}],"overallSummary":"Short summary.","totalEcoScore":20,"carbonSavedGrams":20}',
+        'Expected single JSON: {"scanType":"single","mainItem":"Plastic Water Bottle","category":"Composite Packaging","recyclable":"partial","confidence":0.9,"ecoScore":18,"components":[{"part":"PET bottle body","material":"Plastic PET","recyclable":true,"instruction":"Empty and rinse before recycling."}],"preparationSteps":["Empty remaining liquid.","Rinse the bottle."],"overallSummary":"Short summary.","carbonSavedGrams":15}'
+    ].join(' ');
+}
 
-            // Preview Modal
-            const retakeSpan = retakeBtn.querySelector('span');
-            if (retakeSpan) retakeSpan.textContent = t('retake');
-            const analyzeSpan = analyzeBtn.querySelector('span');
-            if (analyzeSpan) analyzeSpan.textContent = t('analyze');
-            
-            // Loading
-            const loadingText = loadingOverlay.querySelector('p');
-            if (loadingText) loadingText.textContent = t('analyzing');
+async function analyzeWasteImage({ provider, apiKey, model, imageBase64, mode }) {
+    const normalizedProvider = aiProviders[provider] ? provider : 'openai';
+    const selectedModeForCall = scanModes[mode] ? mode : 'quick';
+    const adapterInput = {
+        apiKey,
+        model: model || aiProviders[normalizedProvider].defaultModel,
+        imageBase64,
+        mode: selectedModeForCall,
+        prompt: buildSystemPrompt(selectedModeForCall)
+    };
 
-            // Camera Fallback
-            const cameraTitle = cameraFallback.querySelector('h3');
-            if (cameraTitle) cameraTitle.textContent = t('cameraRequired');
-            const cameraDesc = cameraFallback.querySelector('p');
-            if (cameraDesc) cameraDesc.textContent = t('cameraDesc');
-            const uploadLabel = cameraFallback.querySelector('label span');
-            if (uploadLabel) uploadLabel.textContent = t('uploading');
+    let rawResult;
+    if (normalizedProvider === 'openai') {
+        rawResult = await analyzeWithOpenAI(adapterInput);
+    } else if (normalizedProvider === 'openrouter') {
+        rawResult = await analyzeWithOpenRouter(adapterInput);
+    } else if (normalizedProvider === 'gemini') {
+        rawResult = await analyzeWithGemini(adapterInput);
+    } else {
+        throw new Error('Unsupported AI provider.');
+    }
 
-            // Settings Modal
-            document.querySelector('#settingsModal h2').textContent = t('apiSettings');
-            cancelSettingsBtn.textContent = t('cancel');
-            saveSettingsBtn.textContent = t('saveChanges');
+    return normalizeResult(rawResult);
+}
 
-            // Developer Menu Updates
-            if (developerSettingsSection) {
-                const devTitle = developerSettingsSection.querySelector('h3');
-                if (devTitle) devTitle.innerHTML = `<i class="ph ph-code text-emerald-500"></i> ${t('devOptions')}`;
-            }
-            const providerLabel = providerOpenAI.closest('.mb-4').querySelector('label');
-            if (providerLabel) providerLabel.textContent = t('aiProvider');
-            const geminiLabel = geminiKeyContainer.querySelector('label');
-            if (geminiLabel) geminiLabel.textContent = t('geminiKeyLabel');
-            
-            updateDeveloperUI();
-
-            // Results Modal
-            document.querySelector('#resultsModal h2').textContent = t('analysisResults');
-            closeResultsBtn.textContent = t('done');
-            
-            // Labels in results
-            statusMessage.previousElementSibling.textContent = t('status');
-            document.querySelector('#compositionBars').previousElementSibling.querySelector('h5').textContent = t('composition');
-            document.querySelector('#actionSteps').previousElementSibling.querySelector('h5').textContent = t('disposalGuide');
-            
-            // Tracker
-            const trackerTitle = document.querySelector('#ecoScoreValue').closest('.bg-white').querySelector('h5');
-            if (trackerTitle) trackerTitle.textContent = t('sustainability');
-            document.querySelector('#ecoScoreValue').previousElementSibling.textContent = t('ecoScore');
-            document.querySelector('#carbonSavedValue').previousElementSibling.textContent = t('carbonSaved');
-            
-            // Save btn
-            const saveBtnSpan = saveToHistoryBtn.querySelector('span');
-            if (saveBtnSpan) saveBtnSpan.textContent = t('saveToHistory');
-
-            // Analytics
-            const analyticsTitle = document.querySelector('#statsChart').closest('.bg-white').querySelector('h2');
-            if (analyticsTitle) analyticsTitle.textContent = t('analytics');
-            document.querySelector('#totalRecycledCount').previousElementSibling.textContent = t('totalRecycled');
-
-            // User Level
-            updateUserLevel();
-        }
-
-        langToggleBtn.addEventListener('click', toggleLanguage);
-
-        // --- HISTORY MANAGEMENT ---
-        
-        const HISTORY_KEY = 'recycle_history';
-        const MAX_HISTORY_ITEMS = 10;
-
-        function getHistory() {
-            const data = localStorage.getItem(HISTORY_KEY);
-            return data ? JSON.parse(data) : [];
-        }
-
-        function saveHistory(history) {
-            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-        }
-
-        function addToHistory(resultData) {
-            const history = getHistory();
-            
-            const newItem = {
-                id: Date.now(),
-                itemName: resultData.scanned_item || 'Unknown Item',
-                isRecyclable: resultData.is_recyclable,
-                statusMessage: resultData.status_message || '',
-                ecoScore: resultData.eco_score || 0,
-                carbonSaved: Math.round((resultData.eco_score || 0) * 0.5),
-                timestamp: new Date().toISOString(),
-                imageData: capturedImageData,
-                composition: resultData.composition || [],
-                actionSteps: resultData.action_steps || []
-            };
-
-            history.unshift(newItem);
-
-            if (history.length > MAX_HISTORY_ITEMS) {
-                history.pop();
-            }
-
-            saveHistory(history);
-            loadHistory();
-            updateUserLevel();
-            renderChart();
-        }
-
-        function loadHistory() {
-            const recentList = document.getElementById('recentList');
-            const emptyRecent = document.getElementById('emptyRecent');
-            const history = getHistory();
-
-            const existingItems = recentList.querySelectorAll('.history-item');
-            existingItems.forEach(item => item.remove());
-
-            if (history.length === 0) {
-                emptyRecent.classList.remove('hidden');
-                return;
-            }
-
-            emptyRecent.classList.add('hidden');
-
-            history.forEach(item => {
-                const date = new Date(item.timestamp);
-                const formattedDate = date.toLocaleDateString(currentLanguage === 'vi' ? 'vi-VN' : 'en-US', { 
-                    month: 'short', 
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-
-                const isRecyclable = item.isRecyclable;
-                const statusIconHtml = isRecyclable 
-                    ? '<i class="ph ph-recycle text-emerald-500"></i>' 
-                    : '<i class="ph ph-warning text-orange-500"></i>';
-                const scoreColor = isRecyclable ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600';
-
-                const historyItem = document.createElement('div');
-                historyItem.className = 'history-item bg-white rounded-xl p-4 shadow-sm flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow';
-                historyItem.innerHTML = `
-                    <div class="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                        ${item.imageData 
-                            ? `<img src="${item.imageData}" alt="${item.itemName}" class="w-full h-full object-cover">`
-                            : `<i class="ph ph-package text-2xl text-gray-400"></i>`
-                        }
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1">
-                            ${statusIconHtml}
-                            <h4 class="font-semibold text-gray-800 truncate">${item.itemName}</h4>
-                        </div>
-                        <p class="text-xs text-gray-500">${formattedDate}</p>
-                    </div>
-                    <div class="flex-shrink-0">
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${scoreColor}">
-                            <i class="ph ph-leaf mr-1"></i>
-                            ${item.ecoScore}
-                        </span>
-                    </div>
-                `;
-                historyItem.addEventListener('click', () => {
-                    viewHistoryItem(item);
-                });
-                recentList.appendChild(historyItem);
-            });
-        }
-
-        function viewHistoryItem(item) {
-            // Set image and item name
-            resultImage.src = item.imageData;
-            resultItemName.textContent = item.itemName;
-
-            // Set timestamp
-            const date = new Date(item.timestamp);
-            const formattedDate = date.toLocaleDateString(currentLanguage === 'vi' ? 'vi-VN' : 'en-US', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            document.getElementById('resultTimestamp').textContent = formattedDate;
-
-            // Status Card
-            if (item.isRecyclable) {
-                statusCard.className = 'rounded-2xl p-6 shadow-sm bg-gradient-to-r from-emerald-500 to-emerald-600';
-                statusIcon.innerHTML = '<i class="ph ph-recycle text-white text-3xl"></i>';
-                statusMessage.textContent = '♻️ ' + (item.statusMessage || 'RECYCLABLE');
-            } else {
-                statusCard.className = 'rounded-2xl p-6 shadow-sm bg-gradient-to-r from-orange-500 to-red-500';
-                statusIcon.innerHTML = '<i class="ph ph-warning text-white text-3xl"></i>';
-                statusMessage.textContent = '⚠️ ' + (item.statusMessage || 'NOT RECYCLABLE');
-            }
-
-            // Composition Bars
-            compositionBars.innerHTML = '';
-            const colors = ['bg-emerald-500', 'bg-blue-500', 'bg-purple-500', 'bg-amber-500', 'bg-rose-500'];
-            if (item.composition && item.composition.length > 0) {
-                item.composition.forEach((compItem, index) => {
-                    const color = colors[index % colors.length];
-                    compositionBars.innerHTML += `
-                        <div>
-                            <div class="flex justify-between text-sm mb-1">
-                                <span class="font-medium text-gray-700">${compItem.material}</span>
-                                <span class="text-gray-500">${compItem.percentage}%</span>
-                            </div>
-                            <div class="w-full bg-gray-100 rounded-full h-2.5">
-                                <div class="${color} h-2.5 rounded-full" style="width: ${compItem.percentage}%"></div>
-                            </div>
-                        </div>
-                    `;
-                });
-            } else {
-                compositionBars.innerHTML = '<p class="text-gray-400 text-sm">No composition data available.</p>';
-            }
-
-            // Action Steps
-            actionSteps.innerHTML = '';
-            if (item.actionSteps && item.actionSteps.length > 0) {
-                item.actionSteps.forEach((step, index) => {
-                    actionSteps.innerHTML += `
-                        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
-                            <div class="w-6 h-6 flex-shrink-0 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xs font-bold">
-                                ${index + 1}
-                            </div>
-                            <p class="text-gray-700 text-sm">${step}</p>
-                        </div>
-                    `;
-                });
-            } else {
-                actionSteps.innerHTML = '<p class="text-gray-400 text-sm">No specific steps provided.</p>';
-            }
-
-            // Sustainability Tracker
-            ecoScoreValue.textContent = item.ecoScore;
-            carbonSavedValue.textContent = `${item.carbonSaved}g`;
-
-            // Hide the save button for history view
-            saveHistoryContainer.classList.add('hidden');
-
-            // Show modal
-            resultsModal.classList.remove('hidden');
-            document.body.classList.add('overflow-hidden');
-        }
-
-        function clearHistory() {
-            if (confirm(currentLanguage === 'vi' ? 'Bạn có chắc muốn xóa tất cả lịch sử?' : 'Are you sure you want to clear all scan history?')) {
-                localStorage.removeItem(HISTORY_KEY);
-                loadHistory();
-                updateUserLevel();
-                renderChart();
-            }
-        }
-
-        // --- GAMIFICATION ---
-        function getTotalEcoScore() {
-            const history = getHistory();
-            return history.reduce((total, item) => total + (item.ecoScore || 0), 0);
-        }
-
-        function updateUserLevel() {
-            const totalScore = getTotalEcoScore();
-            let level = {
-                icon: '🌱',
-                name: t('levelSprout'),
-                color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                threshold: 0,
-                nextThreshold: 100
-            };
-
-            if (totalScore >= 500) {
-                level = {
-                    icon: '👑',
-                    name: t('levelMaster'),
-                    color: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-                    threshold: 500,
-                    nextThreshold: null
-                };
-            } else if (totalScore >= 100) {
-                level = {
-                    icon: '🛡️',
-                    name: t('levelWarrior'),
-                    color: 'bg-blue-50 text-blue-700 border-blue-200',
-                    threshold: 100,
-                    nextThreshold: 500
-                };
-            }
-
-            levelIcon.textContent = level.icon;
-            levelText.textContent = level.name;
-            userLevelBadge.className = `flex items-center gap-1 px-2 py-0.5 ${level.color} rounded-full text-xs font-bold border`;
-
-            // Update XP text
-            const currentXpEl = document.getElementById('currentXp');
-            const nextLevelXpEl = document.getElementById('nextLevelXp');
-            const xpBar = document.getElementById('xpProgressBar');
-
-            currentXpEl.textContent = `${totalScore} ${t('currentXp')}`;
-
-            if (level.nextThreshold) {
-                nextLevelXpEl.textContent = `${t('nextLevel')} ${level.nextThreshold} XP`;
-                const progress = ((totalScore - level.threshold) / (level.nextThreshold - level.threshold)) * 100;
-                xpBar.style.width = `${Math.min(progress, 100)}%`;
-            } else {
-                nextLevelXpEl.textContent = `${t('levelMaster')}!`;
-                xpBar.style.width = '100%';
-            }
-        }
-
-        function triggerConfetti() {
-            var duration = 3 * 1000;
-            var animationEnd = Date.now() + duration;
-            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 2000 };
-
-            function randomInRange(min, max) {
-                return Math.random() * (max - min) + min;
-            }
-
-            var interval = setInterval(function() {
-                var timeLeft = animationEnd - Date.now();
-
-                if (timeLeft <= 0) {
-                    return clearInterval(interval);
-                }
-
-                var particleCount = 50 * (timeLeft / duration);
-                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
-                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
-            }, 250);
-        }
-
-        // --- ANALYTICS (CHART.JS) ---
-        function renderChart() {
-            const chartCanvas = document.getElementById('statsChart');
-            if (!chartCanvas) return;
-
-            // Destroy existing chart to avoid "Canvas already in use" error
-            if (statsChartInstance) {
-                statsChartInstance.destroy();
-                statsChartInstance = null;
-            }
-
-            const history = getHistory();
-            const totalItems = history.length;
-            
-            // Update counter
-            totalRecycledCount.textContent = totalItems;
-
-            // Count Recyclable vs Not Recyclable
-            const recyclableCount = history.filter(item => item.isRecyclable).length;
-            const notRecyclableCount = totalItems - recyclableCount;
-
-            // Ensure there's at least some data to display a chart
-            if (totalItems === 0) return;
-
-            const data = {
-                labels: [t('recyclable'), t('nonRecyclable')],
-                datasets: [{
-                    data: [recyclableCount, notRecyclableCount],
-                    backgroundColor: [
-                        '#10b981', // emerald-500
-                        '#f97316'  // orange-500
-                    ],
-                    borderWidth: 0,
-                    hoverOffset: 4
-                }]
-            };
-
-            statsChartInstance = new Chart(chartCanvas, {
-                type: 'doughnut',
-                data: data,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    cutout: '70%',
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20,
-                                usePointStyle: true,
-                                font: {
-                                    size: 12,
-                                    family: 'inherit'
-                                }
+async function analyzeWithOpenAI({ apiKey, model, imageBase64, mode, prompt }) {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model,
+            response_format: { type: 'json_object' },
+            messages: [
+                { role: 'system', content: prompt },
+                {
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'image_url',
+                            image_url: {
+                                url: imageBase64,
+                                detail: mode === 'quick' ? 'low' : 'high'
                             }
                         }
-                    }
+                    ]
                 }
-            });
-        }
+            ]
+        })
+    });
 
-        // --- SECRET DEVELOPER MENU ---
-        
-        function handleLogoTap() {
-            tapCount++;
-            if (tapTimer) clearTimeout(tapTimer);
-            
-            tapTimer = setTimeout(() => {
-                tapCount = 0;
-            }, 1000);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `OpenAI API error ${response.status}`);
+    }
 
-            if (tapCount >= 5) {
-                developerMode = !developerMode;
-                tapCount = 0;
-                updateDeveloperUI();
-                
-                if (developerMode) {
-                    console.log('[App] Developer Mode Enabled');
-                } else {
-                    console.log('[App] Developer Mode Disabled');
+    const data = await response.json();
+    return extractJsonObject(data.choices?.[0]?.message?.content);
+}
+
+async function analyzeWithOpenRouter({ apiKey, model, imageBase64, prompt }) {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+            'HTTP-Referer': window.location.origin || 'http://localhost',
+            'X-Title': 'RecycleCheck AI'
+        },
+        body: JSON.stringify({
+            model,
+            response_format: { type: 'json_object' },
+            messages: [
+                { role: 'system', content: prompt },
+                {
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'image_url',
+                            image_url: { url: imageBase64 }
+                        }
+                    ]
                 }
-            }
-        }
+            ]
+        })
+    });
 
-        function updateDeveloperUI() {
-            // Update provider buttons styling
-            if (currentProvider === 'openai') {
-                providerOpenAI.classList.add('bg-white', 'shadow-sm', 'text-emerald-600');
-                providerOpenAI.classList.remove('text-gray-500', 'hover:text-gray-700');
-                providerGemini.classList.remove('bg-white', 'shadow-sm', 'text-emerald-600');
-                providerGemini.classList.add('text-gray-500', 'hover:text-gray-700');
-            } else {
-                providerGemini.classList.add('bg-white', 'shadow-sm', 'text-emerald-600');
-                providerGemini.classList.remove('text-gray-500', 'hover:text-gray-700');
-                providerOpenAI.classList.remove('bg-white', 'shadow-sm', 'text-emerald-600');
-                providerOpenAI.classList.add('text-gray-500', 'hover:text-gray-700');
-            }
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `OpenRouter API error ${response.status}`);
+    }
 
-            // Show/hide Gemini key container
-            // Note: Gemini key container is always visible now
-        }
+    const data = await response.json();
+    return extractJsonObject(data.choices?.[0]?.message?.content);
+}
 
-        function switchProvider(provider) {
-            currentProvider = provider;
-            localStorage.setItem(STORAGE_KEYS.PROVIDER, provider);
-            updateDeveloperUI();
-        }
-
-        // Logo click event for developer menu
-        document.querySelector('h1').addEventListener('click', handleLogoTap);
-
-        // Provider Toggle Events
-        providerOpenAI.addEventListener('click', () => switchProvider('openai'));
-        providerGemini.addEventListener('click', () => switchProvider('gemini'));
-
-        // Toggle Gemini Key Visibility
-        toggleGeminiKeyBtn.addEventListener('click', () => {
-            if (geminiApiKeyInput.type === 'password') {
-                geminiApiKeyInput.type = 'text';
-                toggleGeminiKeyBtn.innerHTML = '<i class="ph ph-eye-slash text-lg"></i>';
-            } else {
-                geminiApiKeyInput.type = 'password';
-                toggleGeminiKeyBtn.innerHTML = '<i class="ph ph-eye text-lg"></i>';
-            }
-        });
-
-        // --- SETTINGS MODAL LOGIC ---
-        
-        function openSettings() {
-            settingsModal.classList.remove('hidden');
-            document.body.classList.add('overflow-hidden');
-            
-            // Load saved keys
-            const savedOpenAIKey = localStorage.getItem(STORAGE_KEYS.OPENAI_KEY);
-            const savedGeminiKey = localStorage.getItem(STORAGE_KEYS.GEMINI_KEY);
-            
-            if (savedOpenAIKey) {
-                apiKeyInput.value = savedOpenAIKey;
-            } else {
-                apiKeyInput.value = '';
-            }
-            
-            if (savedGeminiKey) {
-                geminiApiKeyInput.value = savedGeminiKey;
-            } else {
-                geminiApiKeyInput.value = '';
-            }
-            
-            updateDeveloperUI();
-            updateApiKeyStatus();
-        }
-
-        function closeSettings() {
-            settingsModal.classList.add('hidden');
-            document.body.classList.remove('overflow-hidden');
-        }
-
-        function updateApiKeyStatus() {
-            const currentKey = currentProvider === 'openai' 
-                ? localStorage.getItem(STORAGE_KEYS.OPENAI_KEY) 
-                : localStorage.getItem(STORAGE_KEYS.GEMINI_KEY);
-            
-            apiKeyStatus.classList.remove('hidden');
-            if (currentKey) {
-                apiKeyStatus.className = 'p-3 rounded-xl text-sm flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200';
-                apiKeyStatus.innerHTML = '<i class="ph ph-check-circle"></i> ' + 
-                    (currentProvider === 'gemini' 
-                        ? (currentLanguage === 'vi' ? 'API Key Gemini đã được cấu hình' : 'Gemini API Key is configured')
-                        : (currentLanguage === 'vi' ? 'API Key OpenAI đã được cấu hình' : 'OpenAI API Key is configured'));
-            } else {
-                apiKeyStatus.className = 'p-3 rounded-xl text-sm flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200';
-                apiKeyStatus.innerHTML = '<i class="ph ph-warning"></i> ' + 
-                    (currentLanguage === 'vi' ? 'Không tìm thấy API Key. Phân tích sẽ thất bại.' : 'No API Key found. Analysis will fail.');
-            }
-        }
-
-        function saveSettings() {
-            const openaiKey = apiKeyInput.value.trim();
-            const geminiKey = geminiApiKeyInput.value.trim();
-            
-            // Save both keys regardless of provider
-            if (openaiKey) {
-                localStorage.setItem(STORAGE_KEYS.OPENAI_KEY, openaiKey);
-            }
-            if (geminiKey) {
-                localStorage.setItem(STORAGE_KEYS.GEMINI_KEY, geminiKey);
-            }
-            
-            if (openaiKey || geminiKey) {
-                alert(currentLanguage === 'vi' ? 'Cài đặt đã được lưu!' : 'Settings saved successfully!');
-                closeSettings();
-            } else {
-                alert(currentLanguage === 'vi' ? 'Vui lòng nhập ít nhất một API Key.' : 'Please enter at least one API Key.');
-            }
-        }
-
-        // Settings Event Listeners
-        settingsBtn.addEventListener('click', openSettings);
-        closeSettingsBtn.addEventListener('click', closeSettings);
-        cancelSettingsBtn.addEventListener('click', closeSettings);
-        saveSettingsBtn.addEventListener('click', saveSettings);
-
-        toggleApiKeyBtn.addEventListener('click', () => {
-            if (apiKeyInput.type === 'password') {
-                apiKeyInput.type = 'text';
-                toggleApiKeyBtn.innerHTML = '<i class="ph ph-eye-slash text-lg"></i>';
-            } else {
-                apiKeyInput.type = 'password';
-                toggleApiKeyBtn.innerHTML = '<i class="ph ph-eye text-lg"></i>';
-            }
-        });
-
-        // --- CAMERA LOGIC ---
-
-        async function initCamera() {
-            video = document.createElement('video');
-            video.id = 'videoFeed';
-            video.autoplay = true;
-            video.playsinline = true;
-            video.muted = true;
-
-            try {
-                const constraints = {
-                    video: {
-                        facingMode: { ideal: "environment" },
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    }
-                };
-
-                stream = await navigator.mediaDevices.getUserMedia(constraints);
-                video.srcObject = stream;
-                video.classList.remove('hidden');
-                cameraFallback.classList.add('hidden');
-
-                video.onloadedmetadata = () => {
-                    video.play();
-                    startCanvasLoop(video);
-                };
-
-            } catch (err) {
-                console.error("Camera access error:", err);
-                handleCameraError();
-            }
-        }
-
-        function startCanvasLoop(video) {
-            if (!ctx) ctx = videoCanvas.getContext('2d');
-            
-            const loop = () => {
-                if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                    videoCanvas.width = video.videoWidth;
-                    videoCanvas.height = video.videoHeight;
-                    ctx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
-                }
-                if (stream) requestAnimationFrame(loop);
-            };
-            loop();
-        }
-
-        function handleCameraError() {
-            videoCanvas.classList.add('hidden');
-            cameraFallback.classList.remove('hidden');
-            scanActionSection.classList.add('hidden');
-        }
-
-        // Scan Action
-        scanBtn.addEventListener('click', () => {
-            if (!stream) {
-                fileInput.click();
-                return;
-            }
-            captureImage();
-        });
-
-        // Handle File Upload
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files && e.target.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    showSnappedPhoto(event.target.result);
-                    showPreviewModal(event.target.result);
-                };
-                reader.readAsDataURL(e.target.files[0]);
-            }
-        });
-
-        function captureImage() {
-            flashOverlay.classList.add('active');
-            const imageData = videoCanvas.toDataURL('image/jpeg', 0.8);
-
-            setTimeout(() => {
-                flashOverlay.classList.remove('active');
-                showSnappedPhoto(imageData);
-                showPreviewModal(imageData);
-            }, 100);
-        }
-
-        function showSnappedPhoto(imageData) {
-            stream = null;
-            ctx = null;
-            videoCanvas.classList.add('hidden');
-
-            let snappedPhoto = document.getElementById('snappedPhoto');
-            if (!snappedPhoto) {
-                snappedPhoto = document.createElement('img');
-                snappedPhoto.id = 'snappedPhoto';
-                snappedPhoto.className = 'w-full h-full absolute inset-0';
-                snappedPhoto.style.objectFit = 'contain';
-                snappedPhoto.style.backgroundColor = '#000';
-                cameraSection.appendChild(snappedPhoto);
-            }
-            snappedPhoto.src = imageData;
-            snappedPhoto.classList.remove('hidden');
-            scanActionSection.classList.add('hidden');
-        }
-
-        function showPreviewModal(imageData) {
-            capturedImageData = imageData;
-            previewImage.src = imageData;
-            previewModal.classList.remove('hidden');
-            document.body.classList.add('overflow-hidden');
-        }
-
-        function hidePreviewModal() {
-            previewModal.classList.add('hidden');
-            document.body.classList.remove('overflow-hidden');
-        }
-
-        function resetToCamera() {
-            hidePreviewModal();
-            const snappedPhoto = document.getElementById('snappedPhoto');
-            if (snappedPhoto) {
-                snappedPhoto.classList.add('hidden');
-                snappedPhoto.src = '';
-            }
-            fileInput.value = '';
-            videoCanvas.classList.remove('hidden');
-            scanActionSection.classList.remove('hidden');
-            initCamera();
-        }
-
-        // Preview Modal Event Listeners
-        closePreviewBtn.addEventListener('click', resetToCamera);
-        retakeBtn.addEventListener('click', resetToCamera);
-        
-        analyzeBtn.addEventListener('click', () => {
-            analyzeWithAI();
-        });
-
-        // --- AI API INTEGRATION (OpenAI & Gemini) ---
-
-        function getSystemPrompt() {
-            const langRule = currentLanguage === 'vi' 
-                ? 'The output JSON text for fields "scanned_item", "status_message", "material", and "action_steps" MUST be written in Vietnamese. Keep the JSON keys in English.'
-                : 'The output JSON text for fields "scanned_item", "status_message", "material", and "action_steps" MUST be written in English.';
-
-            return `You are an expert waste sorting AI. Analyze the uploaded image and return ONLY a JSON object matching exactly this structure: { "scanned_item": "Short item name", "is_recyclable": boolean, "status_message": "Short status like RECYCLABLE or CONTAMINATED", "composition": [ { "material": "Name", "percentage": number } ], "action_steps": [ "Step 1", "Step 2" ], "eco_score": number (0-100) }. ${langRule}`;
-        }
-
-        async function analyzeWithAI() {
-            let apiKey = currentProvider === 'openai' 
-                ? localStorage.getItem(STORAGE_KEYS.OPENAI_KEY) 
-                : localStorage.getItem(STORAGE_KEYS.GEMINI_KEY);
-
-            if (!apiKey) {
-                const userChoice = confirm(currentLanguage === 'vi' 
-                    ? 'Không tìm thấy API Key. Bạn có muốn cài đặt ngay không?' 
-                    : 'No API Key found. Would you like to set it up now?');
-                if (userChoice) {
-                    openSettings();
-                }
-                return;
-            }
-
-            hidePreviewModal();
-            loadingOverlay.classList.add('active');
-            console.log(`Sending image to ${currentProvider === 'openai' ? 'OpenAI' : 'Gemini'} API...`);
-
-            try {
-                let response;
-                let data;
-                let result;
-
-                if (currentProvider === 'gemini') {
-                    // Gemini API (OpenAI-compatible endpoint)
-                    const config = API_CONFIG.GEMINI;
-                    response = await fetch(`${config.url}?key=${apiKey}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            contents: [
-                                {
-                                    parts: [
-                                        {
-                                            text: getSystemPrompt()
-                                        },
-                                        {
-                                            inline_data: {
-                                                mime_type: capturedImageData.split(';')[0].split(':')[1],
-                                                data: capturedImageData.split(',')[1]
-                                            }
-                                        }
-                                    ]
-                                }
-                            ],
-                            generationConfig: {
-                                responseMimeType: "application/json",
-                                responseSchema: {
-                                    type: "OBJECT",
-                                    properties: {
-                                        scanned_item: { type: "STRING" },
-                                        is_recyclable: { type: "BOOLEAN" },
-                                        status_message: { type: "STRING" },
-                                        composition: {
-                                            type: "ARRAY",
-                                            items: {
-                                                type: "OBJECT",
-                                                properties: {
-                                                    material: { type: "STRING" },
-                                                    percentage: { type: "NUMBER" }
-                                                }
-                                            }
-                                        },
-                                        action_steps: {
-                                            type: "ARRAY",
-                                            items: { type: "STRING" }
-                                        },
-                                        eco_score: { type: "NUMBER" }
-                                    }
-                                }
+async function analyzeWithGemini({ apiKey, model, imageBase64, prompt }) {
+    const geminiModel = normalizeGeminiModelName(model);
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            generationConfig: {
+                responseMimeType: 'application/json',
+                temperature: 0.2
+            },
+            contents: [
+                {
+                    role: 'user',
+                    parts: [
+                        { text: prompt },
+                        {
+                            inlineData: {
+                                mimeType: 'image/jpeg',
+                                data: stripDataUrlPrefix(imageBase64)
                             }
-                        })
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error?.message || `API Error: ${response.status}`);
-                    }
-
-                    data = await response.json();
-                    result = JSON.parse(data.candidates[0].content.parts[0].text);
-                } else {
-                    // OpenAI API
-                    const config = API_CONFIG.OPENAI;
-                    response = await fetch(config.url, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${apiKey}`
-                        },
-                        body: JSON.stringify({
-                            model: config.model,
-                            response_format: { type: 'json_object' },
-                            messages: [
-                                {
-                                    role: 'system',
-                                    content: getSystemPrompt()
-                                },
-                                {
-                                    role: 'user',
-                                    content: [
-                                        {
-                                            type: 'image_url',
-                                            image_url: {
-                                                url: capturedImageData,
-                                                detail: 'low'
-                                            }
-                                        }
-                                    ]
-                                }
-                            ]
-                        })
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error?.message || `API Error: ${response.status}`);
-                    }
-
-                    data = await response.json();
-                    result = JSON.parse(data.choices[0].message.content);
+                        }
+                    ]
                 }
-                
-                loadingOverlay.classList.remove('active');
-                showResults(result);
+            ]
+        })
+    });
 
-            } catch (error) {
-                console.error('AI Analysis Error:', error);
-                loadingOverlay.classList.remove('active');
-                alert(currentLanguage === 'vi'
-                    ? `Phân tích thất bại: ${error.message}\n\nVui lòng kiểm tra API key và kết nối internet.`
-                    : `Analysis Failed: ${error.message}\n\nPlease check your API key and internet connection.`);
-            }
-        }
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const message = errorData.error?.message || `Gemini API error ${response.status}`;
+        throw new Error(message);
+    }
 
-        // --- RESULTS MODAL LOGIC ---
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts
+        ?.map(part => part.text || '')
+        .join('')
+        .trim();
 
-        function showResults(data) {
-            // Store the result for history saving
-            lastAnalysisResult = data;
-            
-            // Auto-save to history
-            addToHistory(data);
-            
-            // Set image and item name
-            resultImage.src = capturedImageData;
-            resultItemName.textContent = data.scanned_item || 'Unknown Item';
+    return extractJsonObject(content);
+}
 
-            // Set timestamp (new scan)
-            const now = new Date();
-            const formattedDate = now.toLocaleDateString(currentLanguage === 'vi' ? 'vi-VN' : 'en-US', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+function setScanMode(mode) {
+    selectedScanMode = scanModes[mode] ? mode : 'quick';
+    localStorage.setItem(STORAGE_KEYS.selectedMode, selectedScanMode);
+    dom.scanModeOptions.querySelectorAll('[data-mode]').forEach(button => {
+        button.classList.toggle('active', button.dataset.mode === selectedScanMode);
+    });
+}
+
+function setupPwa() {
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').catch(error => {
+                console.warn('[App] Service worker registration failed:', error);
             });
-            document.getElementById('resultTimestamp').textContent = formattedDate;
+        });
+    }
+}
 
-            // Status Card
-            if (data.is_recyclable) {
-                statusCard.className = 'rounded-2xl p-6 shadow-sm bg-gradient-to-r from-emerald-500 to-emerald-600';
-                statusIcon.innerHTML = '<i class="ph ph-recycle text-white text-3xl"></i>';
-                statusMessage.textContent = '♻️ ' + (data.status_message || 'RECYCLABLE');
-            } else {
-                statusCard.className = 'rounded-2xl p-6 shadow-sm bg-gradient-to-r from-orange-500 to-red-500';
-                statusIcon.innerHTML = '<i class="ph ph-warning text-white text-3xl"></i>';
-                statusMessage.textContent = '⚠️ ' + (data.status_message || 'NOT RECYCLABLE');
+async function initCamera() {
+    stopCamera();
+    video = document.createElement('video');
+    video.autoplay = true;
+    video.playsInline = true;
+    video.muted = true;
+
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: { ideal: 'environment' },
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
             }
+        });
+        video.srcObject = stream;
+        dom.videoCanvas.classList.remove('hidden');
+        dom.cameraFallback.classList.add('hidden');
+        dom.scanActionSection.classList.remove('hidden');
 
-            // Composition Bars
-            compositionBars.innerHTML = '';
-            const colors = ['bg-emerald-500', 'bg-blue-500', 'bg-purple-500', 'bg-amber-500', 'bg-rose-500'];
-            if (data.composition && data.composition.length > 0) {
-                data.composition.forEach((item, index) => {
-                    const color = colors[index % colors.length];
-                    compositionBars.innerHTML += `
-                        <div>
-                            <div class="flex justify-between text-sm mb-1">
-                                <span class="font-medium text-gray-700">${item.material}</span>
-                                <span class="text-gray-500">${item.percentage}%</span>
-                            </div>
-                            <div class="w-full bg-gray-100 rounded-full h-2.5">
-                                <div class="${color} h-2.5 rounded-full" style="width: ${item.percentage}%"></div>
-                            </div>
-                        </div>
-                    `;
-                });
-            } else {
-                compositionBars.innerHTML = '<p class="text-gray-400 text-sm">No composition data available.</p>';
-            }
+        video.onloadedmetadata = () => {
+            video.play();
+            startCanvasLoop();
+        };
+    } catch (error) {
+        console.error('Camera access error:', error);
+        handleCameraError();
+    }
+}
 
-            // Action Steps
-            actionSteps.innerHTML = '';
-            if (data.action_steps && data.action_steps.length > 0) {
-                data.action_steps.forEach((step, index) => {
-                    actionSteps.innerHTML += `
-                        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
-                            <div class="w-6 h-6 flex-shrink-0 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xs font-bold">
-                                ${index + 1}
-                            </div>
-                            <p class="text-gray-700 text-sm">${step}</p>
-                        </div>
-                    `;
-                });
-            } else {
-                actionSteps.innerHTML = '<p class="text-gray-400 text-sm">No specific steps provided.</p>';
-            }
+function startCanvasLoop() {
+    canvasContext = dom.videoCanvas.getContext('2d');
 
-            // Sustainability Tracker
-            const score = data.eco_score || 0;
-            ecoScoreValue.textContent = score;
-            carbonSavedValue.textContent = `${Math.round(score * 0.5)}g`;
-
-            // Show modal
-            resultsModal.classList.remove('hidden');
-            document.body.classList.add('overflow-hidden');
-
-            // Hide the save button since it's auto-saved
-            saveHistoryContainer.classList.add('hidden');
+    const loop = () => {
+        if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
+            if (dom.videoCanvas.width !== video.videoWidth) dom.videoCanvas.width = video.videoWidth;
+            if (dom.videoCanvas.height !== video.videoHeight) dom.videoCanvas.height = video.videoHeight;
+            canvasContext.drawImage(video, 0, 0, dom.videoCanvas.width, dom.videoCanvas.height);
         }
+        if (stream) animationFrameId = requestAnimationFrame(loop);
+    };
 
-        function closeResults() {
-            // Show the save button again for next analysis
-            saveHistoryContainer.classList.remove('hidden');
-            resultsModal.classList.add('hidden');
-            document.body.classList.remove('overflow-hidden');
-            resetToCamera();
+    loop();
+}
+
+function stopCamera() {
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+}
+
+function handleCameraError() {
+    stopCamera();
+    dom.videoCanvas.classList.add('hidden');
+    dom.cameraFallback.classList.remove('hidden');
+    dom.scanActionSection.classList.add('hidden');
+}
+
+function canvasToDataUrl(canvas, quality = 0.82) {
+    return canvas.toDataURL('image/jpeg', quality);
+}
+
+function loadImage(src) {
+    return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = src;
+    });
+}
+
+async function compressImage(source, maxDimension = MAX_IMAGE_DIMENSION, quality = 0.82) {
+    const image = typeof source === 'string' ? await loadImage(source) : source;
+    const scale = Math.min(1, maxDimension / Math.max(image.width || image.videoWidth, image.height || image.videoHeight));
+    const width = Math.max(1, Math.round((image.width || image.videoWidth) * scale));
+    const height = Math.max(1, Math.round((image.height || image.videoHeight) * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext('2d').drawImage(image, 0, 0, width, height);
+    return canvasToDataUrl(canvas, quality);
+}
+
+async function captureImage() {
+    dom.flashOverlay.classList.add('active');
+    const imageData = canvasToDataUrl(dom.videoCanvas, 0.86);
+    capturedImageData = await compressImage(imageData, MAX_IMAGE_DIMENSION, 0.82);
+    capturedHistoryImageData = await compressImage(imageData, HISTORY_IMAGE_DIMENSION, 0.72);
+
+    setTimeout(() => {
+        dom.flashOverlay.classList.remove('active');
+        showSnappedPhoto(capturedImageData);
+        showPreviewModal(capturedImageData);
+    }, 100);
+}
+
+async function handleFileUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+        showToast('Please upload a valid image file.');
+        return;
+    }
+    if (file.size > 12 * 1024 * 1024) {
+        showToast('Please choose an image smaller than 12 MB.');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async uploadEvent => {
+        capturedImageData = await compressImage(uploadEvent.target.result, MAX_IMAGE_DIMENSION, 0.82);
+        capturedHistoryImageData = await compressImage(uploadEvent.target.result, HISTORY_IMAGE_DIMENSION, 0.72);
+        showSnappedPhoto(capturedImageData);
+        showPreviewModal(capturedImageData);
+    };
+    reader.readAsDataURL(file);
+}
+
+function showSnappedPhoto(imageData) {
+    stopCamera();
+    canvasContext = null;
+    dom.videoCanvas.classList.add('hidden');
+
+    let snappedPhoto = document.getElementById('snappedPhoto');
+    if (!snappedPhoto) {
+        snappedPhoto = createElement('img', {
+            className: 'w-full h-full absolute inset-0',
+            alt: 'Captured waste'
+        });
+        snappedPhoto.id = 'snappedPhoto';
+        snappedPhoto.style.objectFit = 'contain';
+        snappedPhoto.style.backgroundColor = '#000';
+        dom.cameraSection.appendChild(snappedPhoto);
+    }
+
+    snappedPhoto.src = imageData;
+    snappedPhoto.classList.remove('hidden');
+    dom.scanActionSection.classList.add('hidden');
+}
+
+function showPreviewModal(imageData) {
+    dom.previewImage.src = imageData;
+    dom.previewModal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+}
+
+function hidePreviewModal() {
+    dom.previewModal.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+}
+
+function resetToCamera() {
+    hidePreviewModal();
+    const snappedPhoto = document.getElementById('snappedPhoto');
+    if (snappedPhoto) {
+        snappedPhoto.classList.add('hidden');
+        snappedPhoto.src = '';
+    }
+    dom.fileInput.value = '';
+    capturedImageData = null;
+    capturedHistoryImageData = null;
+    dom.videoCanvas.classList.remove('hidden');
+    dom.scanActionSection.classList.remove('hidden');
+    initCamera();
+}
+
+async function analyzeWithAI() {
+    const config = getProviderConfig();
+    const providerMeta = aiProviders[config.provider];
+
+    if (!config.apiKey) {
+        openSettings();
+        showToast(`Add a ${providerMeta.label} API key before scanning.`);
+        return;
+    }
+    if (!config.model) {
+        openSettings();
+        showToast(`Choose a vision-capable ${providerMeta.label} model before scanning.`);
+        return;
+    }
+    if (!capturedImageData) {
+        showToast('Capture or upload an image first.');
+        return;
+    }
+
+    hidePreviewModal();
+    dom.loadingModeText.textContent = scanModes[selectedScanMode].loading;
+    dom.loadingOverlay.classList.add('active');
+
+    try {
+        const normalized = await analyzeWasteImage({
+            provider: config.provider,
+            apiKey: config.apiKey,
+            model: config.model,
+            imageBase64: capturedImageData,
+            mode: selectedScanMode
+        });
+        dom.loadingOverlay.classList.remove('active');
+        showResults(normalized, true);
+    } catch (error) {
+        console.error('AI analysis error:', error);
+        dom.loadingOverlay.classList.remove('active');
+        showToast(`${providerMeta.label} analysis failed: ${error.message}`);
+    }
+}
+
+function showResults(result, shouldSave) {
+    lastAnalysisResult = result;
+    const imageData = capturedImageData || result.imageData || '';
+
+    dom.resultImage.src = imageData;
+    dom.resultTimestamp.textContent = new Date().toLocaleString(currentLanguage === 'vi' ? 'vi-VN' : 'en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    if (result.scanType === 'unclear') {
+        renderUnclearResult(result);
+    } else {
+        const title = result.scanType === 'batch'
+            ? `${result.objects.length} items detected`
+            : result.mainItem;
+        dom.resultItemName.textContent = title;
+        renderSummary(result);
+        renderStatus(result);
+        renderDetectedObjects(result);
+        renderGrid(result);
+        renderObjectDetails(result.objects[0]);
+        renderSustainability(result);
+    }
+
+    dom.resultsModal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+    dom.saveHistoryContainer.classList.add('hidden');
+
+    if (shouldSave) {
+        addToHistory(result);
+    }
+}
+
+function renderUnclearResult(result) {
+    dom.resultItemName.textContent = t('unclear');
+    dom.resultSummaryCard.classList.remove('hidden');
+    dom.resultSummaryText.textContent = result.message;
+    dom.statusCard.className = 'rounded-2xl p-6 shadow-sm bg-gradient-to-r from-gray-500 to-gray-600';
+    setIcon(dom.statusIcon, 'ph ph-warning text-white text-3xl');
+    dom.statusMessage.textContent = `${t('unclear')} (${Math.round(result.confidence * 100)}% confidence)`;
+    dom.detectedObjectsSection.classList.add('hidden');
+    dom.gridOverlay.classList.add('hidden');
+    dom.objectFocusBox.classList.add('hidden');
+    renderObjectDetails(null);
+    dom.ecoScoreValue.textContent = '0';
+    dom.carbonSavedValue.textContent = '0g';
+}
+
+function renderSummary(result) {
+    dom.resultSummaryCard.classList.remove('hidden');
+    dom.resultSummaryText.textContent = result.overallSummary || buildSummary(result.objects);
+}
+
+function renderStatus(result) {
+    const status = result.scanType === 'batch' ? summarizeBatchStatus(result.objects) : result.recyclable;
+    const kind = getStatusKind(status);
+    const gradient = {
+        recyclable: 'from-emerald-500 to-emerald-600',
+        partial: 'from-blue-500 to-emerald-500',
+        special: 'from-amber-500 to-orange-500',
+        nonRecyclable: 'from-orange-500 to-red-500'
+    }[kind];
+    const iconClass = kind === 'recyclable'
+        ? 'ph ph-recycle text-white text-3xl'
+        : kind === 'partial'
+            ? 'ph ph-arrows-split text-white text-3xl'
+            : 'ph ph-warning text-white text-3xl';
+
+    dom.statusCard.className = `rounded-2xl p-6 shadow-sm bg-gradient-to-r ${gradient}`;
+    setIcon(dom.statusIcon, iconClass);
+    dom.statusMessage.textContent = result.scanType === 'batch'
+        ? `${result.objects.length} items analyzed`
+        : `${getStatusLabel(status)} (${Math.round(result.confidence * 100)}% confidence)`;
+}
+
+function summarizeBatchStatus(objects) {
+    if (objects.some(item => getStatusKind(item.recyclable) === 'special')) return 'special';
+    if (objects.some(item => getStatusKind(item.recyclable) === 'partial')) return 'partial';
+    if (objects.every(item => getStatusKind(item.recyclable) === 'recyclable')) return true;
+    return false;
+}
+
+function setIcon(container, className) {
+    container.replaceChildren(icon(className));
+}
+
+function renderDetectedObjects(result) {
+    dom.detectedObjectsSection.classList.remove('hidden');
+    dom.detectedObjectsList.replaceChildren();
+
+    result.objects.forEach((item, index) => {
+        const statusBadge = createElement('span', {
+            className: `inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-semibold ${getStatusClasses(item.recyclable)}`,
+            text: getStatusLabel(item.recyclable)
+        });
+        const score = createElement('span', {
+            className: 'inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold',
+            text: `${item.ecoScore} eco`
+        });
+        const confidence = createElement('span', {
+            className: 'text-xs text-gray-500',
+            text: `${Math.round(item.confidence * 100)}% confidence${item.gridCell ? ` | cell ${item.gridCell}` : ''}`
+        });
+        const title = createElement('h6', {
+            className: 'font-bold text-gray-800',
+            text: item.name
+        });
+        const category = createElement('p', {
+            className: 'text-xs text-gray-500',
+            text: item.category
+        });
+        const action = createElement('p', {
+            className: 'text-sm text-gray-600 mt-3',
+            text: item.disposalAction
+        });
+        const card = createElement('button', {
+            type: 'button',
+            className: 'result-card text-left border border-gray-100 rounded-2xl p-4 hover:border-emerald-200 hover:bg-emerald-50/40 transition-colors',
+            dataset: { cell: item.gridCell || '' }
+        }, [
+            createElement('div', { className: 'flex items-start justify-between gap-3' }, [
+                createElement('div', {}, [title, category, confidence]),
+                createElement('div', { className: 'flex flex-col items-end gap-2' }, [statusBadge, score])
+            ]),
+            action
+        ]);
+
+        card.style.animationDelay = `${index * 70}ms`;
+        card.addEventListener('click', () => {
+            renderObjectDetails(item);
+            focusGridCell(item.gridCell);
+        });
+        dom.detectedObjectsList.appendChild(card);
+    });
+}
+
+function renderGrid(result) {
+    const detectedCells = new Set(result.objects.map(item => item.gridCell).filter(Boolean));
+    if (detectedCells.size === 0) {
+        dom.gridOverlay.classList.add('hidden');
+        dom.objectFocusBox.classList.add('hidden');
+        dom.gridOverlay.replaceChildren();
+        return;
+    }
+
+    dom.gridOverlay.replaceChildren();
+    for (let cell = 1; cell <= 16; cell += 1) {
+        dom.gridOverlay.appendChild(createElement('div', {
+            className: `grid-cell ${detectedCells.has(cell) ? 'detected' : ''}`,
+            text: cell
+        }));
+    }
+    dom.gridOverlay.classList.remove('hidden');
+    focusGridCell([...detectedCells][0]);
+}
+
+function focusGridCell(cell) {
+    if (!cell) {
+        dom.objectFocusBox.classList.add('hidden');
+        return;
+    }
+    const zeroIndex = cell - 1;
+    const row = Math.floor(zeroIndex / 4);
+    const column = zeroIndex % 4;
+    dom.objectFocusBox.style.left = `${column * 25}%`;
+    dom.objectFocusBox.style.top = `${row * 25}%`;
+    dom.objectFocusBox.style.width = '25%';
+    dom.objectFocusBox.style.height = '25%';
+    dom.objectFocusBox.classList.remove('hidden');
+}
+
+function renderObjectDetails(item) {
+    dom.compositionBars.replaceChildren();
+    dom.actionSteps.replaceChildren();
+
+    if (!item) {
+        dom.compositionBars.appendChild(createElement('p', {
+            className: 'text-gray-400 text-sm',
+            text: 'No material breakdown available.'
+        }));
+        dom.actionSteps.appendChild(createElement('p', {
+            className: 'text-gray-400 text-sm',
+            text: 'No preparation steps available.'
+        }));
+        return;
+    }
+
+    if (item.components.length === 0) {
+        dom.compositionBars.appendChild(createElement('p', {
+            className: 'text-gray-400 text-sm',
+            text: 'No component details were returned for this item.'
+        }));
+    } else {
+        item.components.forEach(component => {
+            const badge = createElement('span', {
+                className: `inline-flex items-center px-2 py-1 rounded-full border text-xs font-semibold ${getStatusClasses(component.recyclable)}`,
+                text: getStatusLabel(component.recyclable)
+            });
+            dom.compositionBars.appendChild(createElement('div', {
+                className: 'result-card border border-gray-100 rounded-xl p-4'
+            }, [
+                createElement('div', { className: 'flex justify-between items-start gap-3 mb-2' }, [
+                    createElement('div', {}, [
+                        createElement('p', { className: 'font-semibold text-gray-800', text: component.part }),
+                        createElement('p', { className: 'text-xs text-gray-500', text: component.material })
+                    ]),
+                    badge
+                ]),
+                createElement('p', { className: 'text-sm text-gray-600', text: component.instruction })
+            ]));
+        });
+    }
+
+    const steps = item.preparationSteps.length > 0 ? item.preparationSteps : [item.disposalAction];
+    steps.forEach((step, index) => {
+        dom.actionSteps.appendChild(createElement('div', {
+            className: 'result-card flex items-start gap-3 p-3 bg-gray-50 rounded-xl'
+        }, [
+            createElement('div', {
+                className: 'w-6 h-6 flex-shrink-0 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xs font-bold',
+                text: index + 1
+            }),
+            createElement('p', { className: 'text-gray-700 text-sm', text: step })
+        ]));
+    });
+
+    if (item.education) {
+        dom.actionSteps.appendChild(createElement('div', {
+            className: 'result-card p-4 bg-blue-50 text-blue-800 rounded-xl text-sm'
+        }, [
+            createElement('p', { className: 'font-semibold mb-1', text: 'Why this matters' }),
+            createElement('p', { text: item.education })
+        ]));
+    }
+}
+
+function renderSustainability(result) {
+    dom.ecoScoreValue.textContent = result.totalEcoScore;
+    dom.carbonSavedValue.textContent = `${result.carbonSavedGrams || Math.round(result.totalEcoScore * 0.5)}g`;
+}
+
+function addToHistory(result) {
+    const history = getHistory();
+    const config = getProviderConfig();
+    const entry = {
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        mode: selectedScanMode,
+        provider: config.provider,
+        model: config.model,
+        imageData: capturedHistoryImageData || capturedImageData,
+        result
+    };
+    history.unshift(entry);
+    saveHistory(history);
+    loadHistory();
+    renderChart();
+    updateUserLevel();
+    checkAchievements();
+}
+
+function loadHistory() {
+    const recentList = document.getElementById('recentList');
+    const emptyRecent = document.getElementById('emptyRecent');
+    recentList.querySelectorAll('.history-item').forEach(item => item.remove());
+
+    const history = getHistory();
+    if (history.length === 0) {
+        emptyRecent.classList.remove('hidden');
+        return;
+    }
+
+    emptyRecent.classList.add('hidden');
+    history.forEach(entry => {
+        const result = entry.result || {};
+        const firstObject = result.objects?.[0];
+        const title = result.scanType === 'batch'
+            ? `${result.objects.length} items`
+            : firstObject?.name || result.mainItem || 'Waste scan';
+        const status = result.scanType === 'batch' ? summarizeBatchStatus(result.objects || []) : firstObject?.recyclable;
+        const date = new Date(entry.timestamp).toLocaleDateString(currentLanguage === 'vi' ? 'vi-VN' : 'en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        const thumbnail = entry.imageData
+            ? createElement('img', { src: entry.imageData, alt: title, className: 'w-full h-full object-cover' })
+            : icon('ph ph-package text-2xl text-gray-400');
+
+        const historyItem = createElement('div', {
+            className: 'history-item bg-white rounded-xl p-4 shadow-sm flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow'
+        }, [
+            createElement('div', {
+                className: 'w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0'
+            }, [thumbnail]),
+            createElement('div', { className: 'flex-1 min-w-0' }, [
+                createElement('div', { className: 'flex items-center gap-2 mb-1' }, [
+                    icon(getStatusKind(status) === 'recyclable' ? 'ph ph-recycle text-emerald-500' : 'ph ph-warning text-orange-500'),
+                    createElement('h4', { className: 'font-semibold text-gray-800 truncate', text: title })
+                ]),
+                createElement('p', { className: 'text-xs text-gray-500', text: `${date} | ${scanModes[entry.mode]?.label || 'Scan'} | ${aiProviders[entry.provider]?.label || 'AI'}` })
+            ]),
+            createElement('span', {
+                className: 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700',
+                text: `${result.totalEcoScore || 0}`
+            })
+        ]);
+
+        historyItem.addEventListener('click', () => {
+            capturedImageData = entry.imageData;
+            showResults(result, false);
+        });
+        recentList.appendChild(historyItem);
+    });
+}
+
+function clearHistory() {
+    if (!confirm('Clear all local scan history and progress?')) return;
+    localStorage.removeItem(STORAGE_KEYS.history);
+    localStorage.removeItem(STORAGE_KEYS.achievements);
+    loadHistory();
+    renderChart();
+    updateUserLevel();
+    renderAchievements();
+}
+
+function getMetrics() {
+    const history = getHistory();
+    const objects = history.flatMap(entry => entry.result?.objects || []);
+    const totalEcoScore = history.reduce((total, entry) => total + (entry.result?.totalEcoScore || 0), 0);
+    const plasticCount = objects.filter(item => `${item.name} ${item.category}`.toLowerCase().includes('plastic')).length;
+    const batteryCount = objects.filter(item => `${item.name} ${item.category}`.toLowerCase().includes('battery')).length;
+    const batchScans = history.filter(entry => entry.result?.scanType === 'batch').length;
+    return { history, objects, totalEcoScore, plasticCount, batteryCount, batchScans };
+}
+
+function updateUserLevel() {
+    const { totalEcoScore } = getMetrics();
+    let level = {
+        icon: '1',
+        name: t('sprout'),
+        color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        threshold: 0,
+        nextThreshold: 100
+    };
+
+    if (totalEcoScore >= 500) {
+        level = {
+            icon: '3',
+            name: t('master'),
+            color: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+            threshold: 500,
+            nextThreshold: null
+        };
+    } else if (totalEcoScore >= 100) {
+        level = {
+            icon: '2',
+            name: t('warrior'),
+            color: 'bg-blue-50 text-blue-700 border-blue-200',
+            threshold: 100,
+            nextThreshold: 500
+        };
+    }
+
+    dom.levelIcon.textContent = level.icon;
+    dom.levelText.textContent = level.name;
+    dom.userLevelBadge.className = `flex items-center gap-1 px-2 py-0.5 ${level.color} rounded-full text-xs font-bold border`;
+
+    const currentXpEl = document.getElementById('currentXp');
+    const nextLevelXpEl = document.getElementById('nextLevelXp');
+    const xpBar = document.getElementById('xpProgressBar');
+    currentXpEl.textContent = `${totalEcoScore} ${t('xp')}`;
+
+    if (level.nextThreshold) {
+        nextLevelXpEl.textContent = `${t('next')} ${level.nextThreshold} XP`;
+        const progress = ((totalEcoScore - level.threshold) / (level.nextThreshold - level.threshold)) * 100;
+        xpBar.style.width = `${Math.min(progress, 100)}%`;
+    } else {
+        nextLevelXpEl.textContent = `${t('master')}!`;
+        xpBar.style.width = '100%';
+    }
+}
+
+function renderAchievements() {
+    const unlockedIds = new Set(getUnlockedAchievementIds());
+    dom.achievementList.replaceChildren();
+    achievements.forEach(achievement => {
+        const unlocked = unlockedIds.has(achievement.id);
+        dom.achievementList.appendChild(createElement('div', {
+            className: `achievement-card border rounded-xl p-4 ${unlocked ? 'border-amber-200 bg-amber-50' : 'locked border-gray-100 bg-gray-50'}`
+        }, [
+            createElement('p', { className: 'font-bold text-gray-800', text: achievement.title }),
+            createElement('p', { className: 'text-xs text-gray-500 mt-1', text: achievement.description }),
+            createElement('p', { className: `text-xs font-semibold mt-2 ${unlocked ? 'text-amber-700' : 'text-gray-400'}`, text: unlocked ? 'Unlocked' : 'Locked' })
+        ]));
+    });
+}
+
+function checkAchievements() {
+    const metrics = getMetrics();
+    const unlockedIds = new Set(getUnlockedAchievementIds());
+    const newlyUnlocked = [];
+
+    achievements.forEach(achievement => {
+        if (!unlockedIds.has(achievement.id) && achievement.unlocked(metrics)) {
+            unlockedIds.add(achievement.id);
+            newlyUnlocked.push(achievement);
         }
+    });
 
-        // Results Event Listeners
-        closeResultsBtn.addEventListener('click', closeResults);
-        
-        saveToHistoryBtn.addEventListener('click', () => {
-            if (lastAnalysisResult) {
-                const oldLevel = getTotalEcoScore();
-                addToHistory(lastAnalysisResult);
-                const newLevel = getTotalEcoScore();
-                
-                // Check for level up
-                if (oldLevel < 100 && newLevel >= 100) {
-                    triggerConfetti();
-                } else if (oldLevel < 500 && newLevel >= 500) {
-                    triggerConfetti();
+    saveUnlockedAchievementIds([...unlockedIds]);
+    renderAchievements();
+
+    if (newlyUnlocked.length > 0) {
+        showAchievementBanner(newlyUnlocked[0]);
+        triggerConfetti();
+    }
+}
+
+function showAchievementBanner(achievement) {
+    dom.achievementBanner.textContent = `Achievement unlocked: ${achievement.title}`;
+    dom.achievementBanner.classList.remove('hidden');
+    setTimeout(() => dom.achievementBanner.classList.add('hidden'), 4500);
+}
+
+function triggerConfetti() {
+    if (typeof confetti !== 'function') return;
+    const duration = 1600;
+    const end = Date.now() + duration;
+    const interval = setInterval(() => {
+        const timeLeft = end - Date.now();
+        if (timeLeft <= 0) {
+            clearInterval(interval);
+            return;
+        }
+        const particleCount = 24 * (timeLeft / duration);
+        confetti({ particleCount, spread: 65, origin: { x: 0.2, y: 0.2 }, zIndex: 2000 });
+        confetti({ particleCount, spread: 65, origin: { x: 0.8, y: 0.2 }, zIndex: 2000 });
+    }, 220);
+}
+
+function renderChart() {
+    if (!dom.statsChartCanvas || typeof Chart !== 'function') return;
+    if (statsChartInstance) {
+        statsChartInstance.destroy();
+        statsChartInstance = null;
+    }
+
+    const { history, objects } = getMetrics();
+    dom.totalRecycledCount.textContent = objects.length || history.length;
+    if (history.length === 0) return;
+
+    const recyclableCount = objects.filter(item => getStatusKind(item.recyclable) === 'recyclable').length;
+    const partialCount = objects.filter(item => getStatusKind(item.recyclable) === 'partial').length;
+    const otherCount = Math.max(0, objects.length - recyclableCount - partialCount);
+
+    statsChartInstance = new Chart(dom.statsChartCanvas, {
+        type: 'doughnut',
+        data: {
+            labels: [t('recyclable'), t('partial'), t('nonRecyclable')],
+            datasets: [{
+                data: [recyclableCount, partialCount, otherCount],
+                backgroundColor: ['#10b981', '#3b82f6', '#f97316'],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 16,
+                        usePointStyle: true,
+                        font: { size: 12, family: 'inherit' }
+                    }
                 }
-                
-                closeResults();
             }
+        }
+    });
+}
+
+function openSettings() {
+    dom.settingsModal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+    selectedProvider = localStorage.getItem(STORAGE_KEYS.provider) || selectedProvider || 'openai';
+    dom.providerSelect.value = aiProviders[selectedProvider] ? selectedProvider : 'openai';
+    loadProviderSettings(dom.providerSelect.value);
+}
+
+function closeSettings() {
+    dom.settingsModal.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+}
+
+function updateApiKeyStatus(isConfigured) {
+    const providerMeta = aiProviders[dom.providerSelect.value] || aiProviders.openai;
+    dom.apiKeyStatus.classList.remove('hidden');
+    dom.apiKeyStatus.className = isConfigured
+        ? 'p-3 rounded-xl text-sm flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200'
+        : 'p-3 rounded-xl text-sm flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200';
+    dom.apiKeyStatus.replaceChildren(
+        icon(isConfigured ? 'ph ph-check-circle' : 'ph ph-warning'),
+        document.createTextNode(isConfigured ? `${providerMeta.label} API key is configured for this browser.` : `No ${providerMeta.label} API key found. Analysis will fail until one is added.`)
+    );
+}
+
+function loadProviderSettings(provider) {
+    const normalizedProvider = aiProviders[provider] ? provider : 'openai';
+    const providerMeta = aiProviders[normalizedProvider];
+    const config = getProviderConfig(normalizedProvider);
+
+    dom.providerSelect.value = normalizedProvider;
+    dom.apiKeyLabel.textContent = `${providerMeta.label} API Key`;
+    dom.apiKeyInput.placeholder = providerMeta.keyPlaceholder;
+    dom.apiKeyInput.value = config.apiKey;
+    dom.modelInput.value = config.model;
+    dom.modelInput.placeholder = providerMeta.defaultModel;
+    dom.modelHint.textContent = providerMeta.modelHint;
+
+    dom.apiKeyHelp.replaceChildren(
+        document.createTextNode(`${providerMeta.keyHelpText} `),
+        createElement('a', {
+            className: 'text-emerald-600 hover:underline',
+            text: providerMeta.label
+        })
+    );
+    const link = dom.apiKeyHelp.querySelector('a');
+    link.href = providerMeta.keyHelpUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+
+    updateApiKeyStatus(Boolean(config.apiKey));
+}
+
+function saveSettings() {
+    const provider = dom.providerSelect.value;
+    const providerMeta = aiProviders[provider] || aiProviders.openai;
+    const key = dom.apiKeyInput.value.trim();
+    const model = dom.modelInput.value.trim() || providerMeta.defaultModel;
+
+    if (!key) {
+        showToast(`Enter a valid ${providerMeta.label} API key.`);
+        return;
+    }
+    if (!model) {
+        showToast(`Enter a vision-capable ${providerMeta.label} model name.`);
+        return;
+    }
+
+    saveProviderConfig({ provider, apiKey: key, model });
+    updateApiKeyStatus(true);
+    closeSettings();
+    showToast(`${providerMeta.label} settings saved locally.`);
+}
+
+function showToast(message) {
+    let toast = document.getElementById('appToast');
+    if (!toast) {
+        toast = createElement('div', {
+            className: 'fixed left-1/2 bottom-6 -translate-x-1/2 z-[3000] bg-gray-900 text-white px-4 py-3 rounded-xl shadow-xl text-sm max-w-[90vw]'
         });
+        toast.id = 'appToast';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.remove('hidden');
+    clearTimeout(toast.hideTimer);
+    toast.hideTimer = setTimeout(() => toast.classList.add('hidden'), 3200);
+}
 
-        // Clear History Button
-        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
-        clearHistoryBtn.addEventListener('click', clearHistory);
+function toggleLanguage() {
+    currentLanguage = currentLanguage === 'en' ? 'vi' : 'en';
+    dom.langToggleBtn.textContent = currentLanguage === 'en' ? 'EN' : 'VI';
+    loadHistory();
+    renderChart();
+    updateUserLevel();
+}
 
-        // Cleanup on window close
-        window.addEventListener('beforeunload', () => {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-        });
+function closeResults() {
+    dom.resultsModal.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+    resetToCamera();
+}
 
-        // Start
-        updateDeveloperUI();
-        initCamera();
-        loadHistory();
-        updateUserLevel();
-        renderChart();
+function bindEvents() {
+    dom.scanModeOptions.addEventListener('click', event => {
+        const button = event.target.closest('[data-mode]');
+        if (button) setScanMode(button.dataset.mode);
+    });
+    dom.langToggleBtn.addEventListener('click', toggleLanguage);
+    dom.settingsBtn.addEventListener('click', openSettings);
+    dom.closeSettingsBtn.addEventListener('click', closeSettings);
+    dom.cancelSettingsBtn.addEventListener('click', closeSettings);
+    dom.saveSettingsBtn.addEventListener('click', saveSettings);
+    dom.providerSelect.addEventListener('change', () => {
+        selectedProvider = dom.providerSelect.value;
+        localStorage.setItem(STORAGE_KEYS.provider, selectedProvider);
+        loadProviderSettings(selectedProvider);
+    });
+    dom.toggleApiKeyBtn.addEventListener('click', () => {
+        const isHidden = dom.apiKeyInput.type === 'password';
+        dom.apiKeyInput.type = isHidden ? 'text' : 'password';
+        dom.toggleApiKeyBtn.replaceChildren(icon(isHidden ? 'ph ph-eye-slash text-lg' : 'ph ph-eye text-lg'));
+    });
+    dom.scanBtn.addEventListener('click', () => {
+        if (!stream) {
+            dom.fileInput.click();
+            return;
+        }
+        captureImage();
+    });
+    dom.fileInput.addEventListener('change', handleFileUpload);
+    dom.closePreviewBtn.addEventListener('click', resetToCamera);
+    dom.retakeBtn.addEventListener('click', resetToCamera);
+    dom.analyzeBtn.addEventListener('click', analyzeWithAI);
+    dom.closeResultsBtn.addEventListener('click', closeResults);
+    dom.clearHistoryBtn.addEventListener('click', clearHistory);
+    dom.saveToHistoryBtn.addEventListener('click', () => {
+        if (lastAnalysisResult) addToHistory(lastAnalysisResult);
+    });
+    window.addEventListener('beforeunload', stopCamera);
+}
+
+function initializeApp() {
+    setupPwa();
+    bindEvents();
+    setScanMode(selectedScanMode);
+    initCamera();
+    loadHistory();
+    renderChart();
+    updateUserLevel();
+    renderAchievements();
+}
+
+initializeApp();
