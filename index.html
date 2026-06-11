@@ -1,12 +1,15 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>RecycleCheck AI</title>
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#10b981">
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.json?v=13">
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Phosphor Icons for clean UI elements -->
@@ -16,7 +19,7 @@
     <!-- Confetti for Gamification -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
 
@@ -31,7 +34,7 @@
                 <!-- User Level & XP Bar (Always visible) -->
                 <div class="flex items-center gap-2">
                     <div id="userLevelBadge" class="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold border border-emerald-200">
-                        <span id="levelIcon">🌱</span>
+                        <span id="levelIcon">ðŸŒ±</span>
                         <span id="levelText">Sprout</span>
                     </div>
                     <div class="flex-1 flex flex-col gap-0.5">
@@ -46,10 +49,6 @@
                 </div>
             </div>
             <div class="flex items-center gap-2 ml-2">
-                <!-- Language Toggle -->
-                <button id="langToggleBtn" class="px-2 md:px-3 py-1.5 text-xs md:text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                    EN
-                </button>
                 <button id="settingsBtn" class="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors" title="Settings">
                     <i class="ph ph-gear text-xl md:text-2xl"></i>
                 </button>
@@ -62,7 +61,38 @@
             <!-- Camera Viewport Section -->
             <section class="camera-viewport" id="cameraSection">
                 <!-- Canvas for displaying camera feed -->
-                <canvas id="videoCanvas" class="w-full h-full object-cover"></canvas>
+                <canvas id="videoCanvas" class="w-full h-full object-cover hidden"></canvas>
+
+                <input type="file" id="fileInput" accept="image/*" class="hidden">
+
+                <div id="inputChoicePanel" class="input-choice-panel">
+                    <div class="input-choice-card">
+                        <p id="inputChoiceTitle" class="text-xs font-black uppercase tracking-[0.18em] text-emerald-300">Choose how to add an image</p>
+                        <div class="input-choice-actions">
+                            <button id="useCameraBtn" type="button" class="input-choice-button primary">
+                                <i class="ph ph-camera text-2xl"></i>
+                                <span>Use Camera</span>
+                            </button>
+                            <button id="uploadImageBtn" type="button" class="input-choice-button secondary">
+                                <i class="ph ph-upload-simple text-2xl"></i>
+                                <span>Upload Image</span>
+                            </button>
+                            <button id="pasteImageBtn" type="button" class="input-choice-button secondary">
+                                <i class="ph ph-clipboard-text text-2xl"></i>
+                                <span>Paste Image</span>
+                            </button>
+                            <button id="dragDropImageBtn" type="button" class="input-choice-button secondary">
+                                <i class="ph ph-hand-grabbing text-2xl"></i>
+                                <span>Drag & Drop</span>
+                            </button>
+                        </div>
+                        <div class="input-choice-hints">
+                            <span id="pasteHintText"><i class="ph ph-clipboard-text"></i> Paste with Ctrl+V</span>
+                            <span id="dragHintText"><i class="ph ph-hand-grabbing"></i> Drag & drop an image here</span>
+                        </div>
+                        <p id="cameraStatusMessage" class="camera-status-message hidden"></p>
+                    </div>
+                </div>
 
                 <!-- Upload / Paste / Drop Guidance -->
                 <div id="dropZoneHint" class="drop-zone-hint">
@@ -112,29 +142,20 @@
                     <p id="loadingModeText" class="text-xs text-white/70 mt-2">Building recycling guidance</p>
                 </div>
 
-                <!-- Fallback UI (Camera Denied) -->
-                <div id="cameraFallback" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-gray-800 text-white p-8 text-center">
-                    <i class="ph ph-camera-slash text-5xl mb-4 text-gray-400"></i>
-                    <h3 class="text-lg font-semibold mb-2">Camera Access Required</h3>
-                    <p class="text-sm text-gray-300 mb-6">To identify your waste instantly, please allow camera access or upload an image.</p>
-                    
-                    <!-- Custom File Upload -->
-                    <label class="cursor-pointer bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg">
-                        <i class="ph ph-upload-simple"></i>
-                        <span>Upload Image</span>
-                        <input type="file" id="fileInput" accept="image/*" class="hidden">
-                    </label>
-                </div>
             </section>
 
             <!-- Action Button -->
             <section id="scanActionSection" class="flex justify-center mt-[-2rem] relative z-10">
-                <div class="relative">
+                <div class="camera-action-controls">
                     <!-- Pulsing ring effect -->
                     <div class="pulse-ring"></div>
                     
                     <button id="scanBtn" class="relative bg-emerald-500 hover:bg-emerald-600 text-white w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 border-4 border-white">
                         <i class="ph ph-camera text-3xl"></i>
+                    </button>
+                    <button id="backToOptionsBtn" type="button" class="back-to-options-btn">
+                        <i class="ph ph-arrow-left"></i>
+                        <span>Back to upload options</span>
                     </button>
                 </div>
             </section>
@@ -298,6 +319,38 @@
             </div>
             
             <div class="p-5 sm:p-6 space-y-6 overflow-y-auto overscroll-contain flex-1 min-h-0">
+                <div>
+                    <label for="languageSelect" class="block text-sm font-medium text-gray-700 mb-2">Language</label>
+                    <select id="languageSelect" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-white">
+                        <option value="en">English</option>
+                        <option value="vi">Tiếng Việt</option>
+                    </select>
+                </div>
+
+                <div>
+                    <span id="themeControlLabel" class="block text-sm font-medium text-gray-700 mb-2">Theme</span>
+                    <div id="themeToggleGroup" class="grid grid-cols-2 gap-2" role="radiogroup" aria-labelledby="themeControlLabel">
+                        <button id="lightThemeBtn" type="button" class="theme-option active" data-theme-option="light" role="radio" aria-checked="true">
+                            <i class="ph ph-sun text-xl"></i>
+                            <span>Light</span>
+                        </button>
+                        <button id="darkThemeBtn" type="button" class="theme-option" data-theme-option="dark" role="radio" aria-checked="false">
+                            <i class="ph ph-moon text-xl"></i>
+                            <span>Dark</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-xl border border-gray-200 bg-gray-50 space-y-3">
+                    <div>
+                        <span id="appVersionLabel" class="block text-xs font-bold uppercase tracking-wider text-gray-500">App Version</span>
+                        <span id="appVersionValue" class="text-sm font-semibold text-gray-800">v13</span>
+                    </div>
+                    <button id="clearLocalCacheBtn" type="button" class="w-full px-4 py-2.5 bg-white hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 transition-colors">
+                        Clear Local Cache
+                    </button>
+                </div>
+
                 <!-- Demo Mode Toggle -->
                 <div class="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50 rounded-xl">
                     <div class="flex items-center gap-2 text-left">
@@ -502,7 +555,7 @@
                         <div class="w-12 h-12 mx-auto mb-2 bg-blue-500 rounded-full flex items-center justify-center">
                             <i class="ph ph-cloud text-white text-xl"></i>
                         </div>
-                        <p class="text-xs text-blue-600 font-medium uppercase mb-1">CO₂ Saved</p>
+                        <p class="text-xs text-blue-600 font-medium uppercase mb-1">COâ‚‚ Saved</p>
                         <p id="carbonSavedValue" class="text-2xl font-bold text-blue-700">0g</p>
                     </div>
                 </div>
@@ -554,6 +607,7 @@
     </div>
 
     <!-- Custom JS -->
-    <script src="script.js"></script>
+    <script src="script.js?v=13"></script>
 </body>
 </html>
+

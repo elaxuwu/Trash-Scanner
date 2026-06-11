@@ -1,17 +1,96 @@
         :root {
             --primary: #10b981;
             --primary-dark: #059669;
+            --app-bg: #f3f4f6;
+            --surface: #ffffff;
+            --surface-muted: #f9fafb;
+            --surface-soft: #f3f4f6;
+            --text-primary: #1f2937;
+            --text-secondary: #4b5563;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --modal-bg: #f9fafb;
+            --camera-bg: #1f2937;
+            --input-bg: #ffffff;
+            --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        html[data-theme="dark"] {
+            color-scheme: dark;
+            --app-bg: #020617;
+            --surface: #0f172a;
+            --surface-muted: #111827;
+            --surface-soft: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --modal-bg: #020617;
+            --camera-bg: #020617;
+            --input-bg: #111827;
+            --shadow-soft: 0 16px 40px rgba(0, 0, 0, 0.35);
         }
 
         body {
-            background-color: #f3f4f6;
+            background-color: var(--app-bg);
+            color: var(--text-primary);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
             margin: 0;
         }
 
+        .bg-white,
+        header.bg-white,
+        .bg-white\/90 {
+            background-color: var(--surface) !important;
+        }
+
+        .bg-gray-50 {
+            background-color: var(--surface-muted) !important;
+        }
+
+        .bg-gray-100 {
+            background-color: var(--surface-soft) !important;
+        }
+
+        .text-gray-800,
+        .text-slate-850 {
+            color: var(--text-primary) !important;
+        }
+
+        .text-gray-700,
+        .text-gray-600 {
+            color: var(--text-secondary) !important;
+        }
+
+        .text-gray-500,
+        .text-gray-400 {
+            color: var(--text-muted) !important;
+        }
+
+        .border-gray-100,
+        .border-gray-200 {
+            border-color: var(--border) !important;
+        }
+
+        input,
+        select,
+        textarea {
+            background-color: var(--input-bg) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border) !important;
+        }
+
+        input::placeholder {
+            color: var(--text-muted);
+        }
+
         * {
             box-sizing: border-box;
+        }
+
+        .hidden {
+            display: none !important;
         }
 
         /* Preview Modal Image Fix */
@@ -48,7 +127,7 @@
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            background-color: white;
+            background-color: var(--app-bg);
             width: 100%;
         }
 
@@ -57,10 +136,149 @@
             position: relative;
             width: 100%;
             aspect-ratio: 16 / 9;
-            background-color: #1f2937;
+            background-color: var(--camera-bg);
             border-radius: 0; /* Clean edge on mobile */
             overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .input-choice-panel {
+            position: absolute;
+            inset: 0;
+            z-index: 8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.25rem;
+            background:
+                radial-gradient(circle at top left, rgba(16, 185, 129, 0.18), transparent 34%),
+                linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.92));
+            color: white;
+            text-align: center;
+        }
+
+        .input-choice-card {
+            width: min(100%, 34rem);
+            padding: 1.25rem;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 1.35rem;
+            background: rgba(15, 23, 42, 0.64);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+            backdrop-filter: blur(14px);
+        }
+
+        .input-choice-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .input-choice-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            min-height: 6.5rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            font-weight: 800;
+            transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+        }
+
+        .input-choice-button:hover {
+            transform: translateY(-1px);
+        }
+
+        .input-choice-button.primary {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .input-choice-button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .input-choice-button.secondary:hover {
+            background: rgba(255, 255, 255, 0.16);
+        }
+
+        .input-choice-hints {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            margin-top: 0.9rem;
+            color: rgba(255, 255, 255, 0.76);
+            font-size: 0.78rem;
+            font-weight: 650;
+        }
+
+        .input-choice-hints span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .camera-status-message {
+            margin-top: 0.85rem;
+            padding: 0.7rem 0.85rem;
+            border-radius: 0.85rem;
+            background: rgba(251, 191, 36, 0.14);
+            color: #fde68a;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.8rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.9rem;
+            background: var(--surface-muted);
+            color: var(--text-secondary);
+            font-weight: 800;
+            transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+        }
+
+        .theme-option.active {
+            border-color: var(--primary);
+            background: rgba(16, 185, 129, 0.12);
+            color: var(--primary);
+        }
+
+        .camera-action-controls {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .back-to-options-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.65rem 0.95rem;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--surface);
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            font-weight: 800;
+            box-shadow: var(--shadow-soft);
+            transition: transform 0.18s ease, border-color 0.18s ease;
+        }
+
+        .back-to-options-btn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(16, 185, 129, 0.55);
+            color: var(--primary);
         }
 
         .drop-zone-hint {
@@ -238,12 +456,12 @@
         }
 
         .scan-mode-card {
-            border: 1px solid #e5e7eb;
+            border: 1px solid var(--border);
             border-radius: 1rem;
             padding: 0.85rem;
             text-align: left;
-            background: #fff;
-            color: #374151;
+            background: var(--surface);
+            color: var(--text-secondary);
             transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
         }
 
@@ -255,8 +473,61 @@
 
         .scan-mode-card.active {
             border-color: #10b981;
-            background: linear-gradient(135deg, #ecfdf5, #ffffff);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.13), var(--surface));
             box-shadow: 0 10px 24px rgba(16, 185, 129, 0.13);
+        }
+
+        html[data-theme="dark"] #resultsModal,
+        html[data-theme="dark"] #quizModal {
+            background-color: var(--modal-bg) !important;
+            color: var(--text-primary);
+        }
+
+        html[data-theme="dark"] .result-card,
+        html[data-theme="dark"] .impact-stat-card,
+        html[data-theme="dark"] .achievement-card,
+        html[data-theme="dark"] .category-breakdown-row,
+        html[data-theme="dark"] .quiz-option {
+            background-color: var(--surface-muted) !important;
+            border-color: var(--border) !important;
+            color: var(--text-primary) !important;
+        }
+
+        html[data-theme="dark"] .quiz-option:hover,
+        html[data-theme="dark"] .result-card:hover {
+            background-color: rgba(16, 185, 129, 0.12) !important;
+            border-color: rgba(16, 185, 129, 0.45) !important;
+        }
+
+        html[data-theme="dark"] .bg-emerald-50 {
+            background-color: rgba(6, 78, 59, 0.32) !important;
+        }
+
+        html[data-theme="dark"] .bg-blue-50 {
+            background-color: rgba(30, 58, 138, 0.32) !important;
+        }
+
+        html[data-theme="dark"] .bg-orange-50 {
+            background-color: rgba(124, 45, 18, 0.34) !important;
+        }
+
+        html[data-theme="dark"] .bg-amber-50 {
+            background-color: rgba(120, 53, 15, 0.34) !important;
+        }
+
+        html[data-theme="dark"] .bg-gray-900 {
+            background-color: #020617 !important;
+        }
+
+        @media (max-width: 640px) {
+            .input-choice-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .input-choice-button {
+                min-height: 4.75rem;
+                flex-direction: row;
+            }
         }
 
         .scan-mode-card span,

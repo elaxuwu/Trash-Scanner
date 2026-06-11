@@ -9,9 +9,18 @@ const dom = {
     dropZoneOverlay: document.getElementById('dropZoneOverlay'),
     dropZoneTitle: document.getElementById('dropZoneTitle'),
     dropZoneMessage: document.getElementById('dropZoneMessage'),
-    cameraFallback: document.getElementById('cameraFallback'),
     fileInput: document.getElementById('fileInput'),
     cameraSection: document.getElementById('cameraSection'),
+    inputChoicePanel: document.getElementById('inputChoicePanel'),
+    inputChoiceTitle: document.getElementById('inputChoiceTitle'),
+    useCameraBtn: document.getElementById('useCameraBtn'),
+    uploadImageBtn: document.getElementById('uploadImageBtn'),
+    pasteImageBtn: document.getElementById('pasteImageBtn'),
+    dragDropImageBtn: document.getElementById('dragDropImageBtn'),
+    backToOptionsBtn: document.getElementById('backToOptionsBtn'),
+    pasteHintText: document.getElementById('pasteHintText'),
+    dragHintText: document.getElementById('dragHintText'),
+    cameraStatusMessage: document.getElementById('cameraStatusMessage'),
     previewModal: document.getElementById('previewModal'),
     previewImage: document.getElementById('previewImage'),
     closePreviewBtn: document.getElementById('closePreviewBtn'),
@@ -58,7 +67,13 @@ const dom = {
     userLevelBadge: document.getElementById('userLevelBadge'),
     levelIcon: document.getElementById('levelIcon'),
     levelText: document.getElementById('levelText'),
-    langToggleBtn: document.getElementById('langToggleBtn'),
+    languageSelect: document.getElementById('languageSelect'),
+    themeToggleGroup: document.getElementById('themeToggleGroup'),
+    lightThemeBtn: document.getElementById('lightThemeBtn'),
+    darkThemeBtn: document.getElementById('darkThemeBtn'),
+    appVersionLabel: document.getElementById('appVersionLabel'),
+    appVersionValue: document.getElementById('appVersionValue'),
+    clearLocalCacheBtn: document.getElementById('clearLocalCacheBtn'),
     statsChartCanvas: document.getElementById('statsChart'),
     totalRecycledCount: document.getElementById('totalRecycledCount'),
     impactStatsGrid: document.getElementById('impactStatsGrid'),
@@ -93,6 +108,8 @@ const dom = {
     resultsDemoBadge: document.getElementById('resultsDemoBadge')
 };
 
+const APP_VERSION = 'v13';
+
 const STORAGE_KEYS = {
     apiKey: 'openai_api_key',
     provider: 'ai_provider',
@@ -105,7 +122,8 @@ const STORAGE_KEYS = {
     achievements: 'recycle_achievements',
     quizStats: 'eco_quiz_stats',
     demoMode: 'recycle_demo_mode',
-    language: 'recycle_language'
+    language: 'recycle_language',
+    theme: 'recycle_theme'
 };
 
 const MAX_HISTORY_ITEMS = 12;
@@ -299,8 +317,6 @@ const translationOverrides = {
         uploadImage: 'Upload Image',
         analyzingWaste: 'Analyzing waste...',
         loadingGuidance: 'Building recycling guidance',
-        cameraRequired: 'Camera Access Required',
-        cameraDesc: 'To identify your waste instantly, please allow camera access or upload an image.',
         uploadPasteDropPhoto: 'Upload, paste, drag & drop, or take a photo',
         pasteShortcut: 'Tip: Press Ctrl+V to paste a screenshot',
         dropImagePreview: 'Drop image to preview',
@@ -464,8 +480,6 @@ const translationOverrides = {
         uploadImage: 'Tải ảnh lên',
         analyzingWaste: 'Đang phân tích rác...',
         loadingGuidance: 'Đang tạo hướng dẫn phân loại',
-        cameraRequired: 'Cần quyền truy cập camera',
-        cameraDesc: 'Để nhận diện rác nhanh, hãy cho phép camera hoặc tải ảnh lên.',
         uploadPasteDropPhoto: 'Tải ảnh, dán ảnh, kéo thả hoặc chụp ảnh',
         pasteShortcut: 'Mẹo: Nhấn Ctrl+V để dán ảnh chụp màn hình',
         dropImagePreview: 'Kéo và thả ảnh vào đây',
@@ -656,6 +670,22 @@ Object.assign(translations.en, {
     providerInvalidJson: 'The provider did not return valid JSON.',
     unsupportedProvider: 'Unsupported AI provider.',
     imageAnalysisUserPrompt: 'Analyze this waste image. Return JSON only. All user-facing string values must be in English.',
+    chooseImageMethod: 'Choose how to add an image',
+    useCamera: 'Use Camera',
+    pasteImage: 'Paste Image',
+    dragDrop: 'Drag & Drop',
+    backToUploadOptions: 'Back to upload options',
+    pasteWithCtrlV: 'Paste with Ctrl+V',
+    dragDropImageHere: 'Drag & drop an image here',
+    cameraDeniedUploadStillAvailable: 'Camera access was denied. You can still upload, paste, or drag and drop an image.',
+    cameraStarting: 'Starting camera...',
+    language: 'Language',
+    theme: 'Theme',
+    light: 'Light',
+    dark: 'Dark',
+    appVersion: 'App Version',
+    clearLocalCache: 'Clear Local Cache',
+    cacheClearedReload: 'Cache cleared. Please reload the page.',
     achEcoStarter: 'Eco Starter',
     achEcoStarterDesc: 'Reach 50 eco points',
     achRecyclingHero: 'Recycling Hero',
@@ -787,6 +817,22 @@ Object.assign(translations.vi, {
     providerInvalidJson: 'Nhà cung cấp không trả về JSON hợp lệ.',
     unsupportedProvider: 'Nhà cung cấp AI không được hỗ trợ.',
     imageAnalysisUserPrompt: 'Phân tích ảnh rác này. Chỉ trả về JSON. Tất cả giá trị chuỗi hiển thị cho người dùng phải bằng tiếng Việt có đầy đủ dấu.',
+    chooseImageMethod: 'Chọn cách thêm ảnh',
+    useCamera: 'Dùng camera',
+    pasteImage: 'Dán ảnh',
+    dragDrop: 'Kéo & thả',
+    backToUploadOptions: 'Quay lại tùy chọn tải ảnh',
+    pasteWithCtrlV: 'Dán bằng Ctrl+V',
+    dragDropImageHere: 'Kéo và thả ảnh vào đây',
+    cameraDeniedUploadStillAvailable: 'Quyền truy cập camera đã bị từ chối. Bạn vẫn có thể tải ảnh lên, dán ảnh hoặc kéo thả ảnh.',
+    cameraStarting: 'Đang mở camera...',
+    language: 'Ngôn ngữ',
+    theme: 'Giao diện',
+    light: 'Sáng',
+    dark: 'Tối',
+    appVersion: 'Phiên bản ứng dụng',
+    clearLocalCache: 'Xóa bộ nhớ đệm cục bộ',
+    cacheClearedReload: 'Đã xóa bộ nhớ đệm. Vui lòng tải lại trang.',
     achEcoStarter: 'Người mới xanh',
     achEcoStarterDesc: 'Đạt 50 điểm sinh thái',
     achRecyclingHero: 'Anh hùng tái chế',
@@ -886,6 +932,9 @@ let lastAnalysisResult = null;
 let currentLanguage = ['en', 'vi'].includes(localStorage.getItem(STORAGE_KEYS.language))
     ? localStorage.getItem(STORAGE_KEYS.language)
     : 'en';
+let currentTheme = ['light', 'dark'].includes(localStorage.getItem(STORAGE_KEYS.theme))
+    ? localStorage.getItem(STORAGE_KEYS.theme)
+    : 'light';
 let selectedScanMode = localStorage.getItem(STORAGE_KEYS.selectedMode) || 'quick';
 let selectedProvider = localStorage.getItem(STORAGE_KEYS.provider) || 'openai';
 let statsChartInstance = null;
@@ -920,22 +969,41 @@ function setPlaceholder(element, key) {
     if (element) element.placeholder = t(key);
 }
 
+function applyTheme(theme = currentTheme) {
+    currentTheme = theme === 'dark' ? 'dark' : 'light';
+    document.documentElement.dataset.theme = currentTheme;
+    localStorage.setItem(STORAGE_KEYS.theme, currentTheme);
+
+    if (dom.lightThemeBtn && dom.darkThemeBtn) {
+        dom.lightThemeBtn.classList.toggle('active', currentTheme === 'light');
+        dom.darkThemeBtn.classList.toggle('active', currentTheme === 'dark');
+        dom.lightThemeBtn.setAttribute('aria-checked', String(currentTheme === 'light'));
+        dom.darkThemeBtn.setAttribute('aria-checked', String(currentTheme === 'dark'));
+    }
+}
+
 function applyStaticTranslations() {
     document.documentElement.lang = currentLanguage;
     setText('h1', 'appTitle');
-    dom.langToggleBtn.textContent = currentLanguage === 'en' ? 'EN' : 'VI';
     dom.settingsBtn.title = t('settings');
 
+    setText(dom.inputChoiceTitle, 'chooseImageMethod');
+    setText(dom.useCameraBtn?.querySelector('span'), 'useCamera');
+    setText(dom.uploadImageBtn?.querySelector('span'), 'uploadImage');
+    setText(dom.pasteImageBtn?.querySelector('span'), 'pasteImage');
+    setText(dom.dragDropImageBtn?.querySelector('span'), 'dragDrop');
+    setText(dom.backToOptionsBtn?.querySelector('span'), 'backToUploadOptions');
+    setText(dom.pasteHintText, 'pasteWithCtrlV');
+    setText(dom.dragHintText, 'dragDropImageHere');
+    if (dom.cameraStatusMessage && !dom.cameraStatusMessage.classList.contains('hidden')) {
+        setCameraStatus(t('cameraDeniedUploadStillAvailable'));
+    }
     setText('#dropZoneHint span:not(.paste-shortcut-hint)', 'uploadPasteDropPhoto');
     setText('.paste-shortcut-hint', 'pasteShortcut');
     setText('#dropZoneTitle', 'dropImagePreview');
     setText('#dropZoneMessage', 'onlyImagesAccepted');
     setText('#loadingOverlay p.font-semibold', 'analyzingWaste');
     setText('#loadingModeText', 'loadingGuidance');
-    setText('#cameraFallback h3', 'cameraRequired');
-    setText('#cameraFallback p', 'cameraDesc');
-    setText('#cameraFallback label span', 'uploadImage');
-
     const scanModeSection = dom.scanModeOptions?.closest('.bg-white');
     setText(scanModeSection?.querySelector('h2'), 'scanMode');
     setText(scanModeSection?.querySelector('p'), 'scanModeDesc');
@@ -964,6 +1032,13 @@ function applyStaticTranslations() {
     setText('#emptyRecent p', 'noScans');
 
     setText('#settingsModal h2', 'settings');
+    setText('#settingsModal label[for="languageSelect"]', 'language');
+    setText('#themeControlLabel', 'theme');
+    setText(dom.lightThemeBtn?.querySelector('span'), 'light');
+    setText(dom.darkThemeBtn?.querySelector('span'), 'dark');
+    setText(dom.appVersionLabel, 'appVersion');
+    if (dom.appVersionValue) dom.appVersionValue.textContent = APP_VERSION;
+    setText(dom.clearLocalCacheBtn, 'clearLocalCache');
     setText('#settingsModal label[for="providerSelect"]', 'aiProvider');
     const settingsAmberSpans = document.querySelectorAll('#settingsModal .bg-amber-50 span');
     setText(settingsAmberSpans[settingsAmberSpans.length - 1], 'visionWarning');
@@ -1013,6 +1088,11 @@ function applyStaticTranslations() {
 
     setText('#retakeBtn span', 'retake');
     setText('#analyzeBtn span', 'analyze');
+
+    if (dom.languageSelect) {
+        dom.languageSelect.value = currentLanguage;
+    }
+    applyTheme(currentTheme);
 }
 
 function createElement(tag, options = {}, children = []) {
@@ -2264,8 +2344,19 @@ function setScanMode(mode) {
 
 function setupPwa() {
     if ('serviceWorker' in navigator) {
+        const isLocalDevelopment = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+        if (isLocalDevelopment) {
+            navigator.serviceWorker.getRegistrations()
+                .then(registrations => Promise.all(registrations.map(registration => registration.unregister())))
+                .then(() => console.log(`[App] Service workers disabled for local development (${APP_VERSION}).`))
+                .catch(error => console.warn('[App] Local service worker cleanup failed:', error));
+            return;
+        }
+
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js').catch(error => {
+            navigator.serviceWorker.register(`./sw.js?v=${APP_VERSION}`).then(registration => {
+                registration.update();
+            }).catch(error => {
                 console.warn('[App] Service worker registration failed:', error);
             });
         });
@@ -2274,6 +2365,16 @@ function setupPwa() {
 
 async function initCamera() {
     stopCamera();
+    setCameraStatus(t('cameraStarting'), false);
+    dom.inputChoicePanel?.classList.add('hidden');
+    dom.videoCanvas.classList.add('hidden');
+    dom.scanActionSection.classList.add('hidden');
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+        handleCameraError();
+        return;
+    }
+
     video = document.createElement('video');
     video.autoplay = true;
     video.playsInline = true;
@@ -2289,8 +2390,9 @@ async function initCamera() {
         });
         video.srcObject = stream;
         dom.videoCanvas.classList.remove('hidden');
-        dom.cameraFallback.classList.add('hidden');
+        dom.inputChoicePanel?.classList.add('hidden');
         dom.scanActionSection.classList.remove('hidden');
+        setCameraStatus('', true);
 
         video.onloadedmetadata = () => {
             video.play();
@@ -2331,8 +2433,27 @@ function stopCamera() {
 function handleCameraError() {
     stopCamera();
     dom.videoCanvas.classList.add('hidden');
-    dom.cameraFallback.classList.remove('hidden');
     dom.scanActionSection.classList.add('hidden');
+    showInputChoices(t('cameraDeniedUploadStillAvailable'));
+}
+
+function setCameraStatus(message, shouldHide = false) {
+    if (!dom.cameraStatusMessage) return;
+    dom.cameraStatusMessage.textContent = message || '';
+    dom.cameraStatusMessage.classList.toggle('hidden', shouldHide || !message);
+}
+
+function showInputChoices(message = '') {
+    stopCamera();
+    dom.videoCanvas.classList.add('hidden');
+    dom.inputChoicePanel?.classList.remove('hidden');
+    dom.scanActionSection.classList.add('hidden');
+    setCameraStatus(message, !message);
+}
+
+function openUploadPicker() {
+    dom.fileInput.value = '';
+    dom.fileInput.click();
 }
 
 function canvasToDataUrl(canvas, quality = 0.82) {
@@ -2513,6 +2634,8 @@ function showSnappedPhoto(imageData) {
     stopCamera();
     canvasContext = null;
     dom.videoCanvas.classList.add('hidden');
+    dom.inputChoicePanel?.classList.add('hidden');
+    setCameraStatus('', true);
 
     let snappedPhoto = document.getElementById('snappedPhoto');
     if (!snappedPhoto) {
@@ -2552,9 +2675,7 @@ function resetToCamera() {
     dom.fileInput.value = '';
     capturedImageData = null;
     capturedHistoryImageData = null;
-    dom.videoCanvas.classList.remove('hidden');
-    dom.scanActionSection.classList.remove('hidden');
-    initCamera();
+    showInputChoices();
 }
 
 async function analyzeWithAI() {
@@ -3869,6 +3990,7 @@ function renderChart() {
                 legend: {
                     position: 'bottom',
                     labels: {
+                        color: currentTheme === 'dark' ? '#cbd5e1' : '#374151',
                         padding: 16,
                         usePointStyle: true,
                         font: { size: 12, family: 'inherit' }
@@ -4040,10 +4162,35 @@ function refreshLanguage() {
     }
 }
 
-function toggleLanguage() {
-    currentLanguage = currentLanguage === 'en' ? 'vi' : 'en';
+function setLanguage(language) {
+    currentLanguage = language === 'vi' ? 'vi' : 'en';
     localStorage.setItem(STORAGE_KEYS.language, currentLanguage);
     refreshLanguage();
+}
+
+async function clearLocalAppCache() {
+    try {
+        if ('caches' in window) {
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+        }
+
+        if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map(registration => registration.unregister()));
+        }
+
+        showToast(t('cacheClearedReload'));
+    } catch (error) {
+        console.error('[App] Failed to clear local cache:', error);
+        showToast(t('cacheClearedReload'));
+    }
+}
+
+function hardRefreshApp() {
+    const url = new URL(window.location.href);
+    url.searchParams.set('v', Date.now().toString());
+    window.location.replace(url.toString());
 }
 
 function closeResults() {
@@ -4057,7 +4204,17 @@ function bindEvents() {
         const button = event.target.closest('[data-mode]');
         if (button) setScanMode(button.dataset.mode);
     });
-    dom.langToggleBtn.addEventListener('click', toggleLanguage);
+    dom.languageSelect?.addEventListener('change', event => setLanguage(event.target.value));
+    dom.themeToggleGroup?.addEventListener('click', event => {
+        const button = event.target.closest('[data-theme-option]');
+        if (!button) return;
+        applyTheme(button.dataset.themeOption);
+        renderChart();
+    });
+    dom.clearLocalCacheBtn?.addEventListener('click', async () => {
+        await clearLocalAppCache();
+        setTimeout(hardRefreshApp, 900);
+    });
     dom.settingsBtn.addEventListener('click', openSettings);
     dom.closeSettingsBtn.addEventListener('click', closeSettings);
     dom.cancelSettingsBtn.addEventListener('click', closeSettings);
@@ -4075,11 +4232,17 @@ function bindEvents() {
         dom.apiKeyInput.type = isHidden ? 'text' : 'password';
         dom.toggleApiKeyBtn.replaceChildren(icon(isHidden ? 'ph ph-eye-slash text-lg' : 'ph ph-eye text-lg'));
     });
+    dom.useCameraBtn?.addEventListener('click', initCamera);
+    dom.uploadImageBtn?.addEventListener('click', openUploadPicker);
+    dom.pasteImageBtn?.addEventListener('click', () => {
+        setCameraStatus(t('pasteShortcut'));
+    });
+    dom.dragDropImageBtn?.addEventListener('click', () => {
+        setCameraStatus(t('dragDropImageHere'));
+    });
+    dom.backToOptionsBtn?.addEventListener('click', () => showInputChoices());
     dom.scanBtn.addEventListener('click', () => {
-        if (!stream) {
-            dom.fileInput.click();
-            return;
-        }
+        if (!stream) return;
         captureImage();
     });
     dom.fileInput.addEventListener('change', handleFileUpload);
@@ -4121,7 +4284,9 @@ function updateDemoModeUI(isActive) {
 }
 
 function initializeApp() {
+    console.log(`RecycleCheck AI version ${APP_VERSION} loaded`);
     setupPwa();
+    applyTheme(currentTheme);
     bindEvents();
     applyStaticTranslations();
     setScanMode(selectedScanMode);
@@ -4132,7 +4297,7 @@ function initializeApp() {
     }
     updateDemoModeUI(isDemoMode);
 
-    initCamera();
+    showInputChoices();
     loadHistory();
     renderChart();
     updateUserLevel();
