@@ -1,25 +1,30 @@
 // Service Worker for RecycleCheck PWA
 
-const CACHE_NAME = 'recyclecheck-v1';
+const CACHE_NAME = 'recyclecheck-v2';
 const urlsToCache = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './style.css',
+  './script.js'
 ];
 
-// Install event
+// Install event - Thực hiện lưu cache các tài nguyên cốt lõi khi cài đặt app
 self.addEventListener('install', event => {
-  console.log('[SW] Installing Service Worker...');
-  // Activate immediately
+  console.log('[SW] Installing Service Worker & Pre-caching assets...');
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(urlsToCache);
+    })
+  );
   self.skipWaiting();
 });
 
-// Activate event
+// Activate event - Dọn dẹp cache cũ khi có version mới
 self.addEventListener('activate', event => {
   console.log('[SW] Activating Service Worker...');
   event.waitUntil(
     Promise.all([
-      // Clean up old caches
       caches.keys().then(cacheNames => {
         return Promise.all(
           cacheNames.map(cacheName => {
@@ -30,26 +35,32 @@ self.addEventListener('activate', event => {
           })
         );
       }),
-      // Take control of all pages immediately
       self.clients.claim()
     ])
   );
 });
 
-// Fetch event (Network-first strategy)
+// Fetch event (Network-first strategy cho tài nguyên, bỏ qua POST API)
 self.addEventListener('fetch', event => {
+  // CHÍ MẠNG FIX: Chỉ xử lý cache với phương thức GET và link http/https
+  if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
+    return; // Bỏ qua, để mặc định trình duyệt xử lý qua mạng thông thường (Luồng API OpenAI sẽ an toàn)
+  }
+
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Clone the response to store in cache
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, responseToCache);
-        });
+        // Nếu response hợp lệ, clone và cập nhật vào cache
+        if (response && response.status === 200 && response.type === 'basic') {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+          });
+        }
         return response;
       })
       .catch(() => {
-        // If network fails, try to get from cache
+        // Nếu mất mạng hoàn toàn, tìm file tương ứng trong bộ nhớ cache
         return caches.match(event.request);
       })
   );
