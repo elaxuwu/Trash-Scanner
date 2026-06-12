@@ -103,7 +103,7 @@ const dom = {
     resultsDemoBadge: document.getElementById('resultsDemoBadge')
 };
 
-const APP_VERSION = 'v16';
+const APP_VERSION = 'v21';
 const APP_CACHE_PREFIX = 'recyclecheck-';
 
 const STORAGE_KEYS = {
@@ -126,12 +126,14 @@ const MAX_HISTORY_ITEMS = 12;
 const MAX_IMAGE_DIMENSION = 1280;
 const HISTORY_IMAGE_DIMENSION = 420;
 const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
+const MAX_DETECTED_OBJECTS = 20;
 
 const co2EstimatesKg = {
     plastic: 0.08,
     metal: 0.20,
     paper: 0.05,
     glass: 0.10,
+    organic: 0.02,
     special: 0.15,
     other: 0.03
 };
@@ -436,6 +438,7 @@ const translationOverrides = {
         metal: 'Metal',
         paper: 'Paper',
         glass: 'Glass',
+        organic: 'Rác hữu cơ / ủ phân',
         eWasteBattery: 'E-waste / Battery',
         other: 'Other',
         noneYet: 'None yet',
@@ -489,7 +492,8 @@ const translationOverrides = {
         retake: 'Retake',
         analyze: 'Analyze',
         itemDetected: '{count} items detected',
-        itemAnalyzed: '{count} items analyzed'
+        itemAnalyzed: '{count} items analyzed',
+        multipleItemsDetected: '{count} items detected across the image'
     },
     vi: {
         appTitle: 'RecycleCheck AI',
@@ -683,6 +687,38 @@ Object.assign(translations.en, {
     multipleWasteSummary: 'This image contains {count} detected waste items with separate disposal guidance.',
     unclearConfidence: 'Unclear Image ({percent}% confidence)',
     statusWithConfidence: '{status} ({percent}% confidence)',
+    resultOverview: 'Result overview',
+    detectedItem: 'Detected item',
+    wasteCategory: 'Waste category',
+    confidenceLevel: 'Confidence level',
+    highConfidence: 'High',
+    mediumConfidence: 'Medium',
+    lowConfidence: 'Low',
+    mainInstruction: 'What to do',
+    explanation: 'Why this result',
+    importantNote: 'Important note',
+    scanAnotherItem: 'Scan another item',
+    tryAgain: 'Try again',
+    cleanDryNote: 'Recyclable items should be clean and dry before they go into the recycling bin.',
+    rinseResidueNote: 'Rinse plastic containers with food or oil residue before recycling.',
+    batteryEwasteNote: 'Batteries and e-waste need special handling at an appropriate drop-off point.',
+    hazardousWasteNote: 'Hazardous waste should never go into general trash or standard recycling.',
+    compostNote: 'Organic waste can go to compost if your local program supports it.',
+    plasticCupNote: 'Plastic cups are only recyclable when accepted locally. Empty and rinse them first, and remove lids or straws if required.',
+    organicHandling: 'Compost or organic waste bin',
+    organicImmediateAction: 'Put compostable food or plant waste in the compost or organic bin if available.',
+    organicMistake: 'Do not mix organic waste with plastic packaging, stickers, or non-compostable liners.',
+    localRulesNote: 'Local rules vary. Use this result as guidance and check your local waste program when unsure.',
+    analysisInProgress: 'Analysis is already running. Please wait.',
+    alsoVisible: 'Also visible',
+    additionalItems: 'Additional items',
+    detectedItemsCount: '{count} detected items',
+    lowConfidenceItem: 'Low confidence item',
+    multipleItemsDetected: '{count} items detected across the image',
+    someItemsLocalRules: 'Some items may need local disposal rules.',
+    primaryItem: 'Primary',
+    secondaryItem: 'Also visible',
+    positionLabel: 'Position',
     itemCount: '{count} items',
     itemCountWithCo2: '{count} items | {co2}',
     optionalCustomModel: 'Optional custom {provider} model',
@@ -705,7 +741,7 @@ Object.assign(translations.en, {
     providerEmptyResponse: 'The provider returned an empty response.',
     providerInvalidJson: 'The provider did not return valid JSON.',
     unsupportedProvider: 'Unsupported AI provider.',
-    imageAnalysisUserPrompt: 'Analyze this waste image. Return JSON only. All user-facing string values must be in English.',
+    imageAnalysisUserPrompt: 'Analyze this waste image systematically. Detect as many visible waste items as possible, including small, partial, transparent, crushed, low-confidence, and edge objects. Return JSON only. All user-facing string values must be in English.',
     chooseImageMethod: 'Choose how to scan your item!',
     pointSnapScan: 'Point & snap to scan',
     cameraPasteDragHint: 'Tap camera to start / Ctrl+V to paste / Drag image to upload',
@@ -853,6 +889,38 @@ Object.assign(translations.vi, {
     multipleWasteSummary: 'Ảnh này có {count} vật phẩm rác được phát hiện, mỗi vật phẩm có hướng dẫn xử lý riêng.',
     unclearConfidence: 'Ảnh chưa rõ ({percent}% độ tin cậy)',
     statusWithConfidence: '{status} ({percent}% độ tin cậy)',
+    resultOverview: 'Tổng quan kết quả',
+    detectedItem: 'Vật phẩm phát hiện',
+    wasteCategory: 'Loại rác',
+    confidenceLevel: 'Mức độ tin cậy',
+    highConfidence: 'Cao',
+    mediumConfidence: 'Trung bình',
+    lowConfidence: 'Thấp',
+    mainInstruction: 'Cần làm gì',
+    explanation: 'Vì sao có kết quả này',
+    importantNote: 'Lưu ý quan trọng',
+    scanAnotherItem: 'Quét vật phẩm khác',
+    tryAgain: 'Thử lại',
+    cleanDryNote: 'Vật phẩm tái chế nên sạch và khô trước khi bỏ vào thùng tái chế.',
+    rinseResidueNote: 'Rửa hộp nhựa còn dính thức ăn hoặc dầu mỡ trước khi tái chế.',
+    batteryEwasteNote: 'Pin và rác điện tử cần xử lý đặc biệt tại điểm thu gom phù hợp.',
+    hazardousWasteNote: 'Rác nguy hại không được bỏ vào thùng rác thường hoặc thùng tái chế.',
+    compostNote: 'Rác hữu cơ có thể ủ phân nếu chương trình địa phương hỗ trợ.',
+    plasticCupNote: 'Ly nhựa chỉ tái chế được nếu địa phương chấp nhận. Hãy đổ hết và rửa sạch trước, đồng thời tách nắp hoặc ống hút nếu cần.',
+    organicHandling: 'Thùng ủ phân hoặc rác hữu cơ',
+    organicImmediateAction: 'Bỏ thức ăn hoặc rác thực vật có thể ủ phân vào thùng hữu cơ nếu có.',
+    organicMistake: 'Không trộn rác hữu cơ với bao bì nhựa, nhãn dán hoặc túi lót không thể ủ phân.',
+    localRulesNote: 'Quy định mỗi nơi có thể khác nhau. Hãy dùng kết quả này để tham khảo và kiểm tra hướng dẫn địa phương khi chưa chắc chắn.',
+    analysisInProgress: 'Đang phân tích. Vui lòng chờ.',
+    alsoVisible: 'C\u0169ng th\u1ea5y',
+    additionalItems: 'V\u1eadt ph\u1ea9m b\u1ed5 sung',
+    detectedItemsCount: 'Ph\u00e1t hi\u1ec7n {count} v\u1eadt ph\u1ea9m',
+    lowConfidenceItem: 'V\u1eadt ph\u1ea9m \u0111\u1ed9 tin c\u1eady th\u1ea5p',
+    multipleItemsDetected: 'Ph\u00e1t hi\u1ec7n {count} v\u1eadt ph\u1ea9m trong to\u00e0n \u1ea3nh',
+    someItemsLocalRules: 'M\u1ed9t s\u1ed1 v\u1eadt ph\u1ea9m c\u00f3 th\u1ec3 c\u1ea7n theo quy \u0111\u1ecbnh x\u1eed l\u00fd \u0111\u1ecba ph\u01b0\u01a1ng.',
+    primaryItem: 'Ch\u00ednh',
+    secondaryItem: 'C\u0169ng th\u1ea5y',
+    positionLabel: 'V\u1ecb tr\u00ed',
     itemCount: '{count} vật phẩm',
     itemCountWithCo2: '{count} vật phẩm | {co2}',
     optionalCustomModel: 'Mô hình {provider} tùy chỉnh không bắt buộc',
@@ -875,7 +943,7 @@ Object.assign(translations.vi, {
     providerEmptyResponse: 'Nhà cung cấp trả về phản hồi trống.',
     providerInvalidJson: 'Nhà cung cấp không trả về JSON hợp lệ.',
     unsupportedProvider: 'Nhà cung cấp AI không được hỗ trợ.',
-    imageAnalysisUserPrompt: 'Phân tích ảnh rác này. Chỉ trả về JSON. Tất cả giá trị chuỗi hiển thị cho người dùng phải bằng tiếng Việt có đầy đủ dấu.',
+    imageAnalysisUserPrompt: 'Ph\u00e2n t\u00edch \u1ea3nh r\u00e1c n\u00e0y m\u1ed9t c\u00e1ch c\u00f3 h\u1ec7 th\u1ed1ng. Ph\u00e1t hi\u1ec7n nhi\u1ec1u v\u1eadt ph\u1ea9m r\u00e1c nh\u00ecn th\u1ea5y nh\u1ea5t c\u00f3 th\u1ec3, bao g\u1ed3m v\u1eadt nh\u1ecf, b\u1ecb che m\u1ed9t ph\u1ea7n, trong su\u1ed1t, b\u1ecb vo n\u00e1t, \u0111\u1ed9 tin c\u1eady th\u1ea5p ho\u1eb7c n\u1eb1m \u1edf r\u00eca \u1ea3nh. Ch\u1ec9 tr\u1ea3 v\u1ec1 JSON. T\u1ea5t c\u1ea3 gi\u00e1 tr\u1ecb chu\u1ed7i hi\u1ec3n th\u1ecb cho ng\u01b0\u1eddi d\u00f9ng ph\u1ea3i b\u1eb1ng ti\u1ebfng Vi\u1ec7t c\u00f3 \u0111\u1ea7y \u0111\u1ee7 d\u1ea5u.',
     chooseImageMethod: 'Chọn cách thêm ảnh',
     pointSnapScan: 'Đưa vào khung và chụp để quét',
     cameraPasteDragHint: 'Nhấn camera để bắt đầu / Ctrl+V để dán / Kéo ảnh để tải lên',
@@ -1023,6 +1091,7 @@ let statsChartInstance = null;
 let currentQuiz = null;
 let dragDepth = 0;
 let currentFocusedGridCell = null;
+let isAnalyzing = false;
 
 function t(key, params = {}) {
     const activeTranslations = translations[currentLanguage] || translations.en;
@@ -1204,6 +1273,7 @@ function applyStaticTranslations() {
 
 function createElement(tag, options = {}, children = []) {
     const node = document.createElement(tag);
+    if (options.id) node.id = options.id;
     if (options.className) node.className = options.className;
     if (options.text !== undefined) node.textContent = String(options.text);
     if (options.title) node.title = options.title;
@@ -1240,12 +1310,18 @@ function asArray(value) {
 
 function getStatusLabel(status) {
     const normalized = typeof status === 'string' ? status.toLowerCase() : status;
+    if (normalized === 'partial') return t('partial');
+    if (normalized === 'special') return t('special');
+    if (normalized === 'compost' || normalized === 'compostable' || normalized === 'organic') return t('organic');
     if (normalized === true || normalized === 'true' || normalized === 'recyclable') return t('recyclable');
     return t('nonRecyclable');
 }
 
 function getStatusKind(status) {
     const normalized = typeof status === 'string' ? status.toLowerCase() : status;
+    if (normalized === 'partial') return 'partial';
+    if (normalized === 'special') return 'special';
+    if (normalized === 'compost' || normalized === 'compostable' || normalized === 'organic') return 'recyclable';
     if (normalized === true || normalized === 'true' || normalized === 'recyclable') return 'recyclable';
     return 'nonRecyclable';
 }
@@ -1253,6 +1329,8 @@ function getStatusKind(status) {
 function getStatusClasses(status) {
     const kind = getStatusKind(status);
     if (kind === 'recyclable') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    if (kind === 'partial') return 'bg-blue-100 text-blue-700 border-blue-200';
+    if (kind === 'special') return 'bg-amber-100 text-amber-700 border-amber-200';
     return 'bg-orange-100 text-orange-700 border-orange-200';
 }
 
@@ -1435,17 +1513,31 @@ function normalizeDisposalPlan(rawPlan, fallback = {}) {
     };
 }
 
+function isOrganicWasteText(text) {
+    return /organic|compost|compostable|food waste|food scrap|fruit peel|vegetable scrap|vegetable peel|leaves|leaf|flower|tea bag|coffee ground|eggshell|leftover food|banana peel|apple core|yard waste|hữu cơ|ủ phân|thức ăn|vỏ trái|vỏ rau|lá cây|hoa|bã cà phê|túi trà|vỏ trứng|đồ ăn thừa/.test(text);
+}
+
+function isPlasticCupText(text) {
+    return /plastic cup|clear cup|disposable cup|takeaway cup|drink cup|cold cup|cup lid|plastic lid|straw|cốc nhựa|ly nhựa|nắp nhựa|ống hút/.test(text);
+}
+
 function getFallbackDisposalPlan(rawObject, recyclable, components, preparationSteps) {
     const kind = getStatusKind(recyclable);
+    const objectText = `${rawObject.name || ''} ${rawObject.category || ''} ${rawObject.disposalAction || ''} ${rawObject.status_message || ''}`.toLowerCase();
+    const isOrganic = isOrganicWasteText(objectText);
     const hasSpecialComponent = components.some(component => getStatusKind(component.recyclable) === 'special' || /battery|e-waste|sharp|hazard/i.test(`${component.part} ${component.material}`));
     const handlingType = hasSpecialComponent
         ? t('special')
+        : isOrganic
+            ? t('organicHandling')
         : kind === 'recyclable'
             ? t('recycleBin')
             : kind === 'partial'
                 ? t('separateParts')
                 : t('generalWasteDropoff');
-    const immediateAction = rawObject.disposalAction || rawObject.status_message || (kind === 'recyclable'
+    const immediateAction = rawObject.disposalAction || rawObject.status_message || (isOrganic
+        ? t('organicImmediateAction')
+        : kind === 'recyclable'
         ? t('emptyCleanRecycle')
         : kind === 'partial'
             ? t('separateParts')
@@ -1456,10 +1548,16 @@ function getFallbackDisposalPlan(rawObject, recyclable, components, preparationS
         steps: preparationSteps.length > 0 ? preparationSteps : [immediateAction],
         handlingType,
         safetyWarning: hasSpecialComponent ? t('handleCarefullyDropoff') : '',
-        mistakeToAvoid: kind === 'recyclable' ? t('dirtyRecycleMistake') : t('partialRecycleMistake')
+        mistakeToAvoid: isOrganic ? t('organicMistake') : kind === 'recyclable' ? t('dirtyRecycleMistake') : t('partialRecycleMistake')
     };
 }
 
+function normalizeObjectRole(value, index) {
+    const normalized = typeof value === 'string' ? value.toLowerCase().trim() : '';
+    if (normalized === 'primary' || normalized === 'main') return 'primary';
+    if (normalized === 'secondary' || normalized === 'additional' || normalized === 'also visible') return 'secondary';
+    return index === 0 ? 'primary' : 'secondary';
+}
 function normalizeObject(rawObject, index) {
     const recyclable = rawObject.recyclable ?? rawObject.is_recyclable ?? false;
     const components = asArray(rawObject.components || rawObject.composition).map(normalizeComponent);
@@ -1484,7 +1582,9 @@ function normalizeObject(rawObject, index) {
         components,
         preparationSteps,
         education: safeString(rawObject.education || rawObject.explanation || ''),
-        carbonSavedGrams: clampNumber(rawObject.carbonSavedGrams ?? rawObject.carbon_saved_grams, 0, 5000, 0)
+        carbonSavedGrams: clampNumber(rawObject.carbonSavedGrams ?? rawObject.carbon_saved_grams, 0, 5000, 0),
+        role: normalizeObjectRole(rawObject.role || rawObject.priority || rawObject.visibility, index),
+        position: safeString(rawObject.position || rawObject.location || rawObject.area || rawObject.region || '')
     };
 }
 
@@ -1511,10 +1611,12 @@ function normalizeResult(rawResult) {
         };
     }
 
-    const rawObjects = asArray(rawResult.objects);
+    const rawObjects = asArray(rawResult.objects).length > 0
+        ? asArray(rawResult.objects)
+        : asArray(rawResult.detectedItems || rawResult.detected_items || rawResult.items);
     const inferredBatch = rawObjects.length > 1 || rawResult.scanType === 'batch';
     const objects = rawObjects.length > 0
-        ? rawObjects.map(normalizeObject)
+        ? rawObjects.slice(0, MAX_DETECTED_OBJECTS).map(normalizeObject)
         : [normalizeObject({
             id: 1,
             name: rawResult.mainItem || rawResult.scanned_item,
@@ -1544,7 +1646,7 @@ function normalizeResult(rawResult) {
         category: safeString(rawResult.category || objects[0]?.category || t('unknown')),
         recyclable: rawResult.recyclable ?? rawResult.is_recyclable ?? objects[0]?.recyclable ?? false,
         confidence: clampNumber(rawResult.confidence, 0, 1, objects[0]?.confidence || 0.7),
-        overallSummary: safeString(rawResult.overallSummary || rawResult.summary || buildSummary(objects)),
+        overallSummary: safeString(rawResult.overallSummary || rawResult.summary || rawResult.detectionSummary || buildSummary(objects)),
         objects,
         totalEcoScore,
         carbonSavedGrams: clampNumber(rawResult.carbonSavedGrams ?? rawResult.carbon_saved_grams, 0, 10000, Math.round(totalEcoScore * 0.5))
@@ -1577,6 +1679,16 @@ function buildSystemPrompt(modeName = selectedScanMode) {
         strictLanguageInstruction,
         'Translate all user-facing string values, including item names where possible, category, disposalAction, overallSummary, disposalPlan.immediateAction, disposalPlan.handlingType, disposalPlan.safetyWarning, disposalPlan.mistakeToAvoid, disposalPlan.steps, components.part, components.material, components.instruction, preparationSteps, education, and unclear/error messages.',
         'Do not translate JSON keys. Include a top-level "language" field with value "en" or "vi".',
+        'Scan the entire image systematically from top-left to bottom-right, then center, then edges and corners.',
+        'Identify every visible waste item, not only the most obvious or largest object. Detect as many visible waste items as possible, up to 20 objects.',
+        'Detect small, partial, transparent, crushed, dirty, overlapping, or low-confidence objects instead of ignoring them.',
+        'Count separate objects individually. If there are two wrappers or two cups, return two objects.',
+        'Do not ignore visible bottles, cups, bags, cans, wrappers, cardboard, paper, banana peels, leaves, spoons, foil, cigarette butts, masks, glass bottles, food containers, lids, straws, or food scraps.',
+        'Classify organic waste separately from general trash. Organic waste includes food scraps, fruit peels, vegetable scraps, leaves, flowers, tea bags, coffee grounds, eggshells, leftover food, and compostable organic matter.',
+        'For plastic cups, include them as plastic items even when transparent, small, or partially occluded. Explain that they should be emptied, rinsed, and recycled only if accepted locally.',
+        'If multiple waste items are visible, return scanType = "batch" with objects for each visible item, set mainItem to the primary item, and mention additional visible items in overallSummary.',
+        'For each object include: name, category, confidence, recyclable, disposalAction, role, position, optional gridCell, disposalPlan, components, preparationSteps, education, ecoScore, and carbonSavedGrams.',
+        'Use role = "primary" for the main/most prominent item and role = "secondary" for every additional visible item. Use position for approximate image location such as top-left, center, bottom-right, or partially visible edge.',
         'If uncertain, use confidence below 0.7 and suggest retaking the photo.',
         'If the image has multiple objects, use scanType = "batch".',
         'If an item has multiple materials, include components.',
@@ -2327,12 +2439,13 @@ async function analyzeWithOpenAI({ apiKey, model, imageBase64, mode, prompt }) {
                             type: 'image_url',
                             image_url: {
                                 url: imageBase64,
-                                detail: mode === 'quick' ? 'low' : 'high'
+                                detail: 'high'
                             }
                         }
                     ]
                 }
-            ]
+            ],
+            max_tokens: 4500
         })
     });
 
@@ -2372,7 +2485,8 @@ async function analyzeWithOpenRouter({ apiKey, model, imageBase64, prompt }) {
                         }
                     ]
                 }
-            ]
+            ],
+            max_tokens: 4500
         })
     });
 
@@ -2395,7 +2509,8 @@ async function analyzeWithGemini({ apiKey, model, imageBase64, prompt }) {
         body: JSON.stringify({
             generationConfig: {
                 responseMimeType: 'application/json',
-                temperature: 0.2
+                temperature: 0.2,
+                maxOutputTokens: 4500
             },
             contents: [
                 {
@@ -2834,6 +2949,11 @@ function resetToCamera() {
 }
 
 async function analyzeWithAI() {
+    if (isAnalyzing) {
+        showToast(t('analysisInProgress'));
+        return;
+    }
+
     const isDemoMode = localStorage.getItem(STORAGE_KEYS.demoMode) === 'true';
     const config = getProviderConfig();
     const providerMeta = aiProviders[config.provider];
@@ -2857,6 +2977,8 @@ async function analyzeWithAI() {
 
     dom.loadingModeText.textContent = getScanModeText(selectedScanMode, 'loading');
     dom.loadingOverlay.classList.add('active');
+    isAnalyzing = true;
+    dom.confirmBtn?.setAttribute('disabled', 'true');
 
     try {
         let normalized;
@@ -2874,10 +2996,16 @@ async function analyzeWithAI() {
             });
         }
         dom.loadingOverlay.classList.remove('active');
+        isAnalyzing = false;
+        dom.confirmBtn?.removeAttribute('disabled');
         showResults(normalized, true);
     } catch (error) {
         console.error('AI analysis error:', error);
         dom.loadingOverlay.classList.remove('active');
+        isAnalyzing = false;
+        dom.confirmBtn?.removeAttribute('disabled');
+        dom.confirmBtn?.classList.remove('hidden');
+        setCameraStatus(t('tryAgain'));
         showToast(isDemoMode
             ? t('demoAnalysisFailed', { message: error.message })
             : t('analysisFailed', { provider: providerMeta.label, message: error.message }));
@@ -2951,8 +3079,108 @@ function renderUnclearResult(result) {
 
 function renderSummary(result) {
     dom.resultSummaryCard.classList.remove('hidden');
-    dom.resultSummaryText.textContent = result.overallSummary || buildSummary(result.objects);
+    dom.resultSummaryCard.replaceChildren(buildResultOverview(result));
+    dom.resultSummaryText = document.getElementById('resultSummaryText');
     renderSavedLanguageNote(result);
+}
+
+function getPrimaryResultItem(result) {
+    return result?.objects?.[0] || normalizeObject({
+        name: result?.mainItem,
+        category: result?.category,
+        recyclable: result?.recyclable,
+        confidence: result?.confidence,
+        ecoScore: result?.ecoScore || result?.totalEcoScore,
+        disposalAction: result?.disposalAction,
+        disposalPlan: result?.disposalPlan,
+        components: result?.components,
+        preparationSteps: result?.preparationSteps,
+        education: result?.education || result?.overallSummary
+    }, 0);
+}
+
+function getConfidenceInfo(confidence) {
+    const percent = Math.round(clampNumber(confidence, 0, 1, 0) * 100);
+    if (percent >= 80) {
+        return { percent, label: t('highConfidence'), className: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
+    }
+    if (percent >= 55) {
+        return { percent, label: t('mediumConfidence'), className: 'bg-amber-50 text-amber-700 border-amber-100' };
+    }
+    return { percent, label: t('lowConfidence'), className: 'bg-orange-50 text-orange-700 border-orange-100' };
+}
+
+function getResultNotes(item) {
+    const text = `${item.name} ${item.category} ${item.disposalAction} ${item.disposalPlan?.handlingType || ''}`.toLowerCase();
+    const kind = getStatusKind(item.recyclable);
+    const notes = [];
+    if (kind === 'recyclable' || kind === 'partial') notes.push(t('cleanDryNote'));
+    if (/plastic|pet|hdpe|ldpe|container|bottle|cup|lid|straw|wrapper/.test(text) || isPlasticCupText(text)) notes.push(t('rinseResidueNote'));
+    if (isPlasticCupText(text)) notes.push(t('plasticCupNote'));
+    if (/battery|e-waste|ewaste|electronic|lithium|charger|cable|phone|pin/.test(text)) notes.push(t('batteryEwasteNote'));
+    if (/hazard|hazardous|chemical|toxic|poison|paint|solvent|medical|sharp|cigarette|butt|mask|ppe|sanitary/.test(text)) notes.push(t('hazardousWasteNote'));
+    if (isOrganicWasteText(text)) notes.push(t('compostNote'));
+    if (notes.length === 0) notes.push(t('localRulesNote'));
+    return [...new Set(notes)].slice(0, 3);
+}
+function buildResultOverview(result) {
+    const item = getPrimaryResultItem(result);
+    const plan = normalizeDisposalPlan(item.disposalPlan, getFallbackDisposalPlan(item, item.recyclable, item.components || [], item.preparationSteps || []));
+    const confidence = getConfidenceInfo(item.confidence ?? result.confidence);
+    const explanation = item.education || result.overallSummary || buildSummary(result.objects || [item]);
+    const notes = getResultNotes(item);
+    const additionalItems = asArray(result.objects).slice(1);
+    const statusBadge = createElement('span', {
+        className: `inline-flex items-center px-3 py-1 rounded-full border text-xs font-bold ${getStatusClasses(item.recyclable)}`,
+        text: getStatusLabel(item.recyclable)
+    });
+    const confidenceBadge = createElement('span', {
+        className: `inline-flex items-center px-3 py-1 rounded-full border text-xs font-bold ${confidence.className}`,
+        text: `${t('confidenceLevel')}: ${confidence.label} (${confidence.percent}%)`
+    });
+    const categoryBadge = createElement('span', {
+        className: 'inline-flex items-center px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold',
+        text: `${t('wasteCategory')}: ${item.category || t('unknown')}`
+    });
+    const scanAgainButton = createElement('button', {
+        type: 'button',
+        className: 'inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition-colors',
+        text: t('scanAnotherItem')
+    });
+    scanAgainButton.addEventListener('click', closeResults);
+
+    return createElement('div', { className: 'space-y-4' }, [
+        createElement('div', { className: 'flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3' }, [
+            createElement('div', {}, [
+                createElement('h5', { className: 'text-lg font-bold text-gray-800 flex items-center gap-2', text: t('resultOverview') }),
+                createElement('p', { className: 'text-sm text-gray-500 mt-1', text: `${t('detectedItem')}: ${item.name || result.mainItem || t('unknown')}` })
+            ]),
+            scanAgainButton
+        ]),
+        createElement('div', { className: 'flex flex-wrap gap-2' }, [statusBadge, categoryBadge, confidenceBadge]),
+        ...(additionalItems.length > 0 ? [
+            createElement('div', { className: 'rounded-2xl border border-blue-100 bg-blue-50 p-4' }, [
+                createElement('p', { className: 'text-xs font-bold uppercase tracking-wide text-blue-700 mb-1', text: t('alsoVisible') }),
+                createElement('p', {
+                    className: 'text-sm text-gray-700',
+                    text: additionalItems.slice(0, 8).map(visibleItem => visibleItem.name).filter(Boolean).join(', ')
+                }),
+                createElement('p', { className: 'text-xs text-gray-500 mt-2', text: t('someItemsLocalRules') })
+            ])
+        ] : []),
+        createElement('div', { className: 'rounded-2xl border border-emerald-100 bg-emerald-50 p-4' }, [
+            createElement('p', { className: 'text-xs font-bold uppercase tracking-wide text-emerald-700 mb-1', text: t('mainInstruction') }),
+            createElement('p', { className: 'text-sm font-semibold text-gray-800', text: plan.immediateAction || item.disposalAction || t('checkLocalRules') })
+        ]),
+        createElement('div', {}, [
+            createElement('p', { className: 'text-xs font-bold uppercase tracking-wide text-gray-500 mb-1', text: t('explanation') }),
+            createElement('p', { id: 'resultSummaryText', className: 'text-sm text-gray-600', text: explanation })
+        ]),
+        createElement('div', { className: 'rounded-2xl border border-amber-100 bg-amber-50 p-4' }, [
+            createElement('p', { className: 'text-xs font-bold uppercase tracking-wide text-amber-700 mb-2', text: t('importantNote') }),
+            createElement('div', { className: 'space-y-2' }, notes.map(note => createElement('p', { className: 'text-sm text-gray-700', text: `? ${note}` })))
+        ])
+    ]);
 }
 
 function renderSavedLanguageNote(result) {
@@ -2989,7 +3217,7 @@ function renderStatus(result) {
     dom.statusCard.className = `rounded-2xl p-6 shadow-sm bg-gradient-to-r ${gradient}`;
     setIcon(dom.statusIcon, iconClass);
     dom.statusMessage.textContent = result.scanType === 'batch'
-        ? t('itemAnalyzed', { count: result.objects.length })
+        ? t('multipleItemsDetected', { count: result.objects.length })
         : t('statusWithConfidence', { status: getStatusLabel(status), percent: Math.round(result.confidence * 100) });
 }
 
@@ -3019,6 +3247,24 @@ function renderDetectedObjects(result) {
             className: 'text-xs text-gray-500',
             text: `${Math.round(item.confidence * 100)}% ${t('confidence')}${item.gridCell ? ` | ${t('cell')} ${item.gridCell}` : ''}`
         });
+        const roleBadge = createElement('span', {
+            className: item.role === 'primary'
+                ? 'inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-bold'
+                : 'inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-bold',
+            text: item.role === 'primary' ? t('primaryItem') : t('secondaryItem')
+        });
+        const lowConfidenceBadge = item.confidence < 0.55
+            ? createElement('span', {
+                className: 'inline-flex items-center px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 text-[11px] font-bold',
+                text: t('lowConfidenceItem')
+            })
+            : null;
+        const positionBadge = item.position
+            ? createElement('span', {
+                className: 'inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-bold',
+                text: `${t('positionLabel')}: ${item.position}`
+            })
+            : null;
         const title = createElement('h6', {
             className: 'font-bold text-gray-800',
             text: item.name
@@ -3037,7 +3283,11 @@ function renderDetectedObjects(result) {
             dataset: { cell: item.gridCell || '', objectId: item.id }
         }, [
             createElement('div', { className: 'flex items-start justify-between gap-3' }, [
-                createElement('div', {}, [title, category, confidence]),
+                createElement('div', {}, [
+                    createElement('div', { className: 'flex flex-wrap items-center gap-2 mb-1' }, [title, roleBadge, lowConfidenceBadge, positionBadge].filter(Boolean)),
+                    category,
+                    confidence
+                ]),
                 createElement('div', { className: 'flex flex-col items-end gap-2' }, [statusBadge, score])
             ]),
             action
@@ -3413,15 +3663,23 @@ function getObjectsFromHistoryEntry(entry) {
 }
 
 function classifyWasteCategory(item) {
-    const text = `${item?.name || ''} ${item?.category || ''}`.toLowerCase();
+    const text = [
+        item?.name,
+        item?.category,
+        item?.disposalAction,
+        item?.disposalPlan?.handlingType,
+        item?.disposalPlan?.immediateAction,
+        ...(Array.isArray(item?.preparationSteps) ? item.preparationSteps : [])
+    ].filter(Boolean).join(' ').toLowerCase();
     if (/battery|e-waste|ewaste|electronic|phone|cable|charger|lithium/.test(text)) return 'special';
-    if (/plastic|pet|hdpe|soft plastic|bag|bottle/.test(text)) return 'plastic';
-    if (/metal|aluminum|aluminium|steel|tin|can/.test(text)) return 'metal';
-    if (/paper|cardboard|carton|newspaper/.test(text)) return 'paper';
-    if (/glass|jar/.test(text)) return 'glass';
+    if (isOrganicWasteText(text)) return 'organic';
+    if (/cigarette|cigaret|butt|mask|face mask|ppe|sanitary|tissue|napkin/.test(text)) return 'other';
+    if (isPlasticCupText(text) || /plastic|pet|hdpe|ldpe|pp|ps|soft plastic|bag|bottle|container|wrapper|cup|lid|straw|plastic spoon|plastic fork|cutlery|utensil/.test(text)) return 'plastic';
+    if (/foil|aluminum foil|aluminium foil|metal|aluminum|aluminium|steel|tin|can/.test(text)) return 'metal';
+    if (/paper|cardboard|carton|newspaper|receipt|box/.test(text)) return 'paper';
+    if (/glass|jar|glass bottle/.test(text)) return 'glass';
     return 'other';
 }
-
 function isSpecialHandlingItem(item) {
     const planText = `${item?.disposalPlan?.handlingType || ''} ${item?.disposalPlan?.safetyWarning || ''}`.toLowerCase();
     return classifyWasteCategory(item) === 'special' || getStatusKind(item?.recyclable) === 'special' || /special|battery|e-waste|hazard|drop-off|dropoff/.test(planText);
@@ -4040,6 +4298,7 @@ function formatCategoryName(category) {
         metal: t('metal'),
         paper: t('paper'),
         glass: t('glass'),
+        organic: t('organic'),
         special: t('eWasteBattery'),
         other: t('other'),
         none: t('noneYet')
@@ -4092,7 +4351,7 @@ function renderImpactDashboard(metrics = getMetrics()) {
     });
 
     const maxCategoryCount = Math.max(1, ...Object.values(metrics.categoryCounts));
-    const orderedCategories = ['plastic', 'metal', 'paper', 'glass', 'special', 'other'];
+    const orderedCategories = ['plastic', 'organic', 'metal', 'paper', 'glass', 'special', 'other'];
     orderedCategories.forEach(category => {
         const count = metrics.categoryCounts[category] || 0;
         const percent = Math.round((count / maxCategoryCount) * 100);

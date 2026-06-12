@@ -1,12 +1,12 @@
-const APP_VERSION = 'v16';
+const APP_VERSION = 'v21';
 const CACHE_PREFIX = 'recyclecheck-';
 const CACHE_NAME = `${CACHE_PREFIX}${APP_VERSION}`;
 const urlsToCache = [
   './',
   './index.html',
-  './manifest.json?v=16',
-  './style.css?v=16',
-  './script.js?v=16'
+  './manifest.json?v=21',
+  './style.css?v=21',
+  './script.js?v=21'
 ];
 
 function isLocalDevelopment(url) {
