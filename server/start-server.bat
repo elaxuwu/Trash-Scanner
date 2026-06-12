@@ -2,7 +2,7 @@
 setlocal
 title Trash Scanner Local Server
 
-cd /d "%~dp0"
+cd /d "%~dp0\.."
 
 set "PORT=%~1"
 if "%PORT%"=="" set "PORT=8000"
@@ -27,17 +27,16 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if not exist "%CD%\local-server.js" (
-    echo ERROR: local-server.js was not found in this folder.
+if not exist "server\local-server.js" (
+    echo ERROR: server\local-server.js was not found.
     echo Make sure this script is inside the Trash-Scanner project folder.
     echo.
     pause
     exit /b 1
 )
 
-if not exist "%CD%\index.html" (
-    echo ERROR: index.html was not found in this folder.
-    echo Make sure this script is inside the Trash-Scanner project folder.
+if not exist "index.html" (
+    echo ERROR: index.html was not found in the project root.
     echo.
     pause
     exit /b 1
@@ -45,10 +44,10 @@ if not exist "%CD%\index.html" (
 
 echo Status: starting with Node.js...
 echo.
-node local-server.js %PORT%
+node server\local-server.js %PORT%
 
 echo.
 echo Server stopped or failed to start.
-echo If the port is already in use, try: start-server.bat 5500
+echo If the port is already in use, try: .\server\start-server.bat 5500
 echo.
 pause

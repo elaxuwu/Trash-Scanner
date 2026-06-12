@@ -341,6 +341,36 @@
             .paste-shortcut-hint {
                 display: none;
             }
+
+            .input-choice-panel {
+                padding: 0.75rem;
+            }
+
+            .input-choice-card {
+                padding: 1rem;
+                border-radius: 1rem;
+            }
+
+            .input-choice-actions {
+                gap: 0.5rem;
+            }
+
+            .input-choice-button {
+                min-height: 5rem;
+                padding: 0.75rem;
+            }
+
+            .input-choice-button span {
+                font-size: 0.8rem;
+            }
+
+            #inputChoiceTitle {
+                font-size: 0.7rem;
+            }
+
+            .camera-viewport {
+                aspect-ratio: 4 / 3;
+            }
         }
 
         /* Tablet & Desktop adjustments */
@@ -348,8 +378,7 @@
             .app-container {
                 max-width: 1200px;
                 margin: 0 auto;
-                flex-direction: row;
-                flex-wrap: wrap;
+                flex-direction: column;
                 padding: 2rem;
                 gap: 2rem;
             }
@@ -358,6 +387,15 @@
                 width: 100%;
                 border-bottom: none !important;
                 padding-bottom: 0 !important;
+            }
+
+            /* Desktop: Logo and XP bar horizontal */
+            @media (min-width: 768px) {
+                header > .flex:first-child {
+                    flex-direction: row;
+                    align-items: center;
+                    gap: 2rem;
+                }
             }
 
             main {
@@ -369,15 +407,46 @@
 
             .camera-viewport {
                 width: 100%;
-                max-width: 800px;
-                margin: 0 auto;
                 border-radius: 1rem;
-                aspect-ratio: 16 / 9;
+                aspect-ratio: 4 / 3;
+                min-height: 500px;
             }
 
             section:last-child {
                 width: 100%;
             }
+        }
+
+        /* Bottom Navigation Bar */
+        #bottomNav {
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+
+        .nav-item {
+            color: #9ca3af;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item.active {
+            color: #10b981;
+        }
+
+        .nav-item:hover {
+            color: #059669;
+        }
+
+        .nav-item.active i {
+            transform: scale(1.1);
+        }
+
+        /* Page transitions */
+        .page-content {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         /* Fallback UI adjustments */

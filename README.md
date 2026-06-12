@@ -11,7 +11,7 @@ cd "C:\Users\hkhan\OneDrive\Documents\LazyNotes\Trash-Scanner"
 Start the local static server:
 
 ```powershell
-node local-server.js 8000
+node server/local-server.js 8000
 ```
 
 Then open:
@@ -29,7 +29,7 @@ http://127.0.0.1:8000/health
 Keep the terminal open while testing. If port `8000` is already in use, choose another port:
 
 ```powershell
-node local-server.js 5500
+node server/local-server.js 5500
 ```
 
 Then open:
@@ -41,13 +41,13 @@ http://127.0.0.1:5500/index.html
 On Windows, you can also run:
 
 ```powershell
-.\start-server.bat
+.\server\start-server.bat
 ```
 
 The helper uses port `8000` by default, shows the exact URL, keeps the terminal window open, and prints clear errors if Node.js is missing or the server cannot start. To use another port:
 
 ```powershell
-.\start-server.bat 5500
+.\server\start-server.bat 5500
 ```
 
 ## Troubleshooting Old Cached UI

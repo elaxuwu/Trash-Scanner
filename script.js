@@ -670,7 +670,7 @@ Object.assign(translations.en, {
     providerInvalidJson: 'The provider did not return valid JSON.',
     unsupportedProvider: 'Unsupported AI provider.',
     imageAnalysisUserPrompt: 'Analyze this waste image. Return JSON only. All user-facing string values must be in English.',
-    chooseImageMethod: 'Choose how to add an image',
+    chooseImageMethod: 'Choose how to scan your item!',
     useCamera: 'Use Camera',
     pasteImage: 'Paste Image',
     dragDrop: 'Drag & Drop',
@@ -3168,8 +3168,10 @@ function addToHistory(result) {
 }
 
 function loadHistory() {
-    const recentList = document.getElementById('recentList');
-    const emptyRecent = document.getElementById('emptyRecent');
+    const recentList = document.getElementById('recentListHistory');
+    const emptyRecent = document.getElementById('emptyRecentHistory');
+    if (!recentList || !emptyRecent) return;
+    
     recentList.querySelectorAll('.history-item').forEach(item => item.remove());
 
     const history = getHistory();
@@ -4288,6 +4290,7 @@ function initializeApp() {
     setupPwa();
     applyTheme(currentTheme);
     bindEvents();
+    setupBottomNavigation(); // Add bottom navigation
     applyStaticTranslations();
     setScanMode(selectedScanMode);
     
@@ -4303,6 +4306,30 @@ function initializeApp() {
     updateUserLevel();
     renderAchievements();
     renderQuizInlineStats();
+}
+
+// Setup Bottom Navigation
+function setupBottomNavigation() {
+    const navItems = document.querySelectorAll('.nav-item');
+    
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const page = item.dataset.page;
+            
+            // Update active state
+            navItems.forEach(nav => nav.classList.remove('active'));
+            item.classList.add('active');
+            
+            // Show corresponding page
+            const pages = ['scan', 'history', 'quiz', 'profile'];
+            pages.forEach(p => {
+                const pageEl = document.getElementById(`page-${p}`);
+                if (pageEl) {
+                    pageEl.classList.toggle('hidden', p !== page);
+                }
+            });
+        });
+    });
 }
 
 initializeApp();
