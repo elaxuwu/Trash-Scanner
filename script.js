@@ -1,31 +1,25 @@
 const dom = {
-    videoCanvas: document.getElementById('videoCanvas'),
+    videoCanvas: document.getElementById('videoCanvas'), // <video> when live, <img> when photo shown
     scanBtn: document.getElementById('scanBtn'),
     scanActionSection: document.getElementById('scanActionSection'),
     flashOverlay: document.getElementById('flashOverlay'),
     loadingOverlay: document.getElementById('loadingOverlay'),
     loadingModeText: document.getElementById('loadingModeText'),
-    dropZoneHint: document.getElementById('dropZoneHint'),
     dropZoneOverlay: document.getElementById('dropZoneOverlay'),
-    dropZoneTitle: document.getElementById('dropZoneTitle'),
-    dropZoneMessage: document.getElementById('dropZoneMessage'),
     fileInput: document.getElementById('fileInput'),
     cameraSection: document.getElementById('cameraSection'),
     inputChoicePanel: document.getElementById('inputChoicePanel'),
-    inputChoiceTitle: document.getElementById('inputChoiceTitle'),
-    useCameraBtn: document.getElementById('useCameraBtn'),
-    uploadImageBtn: document.getElementById('uploadImageBtn'),
-    pasteImageBtn: document.getElementById('pasteImageBtn'),
-    dragDropImageBtn: document.getElementById('dragDropImageBtn'),
-    backToOptionsBtn: document.getElementById('backToOptionsBtn'),
-    pasteHintText: document.getElementById('pasteHintText'),
-    dragHintText: document.getElementById('dragHintText'),
     cameraStatusMessage: document.getElementById('cameraStatusMessage'),
-    previewModal: document.getElementById('previewModal'),
-    previewImage: document.getElementById('previewImage'),
-    closePreviewBtn: document.getElementById('closePreviewBtn'),
-    retakeBtn: document.getElementById('retakeBtn'),
-    analyzeBtn: document.getElementById('analyzeBtn'),
+    // New HUD elements
+    confirmBtn: document.getElementById('confirmBtn'),
+    scanHud: document.getElementById('scanHud'),
+    zoomToggleBtn: document.getElementById('zoomToggleBtn'),
+    // New TikTok-style elements
+    closeCameraBtn: document.getElementById('closeCameraBtn'),
+    galleryBtn: document.getElementById('galleryBtn'),
+    zoomSlider: document.getElementById('zoomSlider'),
+    zoomLabel: document.getElementById('zoomLabel'),
+    zoomControlWrap: document.getElementById('zoomControlWrap'),
     settingsBtn: document.getElementById('settingsBtn'),
     settingsModal: document.getElementById('settingsModal'),
     closeSettingsBtn: document.getElementById('closeSettingsBtn'),
@@ -687,7 +681,6 @@ Object.assign(translations.en, {
     unsupportedProvider: 'Unsupported AI provider.',
     imageAnalysisUserPrompt: 'Analyze this waste image. Return JSON only. All user-facing string values must be in English.',
     chooseImageMethod: 'Choose how to scan your item!',
-    useCamera: 'Use Camera',
     pasteImage: 'Paste Image',
     dragDrop: 'Drag & Drop',
     backToUploadOptions: 'Back to upload options',
@@ -849,7 +842,6 @@ Object.assign(translations.vi, {
     unsupportedProvider: 'Nhà cung cấp AI không được hỗ trợ.',
     imageAnalysisUserPrompt: 'Phân tích ảnh rác này. Chỉ trả về JSON. Tất cả giá trị chuỗi hiển thị cho người dùng phải bằng tiếng Việt có đầy đủ dấu.',
     chooseImageMethod: 'Chọn cách thêm ảnh',
-    useCamera: 'Dùng camera',
     pasteImage: 'Dán ảnh',
     dragDrop: 'Kéo & thả',
     backToUploadOptions: 'Quay lại tùy chọn tải ảnh',
@@ -1038,7 +1030,6 @@ function applyStaticTranslations() {
     });
 
     setText(dom.inputChoiceTitle, 'chooseImageMethod');
-    setText(dom.useCameraBtn?.querySelector('span'), 'useCamera');
     setText(dom.uploadImageBtn?.querySelector('span'), 'uploadImage');
     setText(dom.pasteImageBtn?.querySelector('span'), 'pasteImage');
     setText(dom.dragDropImageBtn?.querySelector('span'), 'dragDrop');
@@ -1132,9 +1123,6 @@ function applyStaticTranslations() {
     setText('#disposalPlanSection h6', 'steps');
     setText(dom.compositionBars?.closest('.bg-white')?.querySelector('h5'), 'materialBreakdown');
     setText(dom.actionSteps?.closest('.bg-white')?.querySelector('h5'), 'preparationSteps');
-    setText(dom.ecoScoreValue?.closest('.bg-white')?.querySelector('h5'), 'sustainabilityTracker');
-    setText(dom.ecoScoreValue?.previousElementSibling, 'ecoScore');
-    setText(dom.carbonSavedValue?.previousElementSibling, 'carbonSaved');
     setText('#saveToHistoryBtn span', 'saveToHistory');
 
     setText('#quizModalTitle', 'ecoQuiz');
@@ -1150,9 +1138,6 @@ function applyStaticTranslations() {
         options[2].textContent = t('scenarioBag');
         options[3].textContent = t('scenarioMixed');
     }
-
-    setText('#retakeBtn span', 'retake');
-    setText('#analyzeBtn span', 'analyze');
 
     if (dom.languageSelect) {
         dom.languageSelect.value = currentLanguage;
@@ -2432,7 +2417,15 @@ async function initCamera() {
     setCameraStatus(t('cameraStarting'), false);
     dom.inputChoicePanel?.classList.add('hidden');
     dom.videoCanvas.classList.add('hidden');
-    dom.scanActionSection.classList.add('hidden');
+    dom.videoCanvas.classList.remove('tiktok-preview');
+    dom.scanActionSection?.classList.add('hidden');
+    dom.zoomControlWrap?.classList.add('hidden');
+    dom.closeCameraBtn?.classList.add('hidden');
+    dom.scanFrame?.classList.remove('hidden');
+    document.querySelector('.scan-line-track')?.classList.remove('hidden');
+    dom.confirmBtn?.classList.add('hidden');
+    dom.scanBtn?.classList.remove('hidden');
+    dom.captureRing?.classList.remove('hidden');
 
     if (!navigator.mediaDevices?.getUserMedia) {
         handleCameraError();
@@ -2443,44 +2436,39 @@ async function initCamera() {
     video.autoplay = true;
     video.playsInline = true;
     video.muted = true;
+    video.className = 'tiktok-video';
 
     try {
-        stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                facingMode: { ideal: 'environment' },
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
+        const capabilities = { video: { facingMode: { ideal: 'environment' } } };
+        stream = await navigator.mediaDevices.getUserMedia(capabilities);
+
+        // Apply zoom if slider has a non-default value
+        const zoomVal = parseFloat(dom.zoomSlider?.value || '1');
+        const videoTrack = stream.getVideoTracks()[0];
+        if (videoTrack) {
+            const maxZoom = videoTrack.getCapabilities?.()?.zoom?.max ?? 5;
+            dom.zoomSlider?.setAttribute('max', maxZoom);
+            if (zoomVal > 1) {
+                videoTrack.applyConstraints({ advanced: [{ zoom: zoomVal }] }).catch(() => {});
             }
-        });
+        }
+
         video.srcObject = stream;
+        dom.videoCanvas.replaceWith(video);
+        dom.videoCanvas = video;
         dom.videoCanvas.classList.remove('hidden');
         dom.inputChoicePanel?.classList.add('hidden');
-        dom.scanActionSection.classList.remove('hidden');
+        dom.zoomToggleBtn?.classList.remove('hidden');
+        dom.closeCameraBtn?.classList.remove('hidden');
         setCameraStatus('', true);
 
         video.onloadedmetadata = () => {
             video.play();
-            startCanvasLoop();
         };
     } catch (error) {
         console.error('Camera access error:', error);
         handleCameraError();
     }
-}
-
-function startCanvasLoop() {
-    canvasContext = dom.videoCanvas.getContext('2d');
-
-    const loop = () => {
-        if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
-            if (dom.videoCanvas.width !== video.videoWidth) dom.videoCanvas.width = video.videoWidth;
-            if (dom.videoCanvas.height !== video.videoHeight) dom.videoCanvas.height = video.videoHeight;
-            canvasContext.drawImage(video, 0, 0, dom.videoCanvas.width, dom.videoCanvas.height);
-        }
-        if (stream) animationFrameId = requestAnimationFrame(loop);
-    };
-
-    loop();
 }
 
 function stopCamera() {
@@ -2489,7 +2477,7 @@ function stopCamera() {
         animationFrameId = null;
     }
     if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getVideoTracks().forEach(track => track.stop());
         stream = null;
     }
 }
@@ -2497,7 +2485,9 @@ function stopCamera() {
 function handleCameraError() {
     stopCamera();
     dom.videoCanvas.classList.add('hidden');
-    dom.scanActionSection.classList.add('hidden');
+    dom.scanActionSection?.classList.add('hidden');
+    dom.zoomControlWrap?.classList.add('hidden');
+    dom.closeCameraBtn?.classList.add('hidden');
     showInputChoices(t('cameraDeniedUploadStillAvailable'));
 }
 
@@ -2510,8 +2500,10 @@ function setCameraStatus(message, shouldHide = false) {
 function showInputChoices(message = '') {
     stopCamera();
     dom.videoCanvas.classList.add('hidden');
+    dom.zoomToggleBtn?.classList.add('hidden');
+    dom.zoomControlWrap?.classList.add('hidden');
+    dom.closeCameraBtn?.classList.add('hidden');
     dom.inputChoicePanel?.classList.remove('hidden');
-    dom.scanActionSection.classList.add('hidden');
     setCameraStatus(message, !message);
 }
 
@@ -2547,14 +2539,20 @@ async function compressImage(source, maxDimension = MAX_IMAGE_DIMENSION, quality
 
 async function captureImage() {
     dom.flashOverlay.classList.add('active');
-    const imageData = canvasToDataUrl(dom.videoCanvas, 0.86);
+
+    // Draw the current video frame to a canvas
+    const capCanvas = document.createElement('canvas');
+    capCanvas.width = dom.videoCanvas.videoWidth || dom.videoCanvas.offsetWidth;
+    capCanvas.height = dom.videoCanvas.videoHeight || dom.videoCanvas.offsetHeight;
+    capCanvas.getContext('2d').drawImage(dom.videoCanvas, 0, 0, capCanvas.width, capCanvas.height);
+    const imageData = capCanvas.toDataURL('image/jpeg', 0.86);
+
     capturedImageData = await compressImage(imageData, MAX_IMAGE_DIMENSION, 0.82);
     capturedHistoryImageData = await compressImage(imageData, HISTORY_IMAGE_DIMENSION, 0.72);
 
     setTimeout(() => {
         dom.flashOverlay.classList.remove('active');
         showSnappedPhoto(capturedImageData);
-        showPreviewModal(capturedImageData);
     }, 100);
 }
 
@@ -2580,6 +2578,28 @@ function readFileAsDataUrl(file) {
     });
 }
 
+function showUploadedImage(imageData) {
+    stopCamera();
+    const previewImg = document.createElement('img');
+    previewImg.src = imageData;
+    previewImg.alt = 'Uploaded waste';
+    previewImg.className = 'tiktok-preview';
+    dom.videoCanvas.replaceWith(previewImg);
+    dom.videoCanvas = previewImg;
+
+    dom.inputChoicePanel?.classList.add('hidden');
+    dom.scanActionSection?.classList.add('hidden');
+    dom.zoomControlWrap?.classList.add('hidden');
+    dom.closeCameraBtn?.classList.add('hidden');
+
+    // Hide scan frame / line, show confirm button
+    dom.scanFrame?.classList.add('hidden');
+    document.querySelector('.scan-line-track')?.classList.add('hidden');
+    dom.confirmBtn?.classList.remove('hidden');
+    dom.scanBtn?.classList.add('hidden');
+    dom.captureRing?.classList.add('hidden');
+}
+
 async function processImageFile(file, successMessage, noteMessage = '') {
     const validationError = validateImageFile(file);
     if (validationError) {
@@ -2589,10 +2609,18 @@ async function processImageFile(file, successMessage, noteMessage = '') {
 
     try {
         const imageDataUrl = await readFileAsDataUrl(file);
+        if (!imageDataUrl || !imageDataUrl.startsWith('data:image/')) {
+            throw new Error('Invalid image data after read: ' + (imageDataUrl ? imageDataUrl.slice(0, 30) : 'null'));
+        }
         capturedImageData = await compressImage(imageDataUrl, MAX_IMAGE_DIMENSION, 0.82);
+        if (!capturedImageData || !capturedImageData.startsWith('data:image/')) {
+            throw new Error('compressImage(MAX) returned: ' + (capturedImageData || 'null'));
+        }
         capturedHistoryImageData = await compressImage(imageDataUrl, HISTORY_IMAGE_DIMENSION, 0.72);
-        showSnappedPhoto(capturedImageData);
-        showPreviewModal(capturedImageData);
+        if (!capturedHistoryImageData || !capturedHistoryImageData.startsWith('data:image/')) {
+            throw new Error('compressImage(HISTORY) returned: ' + (capturedHistoryImageData || 'null'));
+        }
+        showUploadedImage(capturedImageData);
         showToast(noteMessage ? `${successMessage} ${noteMessage}` : successMessage);
         return true;
     } catch (error) {
@@ -2646,11 +2674,9 @@ function hasDraggedFiles(event) {
     return Array.from(event.dataTransfer?.types || []).includes('Files');
 }
 
-function setDropZoneActive(isActive, title = t('dropImagePreview'), message = t('onlyImagesAccepted')) {
+function setDropZoneActive(isActive) {
     dom.cameraSection.classList.toggle('drag-over', isActive);
     dom.dropZoneOverlay.classList.toggle('hidden', !isActive);
-    dom.dropZoneTitle.textContent = title;
-    dom.dropZoneMessage.textContent = message;
 }
 
 function handleDragEnter(event) {
@@ -2696,49 +2722,57 @@ async function handleDrop(event) {
 
 function showSnappedPhoto(imageData) {
     stopCamera();
-    canvasContext = null;
-    dom.videoCanvas.classList.add('hidden');
+    dom.videoCanvas.pause?.();
+    dom.videoCanvas.srcObject = null;
+    dom.videoCanvas.src = imageData;
+    dom.videoCanvas.classList.add('hidden', 'tiktok-preview');
+    dom.videoCanvas.classList.remove('tiktok-video');
+
+    const previewImg = document.createElement('img');
+    previewImg.src = imageData;
+    previewImg.alt = 'Captured waste';
+    previewImg.className = 'tiktok-preview tiktok-video';
+    dom.videoCanvas.replaceWith(previewImg);
+    dom.videoCanvas = previewImg;
+
     dom.inputChoicePanel?.classList.add('hidden');
+    dom.scanActionSection?.classList.add('hidden');
+    dom.zoomControlWrap?.classList.add('hidden');
+    dom.closeCameraBtn?.classList.add('hidden');
+
+    // Hide scan frame / line, show confirm button
+    dom.scanFrame?.classList.add('hidden');
+    document.querySelector('.scan-line-track')?.classList.add('hidden');
+    dom.confirmBtn?.classList.remove('hidden');
+    dom.scanBtn?.classList.add('hidden');
+    dom.captureRing?.classList.add('hidden');
     setCameraStatus('', true);
-
-    let snappedPhoto = document.getElementById('snappedPhoto');
-    if (!snappedPhoto) {
-        snappedPhoto = createElement('img', {
-            className: 'w-full h-full absolute inset-0',
-            alt: 'Captured waste'
-        });
-        snappedPhoto.id = 'snappedPhoto';
-        snappedPhoto.style.objectFit = 'contain';
-        snappedPhoto.style.backgroundColor = '#000';
-        dom.cameraSection.appendChild(snappedPhoto);
-    }
-
-    snappedPhoto.src = imageData;
-    snappedPhoto.classList.remove('hidden');
-    dom.scanActionSection.classList.add('hidden');
-}
-
-function showPreviewModal(imageData) {
-    dom.previewImage.src = imageData;
-    dom.previewModal.classList.remove('hidden');
-    document.body.classList.add('overflow-hidden');
-}
-
-function hidePreviewModal() {
-    dom.previewModal.classList.add('hidden');
-    document.body.classList.remove('overflow-hidden');
 }
 
 function resetToCamera() {
-    hidePreviewModal();
-    const snappedPhoto = document.getElementById('snappedPhoto');
-    if (snappedPhoto) {
-        snappedPhoto.classList.add('hidden');
-        snappedPhoto.src = '';
-    }
+    // Preview modal removed — just clear captured data
     dom.fileInput.value = '';
     capturedImageData = null;
     capturedHistoryImageData = null;
+
+    // Restore the original canvas if it was replaced by a preview img
+    const previewImg = dom.videoCanvas;
+    if (previewImg && previewImg.tagName === 'IMG') {
+        const canvas = document.createElement('canvas');
+        canvas.id = 'videoCanvas';
+        canvas.className = 'scan-video hidden';
+        previewImg.replaceWith(canvas);
+        dom.videoCanvas = canvas;
+    }
+
+    // Restore HUD: show scan frame / line, show capture button, hide confirm
+    dom.scanFrame?.classList.remove('hidden');
+    document.querySelector('.scan-line-track')?.classList.remove('hidden');
+    dom.confirmBtn?.classList.add('hidden');
+    dom.scanBtn?.classList.remove('hidden');
+    dom.captureRing?.classList.remove('hidden');
+
+    // Restart the camera feed (wrap to avoid breaking on permission errors)
     showInputChoices();
 }
 
@@ -2764,7 +2798,6 @@ async function analyzeWithAI() {
         return;
     }
 
-    hidePreviewModal();
     dom.loadingModeText.textContent = getScanModeText(selectedScanMode, 'loading');
     dom.loadingOverlay.classList.add('active');
 
@@ -4382,18 +4415,23 @@ function bindEvents() {
         dom.apiKeyInput.type = isHidden ? 'text' : 'password';
         dom.toggleApiKeyBtn.replaceChildren(icon(isHidden ? 'ph ph-eye-slash text-lg' : 'ph ph-eye text-lg'));
     });
-    dom.useCameraBtn?.addEventListener('click', initCamera);
-    dom.uploadImageBtn?.addEventListener('click', openUploadPicker);
-    dom.pasteImageBtn?.addEventListener('click', () => {
-        setCameraStatus(t('pasteShortcut'));
+    dom.zoomToggleBtn?.addEventListener('click', () => {
+        dom.zoomControlWrap?.classList.toggle('hidden');
+        dom.zoomToggleBtn?.classList.toggle('active');
     });
-    dom.dragDropImageBtn?.addEventListener('click', () => {
-        setCameraStatus(t('dragDropImageHere'));
-    });
-    dom.backToOptionsBtn?.addEventListener('click', () => showInputChoices());
     dom.scanBtn.addEventListener('click', () => {
         if (!stream) return;
         captureImage();
+    });
+    dom.closeCameraBtn?.addEventListener('click', () => showInputChoices());
+    dom.galleryBtn?.addEventListener('click', openUploadPicker);
+    dom.zoomSlider?.addEventListener('input', () => {
+        const zoom = parseFloat(dom.zoomSlider.value);
+        dom.zoomLabel.textContent = zoom.toFixed(1) + 'x';
+        const track = stream?.getVideoTracks()[0];
+        if (track) {
+            track.applyConstraints({ advanced: [{ zoom }] }).catch(() => {});
+        }
     });
     dom.fileInput.addEventListener('change', handleFileUpload);
     window.addEventListener('paste', handlePaste);
@@ -4403,9 +4441,7 @@ function bindEvents() {
     dom.cameraSection.addEventListener('dragover', handleDragOver);
     dom.cameraSection.addEventListener('dragleave', handleDragLeave);
     dom.cameraSection.addEventListener('drop', handleDrop);
-    dom.closePreviewBtn.addEventListener('click', resetToCamera);
-    dom.retakeBtn.addEventListener('click', resetToCamera);
-    dom.analyzeBtn.addEventListener('click', analyzeWithAI);
+    dom.confirmBtn?.addEventListener('click', analyzeWithAI);
     dom.closeResultsBtn.addEventListener('click', closeResults);
     dom.clearHistoryBtn.addEventListener('click', clearHistory);
     dom.saveToHistoryBtn.addEventListener('click', () => {

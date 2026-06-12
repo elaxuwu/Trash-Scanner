@@ -20,7 +20,7 @@
     <!-- Confetti for Gamification -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="style.css?v=16">
+    <link rel="stylesheet" href="style.css?v=19">
 </head>
 <body>
 
@@ -61,64 +61,101 @@
             
             <!-- Page: Scan -->
             <div id="page-scan" class="page-content">
-                <!-- Camera Viewport Section -->
-                <section class="camera-viewport" id="cameraSection">
-                    <!-- Canvas for displaying camera feed -->
-                    <canvas id="videoCanvas" class="w-full h-full object-cover hidden"></canvas>
+
+                <!-- Full-screen camera / image viewport -->
+                <section id="cameraSection" class="scan-viewport">
+                    <!-- Live video feed -->
+                    <video id="videoCanvas"
+                           autoplay
+                           playsinline
+                           muted
+                           class="scan-video hidden"></video>
+
+                    <!-- Captured / uploaded image display -->
+                    <img id="videoCanvas"
+                         src=""
+                         alt="Preview"
+                         class="scan-image hidden">
 
                     <input type="file" id="fileInput" accept="image/*" class="hidden">
 
-                    <div id="inputChoicePanel" class="input-choice-panel">
-                        <div class="input-choice-card">
-                            <p id="inputChoiceTitle" class="text-xs font-black uppercase tracking-[0.18em] text-emerald-300">Choose how to scan your item!</p>
-                            <div class="input-choice-actions">
-                                <button id="useCameraBtn" type="button" class="input-choice-button primary">
-                                    <i class="ph ph-camera text-2xl"></i>
-                                    <span>Use Camera</span>
-                                </button>
-                                <button id="uploadImageBtn" type="button" class="input-choice-button secondary">
-                                    <i class="ph ph-upload-simple text-2xl"></i>
-                                    <span>Upload Image</span>
-                                </button>
-                            </div>
-                            <div class="input-choice-hints">
-                                <span id="pasteHintText"><i class="ph ph-clipboard-text"></i> Paste with Ctrl+V</span>
-                                <span id="dragHintText"><i class="ph ph-hand-grabbing"></i> Drag & drop an image here</span>
-                            </div>
-                            <p id="cameraStatusMessage" class="camera-status-message hidden"></p>
+                    <!-- Drop zone overlay -->
+                    <div id="dropZoneOverlay" class="scan-drop-overlay hidden">
+                        <i class="ph ph-image-square text-4xl text-white/80"></i>
+                        <p class="font-bold text-white/90 text-sm mt-2">Drop image here</p>
+                    </div>
+
+                    <!-- ─── Scanning HUD ─── -->
+                    <div id="scanHud" class="scan-hud">
+
+                        <!-- Top bar -->
+                        <div class="hud-top">
+                            <!-- Close / back button -->
+                            <button id="closeCameraBtn" type="button" class="hud-close-btn hidden" title="Close camera">
+                                <i class="ph ph-x text-lg"></i>
+                            </button>
                         </div>
-                    </div>
 
-                    <div id="dropZoneOverlay" class="drop-zone-overlay hidden">
-                        <i class="ph ph-image-square text-5xl text-emerald-300"></i>
-                        <p id="dropZoneTitle" class="font-bold text-white text-lg mt-3">Drop image to preview</p>
-                        <p id="dropZoneMessage" class="text-sm text-white/70 mt-1">Only image files are accepted</p>
-                    </div>
+                        <!-- Scan frame corners (animated) -->
+                        <div id="scanFrame" class="scan-frame">
+                            <div class="scan-corner top-left"></div>
+                            <div class="scan-corner top-right"></div>
+                            <div class="scan-corner bottom-left"></div>
+                            <div class="scan-corner bottom-right"></div>
+                        </div>
 
-                    <!-- Demo Mode Floating Indicator & Selector -->
-                    <div id="demoSelectorPanel" class="hidden absolute top-4 left-4 right-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur border border-amber-200 dark:border-amber-900/50 rounded-xl p-3 shadow-lg z-20 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div class="flex items-center gap-2 text-left">
-                            <span class="flex h-2 w-2 relative">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                            </span>
-                            <div>
-                                <span class="text-xs font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider block">Offline Demo Active</span>
-                                <span class="text-[10px] text-slate-500 dark:text-slate-400">Select what the camera is seeing:</span>
+                        <!-- Scanning line animation -->
+                        <div class="scan-line-track">
+                            <div id="scanLineAnim" class="scan-line-anim"></div>
+                        </div>
+
+                        <!-- Bottom controls -->
+                        <div class="hud-bottom">
+                            <!-- Gallery icon -->
+                            <div class="hud-bottom-side">
+                                <button id="galleryBtn" type="button" class="hud-icon-btn hud-gallery-btn" title="Upload from gallery">
+                                    <i class="ph ph-images text-xl"></i>
+                                </button>
+                            </div>
+
+                            <!-- Capture button -->
+                            <div class="hud-capture-wrap">
+                                <div id="captureRing" class="hud-capture-ring"></div>
+                                <button id="scanBtn" type="button" class="hud-capture-btn" title="Capture &amp; analyze">
+                                    <div class="hud-capture-inner"></div>
+                                </button>
+                            </div>
+
+                            <!-- Right side: zoom + confirm -->
+                            <div class="hud-bottom-side">
+                                <!-- Zoom toggle -->
+                                <button id="zoomToggleBtn" type="button" class="hud-icon-btn hud-zoom-btn hidden" title="Zoom">
+                                    <i class="ph ph-magnifying-glass-plus text-xl"></i>
+                                </button>
+
+                                <!-- Confirm (Analyze) button — shows only when image captured/uploaded -->
+                                <button id="confirmBtn" type="button" class="hud-icon-btn hud-confirm-btn hidden" title="Analyze">
+                                    <i class="ph ph-check text-xl"></i>
+                                </button>
                             </div>
                         </div>
-                        <select id="demoScenarioSelect" class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none text-slate-850 dark:text-white max-w-xs focus:border-amber-500">
-                            <option value="bottle">Scenario 1: Plastic Bottle (Composite)</option>
-                            <option value="battery">Scenario 2: Household Battery (Hazardous)</option>
-                            <option value="bag">Scenario 3: Single-Use Plastic Bag (Soft Plastic)</option>
-                            <option value="mixed">Scenario 4: Mixed Waste (Can, Box, Battery, Styrofoam)</option>
-                        </select>
-                    </div>
 
-                    <!-- Flash Overlay -->
+                        <!-- Zoom slider (slide-up panel) -->
+                        <div id="zoomControlWrap" class="zoom-panel hidden">
+                            <div class="zoom-panel-inner">
+                                <i class="ph ph-minus text-xs text-white/50"></i>
+                                <input type="range" id="zoomSlider" class="zoom-slider" min="1" max="5" step="0.1" value="1">
+                                <i class="ph ph-plus text-xs text-white/50"></i>
+                                <span id="zoomLabel" class="zoom-label">1.0x</span>
+                            </div>
+                        </div>
+
+                    </div><!-- /scanHud -->
+
+                    <!-- Flash overlay -->
                     <div id="flashOverlay" class="flash-overlay"></div>
 
-                    <!-- Loading Overlay -->
+                    <!-- Loading overlay -->
                     <div id="loadingOverlay" class="loading-overlay">
                         <div class="mb-4">
                             <div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
@@ -128,54 +165,47 @@
                         <p id="loadingModeText" class="text-xs text-white/70 mt-2">Building recycling guidance</p>
                     </div>
 
-                </section>
-
-                <!-- Action Button -->
-                <section id="scanActionSection" class="flex justify-center mt-[-2rem] relative z-10">
-                    <div class="camera-action-controls">
-                        <!-- Pulsing ring effect -->
-                        <div class="pulse-ring"></div>
-                        
-                        <button id="scanBtn" class="relative bg-emerald-500 hover:bg-emerald-600 text-white w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 border-4 border-white">
-                            <i class="ph ph-camera text-3xl"></i>
-                        </button>
-                        <button id="backToOptionsBtn" type="button" class="back-to-options-btn">
-                            <i class="ph ph-arrow-left"></i>
-                            <span>Back to upload options</span>
-                        </button>
-                    </div>
-                </section>
-
-                <!-- Scan Mode Selector -->
-                <section class="px-6 mt-8 mb-6">
-                    <div class="bg-white rounded-2xl shadow-sm p-5">
-                        <div class="flex items-center justify-between gap-3 mb-4">
-                            <div>
-                                <h2 class="text-lg font-bold text-gray-800">Scan Mode</h2>
-                                <p class="text-xs text-gray-500">Choose how deeply the AI should analyze this image.</p>
-                            </div>
-                            <i class="ph ph-sparkle text-2xl text-emerald-500"></i>
+                    <!-- Initial CTA -->
+                    <div id="inputChoicePanel" class="scan-cta-panel">
+                        <div class="scan-cta-inner">
+                            <i class="ph ph-camera text-4xl text-white/80 mb-3"></i>
+                            <p class="text-white/90 font-bold text-base">Point &amp; snap to scan</p>
+                            <p class="text-white/50 text-xs mt-1">Tap camera to start · Ctrl+V to paste · Drag image to upload</p>
                         </div>
-                        <div id="scanModeOptions" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                    </div>
+
+                </section>
+
+                <!-- Scan Mode Selector (shown below viewport) -->
+                <section class="px-4 mt-5 mb-4">
+                    <div class="bg-white rounded-2xl shadow-sm p-4">
+                        <div class="flex items-center justify-between gap-3 mb-3">
+                            <div>
+                                <h2 class="text-base font-bold text-gray-800">Scan Mode</h2>
+                                <p class="text-xs text-gray-500">How deep should the AI analyze?</p>
+                            </div>
+                            <i class="ph ph-sparkle text-xl text-emerald-500"></i>
+                        </div>
+                        <div id="scanModeOptions" class="grid grid-cols-5 gap-1.5">
                             <button type="button" class="scan-mode-card active" data-mode="quick">
                                 <span class="font-semibold">Quick</span>
-                                <small>Fast answer</small>
+                                <small>Fast</small>
                             </button>
                             <button type="button" class="scan-mode-card" data-mode="detailed">
-                                <span class="font-semibold">Detailed</span>
-                                <small>Materials + steps</small>
+                                <span class="font-semibold">Detail</span>
+                                <small>Steps</small>
                             </button>
                             <button type="button" class="scan-mode-card" data-mode="batch">
                                 <span class="font-semibold">Batch</span>
-                                <small>Multiple items</small>
+                                <small>Multi</small>
                             </button>
                             <button type="button" class="scan-mode-card" data-mode="education">
-                                <span class="font-semibold">Education</span>
-                                <small>Explain why</small>
+                                <span class="font-semibold">Learn</span>
+                                <small>Why</small>
                             </button>
                             <button type="button" class="scan-mode-card" data-mode="carbon">
                                 <span class="font-semibold">Carbon</span>
-                                <small>Impact estimate</small>
+                                <small>Impact</small>
                             </button>
                         </div>
                     </div>
@@ -297,29 +327,6 @@
         </nav>
     </div>
 
-    <!-- Image Preview Modal -->
-    <div id="previewModal" class="fixed inset-0 bg-black/90 z-50 hidden flex flex-col">
-        <div class="flex justify-end p-4">
-            <button id="closePreviewBtn" class="text-white hover:text-gray-300 transition-colors">
-                <i class="ph ph-x text-3xl"></i>
-            </button>
-        </div>
-        
-        <div class="flex-1 flex items-center justify-center p-4">
-            <img id="previewImage" src="" alt="Preview" class="max-w-full max-h-full max-[90vw] max-[80vh] object-contain rounded-lg shadow-2xl">
-        </div>
-        
-        <div class="p-6 flex justify-center gap-4">
-            <button id="retakeBtn" class="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-colors">
-                <i class="ph ph-arrow-counter-clockwise text-xl"></i>
-                <span>Retake</span>
-            </button>
-            <button id="analyzeBtn" class="flex items-center gap-2 px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold transition-colors shadow-lg">
-                <i class="ph ph-magnifying-glass text-xl"></i>
-                <span>Analyze</span>
-            </button>
-        </div>
-    </div>
 
         <!-- Settings Modal -->
     <div id="settingsModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3 sm:p-4 backdrop-blur-sm overflow-hidden">
