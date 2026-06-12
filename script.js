@@ -9,13 +9,11 @@ const dom = {
     fileInput: document.getElementById('fileInput'),
     cameraSection: document.getElementById('cameraSection'),
     inputChoicePanel: document.getElementById('inputChoicePanel'),
-    useCameraBtn: document.getElementById('useCameraBtn'),
     cameraStatusMessage: document.getElementById('cameraStatusMessage'),
-    previewModal: document.getElementById('previewModal'),
-    previewImage: document.getElementById('previewImage'),
-    closePreviewBtn: document.getElementById('closePreviewBtn'),
-    retakeBtn: document.getElementById('retakeBtn'),
-    analyzeBtn: document.getElementById('analyzeBtn'),
+    // New HUD elements
+    confirmBtn: document.getElementById('confirmBtn'),
+    scanHud: document.getElementById('scanHud'),
+    zoomToggleBtn: document.getElementById('zoomToggleBtn'),
     // New TikTok-style elements
     closeCameraBtn: document.getElementById('closeCameraBtn'),
     galleryBtn: document.getElementById('galleryBtn'),
@@ -667,7 +665,6 @@ Object.assign(translations.en, {
     unsupportedProvider: 'Unsupported AI provider.',
     imageAnalysisUserPrompt: 'Analyze this waste image. Return JSON only. All user-facing string values must be in English.',
     chooseImageMethod: 'Choose how to scan your item!',
-    useCamera: 'Use Camera',
     pasteImage: 'Paste Image',
     dragDrop: 'Drag & Drop',
     backToUploadOptions: 'Back to upload options',
@@ -820,7 +817,6 @@ Object.assign(translations.vi, {
     unsupportedProvider: 'Nhà cung cấp AI không được hỗ trợ.',
     imageAnalysisUserPrompt: 'Phân tích ảnh rác này. Chỉ trả về JSON. Tất cả giá trị chuỗi hiển thị cho người dùng phải bằng tiếng Việt có đầy đủ dấu.',
     chooseImageMethod: 'Chọn cách thêm ảnh',
-    useCamera: 'Dùng camera',
     pasteImage: 'Dán ảnh',
     dragDrop: 'Kéo & thả',
     backToUploadOptions: 'Quay lại tùy chọn tải ảnh',
@@ -996,7 +992,6 @@ function applyStaticTranslations() {
     dom.settingsBtn.title = t('settings');
 
     setText(dom.inputChoiceTitle, 'chooseImageMethod');
-    setText(dom.useCameraBtn?.querySelector('span'), 'useCamera');
     setText(dom.uploadImageBtn?.querySelector('span'), 'uploadImage');
     setText(dom.pasteImageBtn?.querySelector('span'), 'pasteImage');
     setText(dom.dragDropImageBtn?.querySelector('span'), 'dragDrop');
@@ -1078,9 +1073,6 @@ function applyStaticTranslations() {
     setText('#disposalPlanSection h6', 'steps');
     setText(dom.compositionBars?.closest('.bg-white')?.querySelector('h5'), 'materialBreakdown');
     setText(dom.actionSteps?.closest('.bg-white')?.querySelector('h5'), 'preparationSteps');
-    setText(dom.ecoScoreValue?.closest('.bg-white')?.querySelector('h5'), 'sustainabilityTracker');
-    setText(dom.ecoScoreValue?.previousElementSibling, 'ecoScore');
-    setText(dom.carbonSavedValue?.previousElementSibling, 'carbonSaved');
     setText('#saveToHistoryBtn span', 'saveToHistory');
 
     setText('#quizModalTitle', 'ecoQuiz');
@@ -1096,9 +1088,6 @@ function applyStaticTranslations() {
         options[2].textContent = t('scenarioBag');
         options[3].textContent = t('scenarioMixed');
     }
-
-    setText('#retakeBtn span', 'retake');
-    setText('#analyzeBtn span', 'analyze');
 
     if (dom.languageSelect) {
         dom.languageSelect.value = currentLanguage;
@@ -2374,9 +2363,14 @@ async function initCamera() {
     dom.inputChoicePanel?.classList.add('hidden');
     dom.videoCanvas.classList.add('hidden');
     dom.videoCanvas.classList.remove('tiktok-preview');
-    dom.scanActionSection.classList.add('hidden');
+    dom.scanActionSection?.classList.add('hidden');
     dom.zoomControlWrap?.classList.add('hidden');
     dom.closeCameraBtn?.classList.add('hidden');
+    dom.scanFrame?.classList.remove('hidden');
+    document.querySelector('.scan-line-track')?.classList.remove('hidden');
+    dom.confirmBtn?.classList.add('hidden');
+    dom.scanBtn?.classList.remove('hidden');
+    dom.captureRing?.classList.remove('hidden');
 
     if (!navigator.mediaDevices?.getUserMedia) {
         handleCameraError();
@@ -2409,8 +2403,7 @@ async function initCamera() {
         dom.videoCanvas = video;
         dom.videoCanvas.classList.remove('hidden');
         dom.inputChoicePanel?.classList.add('hidden');
-        dom.scanActionSection.classList.remove('hidden');
-        dom.zoomControlWrap?.classList.remove('hidden');
+        dom.zoomToggleBtn?.classList.remove('hidden');
         dom.closeCameraBtn?.classList.remove('hidden');
         setCameraStatus('', true);
 
@@ -2437,7 +2430,7 @@ function stopCamera() {
 function handleCameraError() {
     stopCamera();
     dom.videoCanvas.classList.add('hidden');
-    dom.scanActionSection.classList.add('hidden');
+    dom.scanActionSection?.classList.add('hidden');
     dom.zoomControlWrap?.classList.add('hidden');
     dom.closeCameraBtn?.classList.add('hidden');
     showInputChoices(t('cameraDeniedUploadStillAvailable'));
@@ -2452,7 +2445,7 @@ function setCameraStatus(message, shouldHide = false) {
 function showInputChoices(message = '') {
     stopCamera();
     dom.videoCanvas.classList.add('hidden');
-    dom.scanActionSection.classList.add('hidden');
+    dom.zoomToggleBtn?.classList.add('hidden');
     dom.zoomControlWrap?.classList.add('hidden');
     dom.closeCameraBtn?.classList.add('hidden');
     dom.inputChoicePanel?.classList.remove('hidden');
@@ -2505,7 +2498,6 @@ async function captureImage() {
     setTimeout(() => {
         dom.flashOverlay.classList.remove('active');
         showSnappedPhoto(capturedImageData);
-        showPreviewModal(capturedImageData);
     }, 100);
 }
 
@@ -2541,11 +2533,16 @@ function showUploadedImage(imageData) {
     dom.videoCanvas = previewImg;
 
     dom.inputChoicePanel?.classList.add('hidden');
-    dom.scanActionSection.classList.add('hidden');
+    dom.scanActionSection?.classList.add('hidden');
     dom.zoomControlWrap?.classList.add('hidden');
     dom.closeCameraBtn?.classList.add('hidden');
-    // Keep gallery visible so user can pick a different image
-    setCameraStatus('', true);
+
+    // Hide scan frame / line, show confirm button
+    dom.scanFrame?.classList.add('hidden');
+    document.querySelector('.scan-line-track')?.classList.add('hidden');
+    dom.confirmBtn?.classList.remove('hidden');
+    dom.scanBtn?.classList.add('hidden');
+    dom.captureRing?.classList.add('hidden');
 }
 
 async function processImageFile(file, successMessage, noteMessage = '') {
@@ -2557,10 +2554,18 @@ async function processImageFile(file, successMessage, noteMessage = '') {
 
     try {
         const imageDataUrl = await readFileAsDataUrl(file);
+        if (!imageDataUrl || !imageDataUrl.startsWith('data:image/')) {
+            throw new Error('Invalid image data after read: ' + (imageDataUrl ? imageDataUrl.slice(0, 30) : 'null'));
+        }
         capturedImageData = await compressImage(imageDataUrl, MAX_IMAGE_DIMENSION, 0.82);
+        if (!capturedImageData || !capturedImageData.startsWith('data:image/')) {
+            throw new Error('compressImage(MAX) returned: ' + (capturedImageData || 'null'));
+        }
         capturedHistoryImageData = await compressImage(imageDataUrl, HISTORY_IMAGE_DIMENSION, 0.72);
+        if (!capturedHistoryImageData || !capturedHistoryImageData.startsWith('data:image/')) {
+            throw new Error('compressImage(HISTORY) returned: ' + (capturedHistoryImageData || 'null'));
+        }
         showUploadedImage(capturedImageData);
-        showPreviewModal(capturedImageData);
         showToast(noteMessage ? `${successMessage} ${noteMessage}` : successMessage);
         return true;
     } catch (error) {
@@ -2676,26 +2681,21 @@ function showSnappedPhoto(imageData) {
     dom.videoCanvas = previewImg;
 
     dom.inputChoicePanel?.classList.add('hidden');
-    dom.scanActionSection.classList.add('hidden');
+    dom.scanActionSection?.classList.add('hidden');
     dom.zoomControlWrap?.classList.add('hidden');
     dom.closeCameraBtn?.classList.add('hidden');
-    // Keep gallery visible so user can upload a different image after snapping
+
+    // Hide scan frame / line, show confirm button
+    dom.scanFrame?.classList.add('hidden');
+    document.querySelector('.scan-line-track')?.classList.add('hidden');
+    dom.confirmBtn?.classList.remove('hidden');
+    dom.scanBtn?.classList.add('hidden');
+    dom.captureRing?.classList.add('hidden');
     setCameraStatus('', true);
 }
 
-function showPreviewModal(imageData) {
-    dom.previewImage.src = imageData;
-    dom.previewModal.classList.remove('hidden');
-    document.body.classList.add('overflow-hidden');
-}
-
-function hidePreviewModal() {
-    dom.previewModal.classList.add('hidden');
-    document.body.classList.remove('overflow-hidden');
-}
-
 function resetToCamera() {
-    hidePreviewModal();
+    // Preview modal removed — just clear captured data
     dom.fileInput.value = '';
     capturedImageData = null;
     capturedHistoryImageData = null;
@@ -2705,11 +2705,19 @@ function resetToCamera() {
     if (previewImg && previewImg.tagName === 'IMG') {
         const canvas = document.createElement('canvas');
         canvas.id = 'videoCanvas';
-        canvas.className = 'hidden';
+        canvas.className = 'scan-video hidden';
         previewImg.replaceWith(canvas);
         dom.videoCanvas = canvas;
     }
 
+    // Restore HUD: show scan frame / line, show capture button, hide confirm
+    dom.scanFrame?.classList.remove('hidden');
+    document.querySelector('.scan-line-track')?.classList.remove('hidden');
+    dom.confirmBtn?.classList.add('hidden');
+    dom.scanBtn?.classList.remove('hidden');
+    dom.captureRing?.classList.remove('hidden');
+
+    // Restart the camera feed (wrap to avoid breaking on permission errors)
     showInputChoices();
 }
 
@@ -2735,7 +2743,6 @@ async function analyzeWithAI() {
         return;
     }
 
-    hidePreviewModal();
     dom.loadingModeText.textContent = getScanModeText(selectedScanMode, 'loading');
     dom.loadingOverlay.classList.add('active');
 
@@ -4366,7 +4373,10 @@ function bindEvents() {
         dom.apiKeyInput.type = isHidden ? 'text' : 'password';
         dom.toggleApiKeyBtn.replaceChildren(icon(isHidden ? 'ph ph-eye-slash text-lg' : 'ph ph-eye text-lg'));
     });
-    dom.useCameraBtn?.addEventListener('click', initCamera);
+    dom.zoomToggleBtn?.addEventListener('click', () => {
+        dom.zoomControlWrap?.classList.toggle('hidden');
+        dom.zoomToggleBtn?.classList.toggle('active');
+    });
     dom.scanBtn.addEventListener('click', () => {
         if (!stream) return;
         captureImage();
@@ -4389,9 +4399,7 @@ function bindEvents() {
     dom.cameraSection.addEventListener('dragover', handleDragOver);
     dom.cameraSection.addEventListener('dragleave', handleDragLeave);
     dom.cameraSection.addEventListener('drop', handleDrop);
-    dom.closePreviewBtn.addEventListener('click', resetToCamera);
-    dom.retakeBtn.addEventListener('click', resetToCamera);
-    dom.analyzeBtn.addEventListener('click', analyzeWithAI);
+    dom.confirmBtn?.addEventListener('click', analyzeWithAI);
     dom.closeResultsBtn.addEventListener('click', closeResults);
     dom.clearHistoryBtn.addEventListener('click', clearHistory);
     dom.saveToHistoryBtn.addEventListener('click', () => {

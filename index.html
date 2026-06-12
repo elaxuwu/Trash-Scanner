@@ -19,7 +19,7 @@
     <!-- Confetti for Gamification -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="style.css?v=18">
+    <link rel="stylesheet" href="style.css?v=19">
 </head>
 <body>
 
@@ -62,83 +62,94 @@
             <div id="page-scan" class="page-content">
 
                 <!-- Full-screen camera / image viewport -->
-                <section id="cameraSection" class="tiktok-viewport">
+                <section id="cameraSection" class="scan-viewport">
                     <!-- Live video feed -->
                     <video id="videoCanvas"
                            autoplay
                            playsinline
                            muted
-                           class="tiktok-video hidden"></video>
+                           class="scan-video hidden"></video>
 
                     <!-- Captured / uploaded image display -->
                     <img id="videoCanvas"
                          src=""
                          alt="Preview"
-                         class="tiktok-preview hidden">
+                         class="scan-image hidden">
 
                     <input type="file" id="fileInput" accept="image/*" class="hidden">
 
-                    <!-- Demo mode selector -->
-                    <div id="demoSelectorPanel" class="hidden tiktok-demo-panel">
-                        <div class="flex items-center gap-2 text-left">
-                            <span class="flex h-2 w-2 relative">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                            </span>
-                            <div>
-                                <span class="text-[10px] font-black text-amber-300 uppercase tracking-wider block">Demo Mode</span>
-                                <span class="text-[9px] text-white/60">Simulate camera:</span>
-                            </div>
-                        </div>
-                        <select id="demoScenarioSelect" class="tiktok-demo-select">
-                            <option value="bottle">Plastic Bottle</option>
-                            <option value="battery">Battery</option>
-                            <option value="bag">Plastic Bag</option>
-                            <option value="mixed">Mixed Waste</option>
-                        </select>
-                    </div>
-
                     <!-- Drop zone overlay -->
-                    <div id="dropZoneOverlay" class="tiktok-drop-overlay hidden">
+                    <div id="dropZoneOverlay" class="scan-drop-overlay hidden">
                         <i class="ph ph-image-square text-4xl text-white/80"></i>
                         <p class="font-bold text-white/90 text-sm mt-2">Drop image here</p>
                     </div>
 
-                    <!-- Status message (camera denied, etc.) -->
-                    <p id="cameraStatusMessage" class="tiktok-status hidden absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-4 py-2 rounded-full backdrop-blur-sm"></p>
+                    <!-- ─── Scanning HUD ─── -->
+                    <div id="scanHud" class="scan-hud">
 
-                    <!-- Top-right: Close camera button (when live) -->
-                    <button id="closeCameraBtn" type="button" class="tiktok-close-btn hidden" title="Close camera">
-                        <i class="ph ph-x text-xl"></i>
-                    </button>
-
-                    <!-- Bottom controls overlay -->
-                    <div id="scanActionSection" class="tiktok-controls hidden">
-
-                        <!-- Center: Snap button -->
-                        <div class="tiktok-snap-wrap">
-                            <div class="tiktok-snap-ring"></div>
-                            <button id="scanBtn" type="button" class="tiktok-snap-btn">
-                                <div class="tiktok-snap-inner"></div>
+                        <!-- Top bar -->
+                        <div class="hud-top">
+                            <!-- Close / back button -->
+                            <button id="closeCameraBtn" type="button" class="hud-close-btn hidden" title="Close camera">
+                                <i class="ph ph-x text-lg"></i>
                             </button>
                         </div>
 
-                        <!-- Right: placeholder for symmetry -->
-                        <div class="w-10"></div>
-                    </div>
+                        <!-- Scan frame corners (animated) -->
+                        <div id="scanFrame" class="scan-frame">
+                            <div class="scan-corner top-left"></div>
+                            <div class="scan-corner top-right"></div>
+                            <div class="scan-corner bottom-left"></div>
+                            <div class="scan-corner bottom-right"></div>
+                        </div>
 
-                    <!-- Gallery icon – bottom-left, always visible in viewport -->
-                    <button id="galleryBtn" type="button" class="tiktok-gallery-btn" title="Upload from gallery">
-                        <i class="ph ph-images text-xl"></i>
-                    </button>
+                        <!-- Scanning line animation -->
+                        <div class="scan-line-track">
+                            <div id="scanLineAnim" class="scan-line-anim"></div>
+                        </div>
 
-                    <!-- Zoom control (shown when camera is live) -->
-                    <div id="zoomControlWrap" class="tiktok-zoom-wrap hidden">
-                        <i class="ph ph-minus text-xs text-white/60"></i>
-                        <input type="range" id="zoomSlider" class="tiktok-zoom-slider" min="1" max="5" step="0.1" value="1">
-                        <i class="ph ph-plus text-xs text-white/60"></i>
-                        <span id="zoomLabel" class="tiktok-zoom-label">1.0x</span>
-                    </div>
+                        <!-- Bottom controls -->
+                        <div class="hud-bottom">
+                            <!-- Gallery icon -->
+                            <div class="hud-bottom-side">
+                                <button id="galleryBtn" type="button" class="hud-icon-btn hud-gallery-btn" title="Upload from gallery">
+                                    <i class="ph ph-images text-xl"></i>
+                                </button>
+                            </div>
+
+                            <!-- Capture button -->
+                            <div class="hud-capture-wrap">
+                                <div id="captureRing" class="hud-capture-ring"></div>
+                                <button id="scanBtn" type="button" class="hud-capture-btn" title="Capture &amp; analyze">
+                                    <div class="hud-capture-inner"></div>
+                                </button>
+                            </div>
+
+                            <!-- Right side: zoom + confirm -->
+                            <div class="hud-bottom-side">
+                                <!-- Zoom toggle -->
+                                <button id="zoomToggleBtn" type="button" class="hud-icon-btn hud-zoom-btn hidden" title="Zoom">
+                                    <i class="ph ph-magnifying-glass-plus text-xl"></i>
+                                </button>
+
+                                <!-- Confirm (Analyze) button — shows only when image captured/uploaded -->
+                                <button id="confirmBtn" type="button" class="hud-icon-btn hud-confirm-btn hidden" title="Analyze">
+                                    <i class="ph ph-check text-xl"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Zoom slider (slide-up panel) -->
+                        <div id="zoomControlWrap" class="zoom-panel hidden">
+                            <div class="zoom-panel-inner">
+                                <i class="ph ph-minus text-xs text-white/50"></i>
+                                <input type="range" id="zoomSlider" class="zoom-slider" min="1" max="5" step="0.1" value="1">
+                                <i class="ph ph-plus text-xs text-white/50"></i>
+                                <span id="zoomLabel" class="zoom-label">1.0x</span>
+                            </div>
+                        </div>
+
+                    </div><!-- /scanHud -->
 
                     <!-- Flash overlay -->
                     <div id="flashOverlay" class="flash-overlay"></div>
@@ -153,18 +164,15 @@
                         <p id="loadingModeText" class="text-xs text-white/70 mt-2">Building recycling guidance</p>
                     </div>
 
-                    <!-- Initial CTA (shown before camera starts) -->
-                    <div id="inputChoicePanel" class="tiktok-cta-panel">
-                        <div class="tiktok-cta-inner">
+                    <!-- Initial CTA -->
+                    <div id="inputChoicePanel" class="scan-cta-panel">
+                        <div class="scan-cta-inner">
                             <i class="ph ph-camera text-4xl text-white/80 mb-3"></i>
                             <p class="text-white/90 font-bold text-base">Point &amp; snap to scan</p>
                             <p class="text-white/50 text-xs mt-1">Tap camera to start · Ctrl+V to paste · Drag image to upload</p>
-                            <button id="useCameraBtn" type="button" class="mt-5 tiktok-cta-btn">
-                                <i class="ph ph-camera text-lg"></i>
-                                <span>Open Camera</span>
-                            </button>
                         </div>
                     </div>
+
                 </section>
 
                 <!-- Scan Mode Selector (shown below viewport) -->
@@ -318,29 +326,6 @@
         </nav>
     </div>
 
-    <!-- Image Preview Modal -->
-    <div id="previewModal" class="fixed inset-0 bg-black/90 z-50 hidden flex flex-col">
-        <div class="flex justify-end p-4">
-            <button id="closePreviewBtn" class="text-white hover:text-gray-300 transition-colors">
-                <i class="ph ph-x text-3xl"></i>
-            </button>
-        </div>
-        
-        <div class="flex-1 flex items-center justify-center p-4">
-            <img id="previewImage" src="" alt="Preview" class="max-w-full max-h-full max-[90vw] max-[80vh] object-contain rounded-lg shadow-2xl">
-        </div>
-        
-        <div class="p-6 flex justify-center gap-4">
-            <button id="retakeBtn" class="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-colors">
-                <i class="ph ph-arrow-counter-clockwise text-xl"></i>
-                <span>Retake</span>
-            </button>
-            <button id="analyzeBtn" class="flex items-center gap-2 px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold transition-colors shadow-lg">
-                <i class="ph ph-magnifying-glass text-xl"></i>
-                <span>Analyze</span>
-            </button>
-        </div>
-    </div>
 
         <!-- Settings Modal -->
     <div id="settingsModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3 sm:p-4 backdrop-blur-sm overflow-hidden">
@@ -799,7 +784,7 @@
     </div>
 
     <!-- Custom JS -->
-    <script src="script.js?v=15"></script>
+    <script src="script.js?v=16"></script>
 </body>
 </html>
 
