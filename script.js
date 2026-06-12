@@ -35,6 +35,7 @@ const dom = {
     modelSelect: document.getElementById('modelSelect'),
     modelInput: document.getElementById('modelInput'),
     modelHint: document.getElementById('modelHint'),
+    modelInputWrapper: document.getElementById('modelInputWrapper'),
     apiKeyLabel: document.getElementById('apiKeyLabel'),
     apiKeyHelp: document.getElementById('apiKeyHelp'),
     apiKeyInput: document.getElementById('apiKeyInput'),
@@ -159,7 +160,7 @@ const scanModes = {
     education: {
         label: 'Education Mode',
         loading: 'Explaining recycling decisions',
-        instruction: 'Explain why each item is recyclable, non-recyclable, partial, or special handling.'
+        instruction: 'Explain why each item is recyclable or non-recyclable.'
     },
     carbon: {
         label: 'Carbon Impact Mode',
@@ -174,7 +175,6 @@ const aiProviders = {
         defaultModel: 'gpt-4o-mini',
         recommendedModels: ['gpt-4o-mini', 'gpt-4.1-mini'],
         keyPlaceholder: 'sk-...',
-        modelHint: 'Recommended OpenAI options here are vision-capable models.',
         keyHelpText: 'Get your API key from OpenAI Platform.',
         keyHelpUrl: 'https://platform.openai.com/api-keys'
     },
@@ -183,7 +183,6 @@ const aiProviders = {
         defaultModel: 'openai/gpt-4o-mini',
         recommendedModels: ['openai/gpt-4o-mini', 'google/gemini-2.0-flash-001'],
         keyPlaceholder: 'sk-or-...',
-        modelHint: 'Recommended OpenRouter options here are vision-capable models.',
         keyHelpText: 'Get your API key from OpenRouter.',
         keyHelpUrl: 'https://openrouter.ai/keys'
     },
@@ -192,7 +191,6 @@ const aiProviders = {
         defaultModel: 'gemini-1.5-flash',
         recommendedModels: ['gemini-1.5-flash'],
         keyPlaceholder: 'AI...',
-        modelHint: 'Recommended Gemini options here are vision-capable models.',
         keyHelpText: 'Get your API key from Google AI Studio.',
         keyHelpUrl: 'https://aistudio.google.com/app/apikey'
     }
@@ -349,15 +347,16 @@ const translationOverrides = {
         startQuiz: 'Start Quiz',
         recentScans: 'Recent Scans',
         clearAll: 'Clear All',
-        offlineDemoMode: 'Offline Demo Mode',
+        offlineDemoMode: 'Try Without Signing Up',
         offlineDemoDesc: 'Simulate scans without internet or API keys',
         aiProvider: 'AI Provider',
-        visionWarning: 'This app requires a vision-capable model. Text-only models will not work.',
+        visionWarning: 'Connect your own AI account to unlock full scanning capabilities. A vision-capable model is required.',
         recommendedVisionModel: 'Recommended Vision Model',
+        aiModelHint: 'Select a vision-capable model from the list.',
         recommendedVisionHint: 'Recommended options are vision-capable models.',
         customModelOptional: 'Custom Model (optional)',
-        customModelPlaceholder: 'Leave blank to use the recommended model',
-        customModelHelp: 'Advanced users can override the dropdown. Custom text-only models will not work.',
+        customModelPlaceholder: 'Enter model name (e.g. gpt-4o, claude-3-opus)',
+        customModelHelp: 'Enter the full model name. Only vision-capable models will work.',
         openAiApiKey: 'OpenAI API Key',
         getApiKeyFrom: 'Get your API key from',
         apiKeyConfigured: '{provider} API key is configured for this browser.',
@@ -512,15 +511,16 @@ const translationOverrides = {
         startQuiz: 'Bắt đầu câu đố',
         recentScans: 'Lượt quét gần đây',
         clearAll: 'Xóa tất cả',
-        offlineDemoMode: 'Chế độ ngoại tuyến',
+        offlineDemoMode: 'Dùng thử không cần đăng ký',
         offlineDemoDesc: 'Mô phỏng quét khi không có internet hoặc API key',
         aiProvider: 'Nhà cung cấp AI',
-        visionWarning: 'Ứng dụng cần mô hình có khả năng nhìn ảnh. Mô hình chỉ xử lý văn bản sẽ không hoạt động.',
+        visionWarning: 'Kết nối tài khoản AI của bạn để mở khóa tính năng quét đầy đủ. Cần một mô hình có khả năng xử lý hình ảnh.',
         recommendedVisionModel: 'Mô hình đề xuất có hỗ trợ hình ảnh',
+        aiModelHint: 'Chọn một mô hình có hỗ trợ hình ảnh từ danh sách.',
         recommendedVisionHint: 'Các lựa chọn đề xuất đều là mô hình có hỗ trợ hình ảnh.',
         customModelOptional: 'Mô hình tùy chỉnh (không bắt buộc)',
-        customModelPlaceholder: 'Để trống để dùng mô hình đề xuất',
-        customModelHelp: 'Người dùng nâng cao có thể tự nhập mô hình. Mô hình chỉ văn bản sẽ không hoạt động.',
+        customModelPlaceholder: 'Nhập tên mô hình (vd: gpt-4o, claude-3-opus)',
+        customModelHelp: 'Nhập tên đầy đủ của mô hình. Chỉ mô hình có hỗ trợ hình ảnh mới hoạt động.',
         openAiApiKey: 'API key OpenAI',
         getApiKeyFrom: 'Lấy API key từ',
         apiKeyConfigured: 'API key {provider} đã được lưu trong trình duyệt này.',
@@ -685,6 +685,12 @@ Object.assign(translations.en, {
     dark: 'Dark',
     appVersion: 'App Version',
     clearLocalCache: 'Clear Local Cache',
+    clearCacheDesc: 'Remove cached images and data',
+    aiModel: 'AI Model',
+    aiModelDesc: 'Vision-capable model for scanning',
+    aiProviderDesc: 'Choose your AI service provider',
+    apiKey: 'API Key',
+    apiKeyDesc: 'Your provider API key',
     cacheClearedReload: 'Cache cleared. Please reload the page.',
     achEcoStarter: 'Eco Starter',
     achEcoStarterDesc: 'Reach 50 eco points',
@@ -772,7 +778,7 @@ Object.assign(translations.en, {
     samplePizzaInstruction: 'Keep out of clean recycling.',
     savedLanguageNote: 'Some saved scan details may remain in the language used when they were created.',
     promptBatchExample: '{"language":"en","scanType":"batch","objects":[{"id":1,"name":"Plastic Bottle","category":"Plastic","gridCell":3,"recyclable":true,"confidence":0.92,"ecoScore":15,"disposalAction":"Empty, rinse, and recycle if accepted locally.","disposalPlan":{"immediateAction":"Empty and rinse the bottle now.","steps":["Empty remaining liquid.","Rinse before recycling.","Put in recycling if accepted locally."],"handlingType":"Recycling bin","safetyWarning":"No special safety risk if empty.","mistakeToAvoid":"Do not recycle it with liquid inside."},"components":[{"part":"Bottle body","material":"PET plastic","recyclable":true,"instruction":"Empty and rinse."}],"preparationSteps":["Empty remaining liquid.","Rinse before recycling."],"education":"Brief reason.","carbonSavedGrams":20}],"overallSummary":"Short summary.","totalEcoScore":20,"carbonSavedGrams":20}',
-    promptSingleExample: '{"language":"en","scanType":"single","mainItem":"Plastic Water Bottle","category":"Composite Packaging","recyclable":"partial","confidence":0.9,"ecoScore":18,"disposalPlan":{"immediateAction":"Separate the label if possible, then empty and rinse the bottle.","steps":["Empty remaining liquid.","Rinse the bottle.","Remove label if possible.","Recycle accepted plastic parts."],"handlingType":"Separate parts before disposal","safetyWarning":"Avoid sharp edges if the bottle is damaged.","mistakeToAvoid":"Do not recycle contaminated or full packaging."},"components":[{"part":"PET bottle body","material":"Plastic PET","recyclable":true,"instruction":"Empty and rinse before recycling."}],"preparationSteps":["Empty remaining liquid.","Rinse the bottle."],"overallSummary":"Short summary.","carbonSavedGrams":15}'
+    promptSingleExample: '{"language":"en","scanType":"single","mainItem":"Plastic Water Bottle","category":"Composite Packaging","recyclable":true,"confidence":0.9,"ecoScore":18,"disposalPlan":{"immediateAction":"Separate the label if possible, then empty and rinse the bottle.","steps":["Empty remaining liquid.","Rinse the bottle.","Remove label if possible.","Recycle accepted plastic parts."],"handlingType":"Separate parts before disposal","safetyWarning":"Avoid sharp edges if the bottle is damaged.","mistakeToAvoid":"Do not recycle contaminated or full packaging."},"components":[{"part":"PET bottle body","material":"Plastic PET","recyclable":true,"instruction":"Empty and rinse before recycling."}],"preparationSteps":["Empty remaining liquid.","Rinse the bottle."],"overallSummary":"Short summary.","carbonSavedGrams":15}'
 });
 
 Object.assign(translations.vi, {
@@ -832,6 +838,12 @@ Object.assign(translations.vi, {
     dark: 'Tối',
     appVersion: 'Phiên bản ứng dụng',
     clearLocalCache: 'Xóa bộ nhớ đệm cục bộ',
+    clearCacheDesc: 'Xóa hình ảnh và dữ liệu đã lưu',
+    aiModel: 'Mô hình AI',
+    aiModelDesc: 'Mô hình có hỗ trợ hình ảnh để quét',
+    aiProviderDesc: 'Chọn nhà cung cấp AI của bạn',
+    apiKey: 'API Key',
+    apiKeyDesc: 'API key từ nhà cung cấp của bạn',
     cacheClearedReload: 'Đã xóa bộ nhớ đệm. Vui lòng tải lại trang.',
     achEcoStarter: 'Người mới xanh',
     achEcoStarterDesc: 'Đạt 50 điểm sinh thái',
@@ -1032,27 +1044,30 @@ function applyStaticTranslations() {
     setText('#emptyRecent p', 'noScans');
 
     setText('#settingsModal h2', 'settings');
-    setText('#settingsModal label[for="languageSelect"]', 'language');
-    setText('#themeControlLabel', 'theme');
-    setText(dom.lightThemeBtn?.querySelector('span'), 'light');
-    setText(dom.darkThemeBtn?.querySelector('span'), 'dark');
-    setText(dom.appVersionLabel, 'appVersion');
-    if (dom.appVersionValue) dom.appVersionValue.textContent = APP_VERSION;
-    setText(dom.clearLocalCacheBtn, 'clearLocalCache');
-    setText('#settingsModal label[for="providerSelect"]', 'aiProvider');
-    const settingsAmberSpans = document.querySelectorAll('#settingsModal .bg-amber-50 span');
-    setText(settingsAmberSpans[settingsAmberSpans.length - 1], 'visionWarning');
-    setText('#settingsModal label[for="modelSelect"]', 'recommendedVisionModel');
-    setText('#modelHint', 'recommendedVisionHint');
-    setText('#settingsModal label[for="modelInput"]', 'customModelOptional');
-    setPlaceholder(dom.modelInput, 'customModelPlaceholder');
-    const customHelp = dom.modelInput?.closest('div')?.querySelector('p');
-    setText(customHelp, 'customModelHelp');
     setText('#cancelSettingsBtn', 'cancel');
     setText('#saveSettingsBtn', 'saveChanges');
-    setText('#settingsModal .uppercase', 'offlineDemoMode');
-    const demoDesc = document.querySelector('#settingsModal .uppercase')?.nextElementSibling;
-    setText(demoDesc, 'offlineDemoDesc');
+
+    // General tab
+    setText(document.querySelector('#tab-general .settings-row .settings-row-label'), 'theme');
+    setText(document.querySelector('#languageRow .settings-row-label'), 'language');
+    setText('#tab-general .demo-section .settings-row-label', 'offlineDemoMode');
+    setText('#tab-general .demo-section .settings-row-desc', 'offlineDemoDesc');
+
+    // AI tab
+    setText('#tab-ai .settings-info-banner p', 'visionWarning');
+    setText('#aiProviderRow .settings-row-label', 'aiProvider');
+    setText('#aiProviderRow .settings-row-desc', 'aiProviderDesc');
+    setText('#aiModelRow .settings-row-label', 'aiModel');
+    setText('#aiModelRow .settings-row-desc', 'aiModelDesc');
+    setPlaceholder(dom.modelInput, 'customModelPlaceholder');
+    setText(document.querySelector('#modelInputWrapper .settings-row-desc'), 'customModelHelp');
+    setText('#apiKeyRow .settings-row-label', 'apiKey');
+    setText('#apiKeyRow .settings-row-desc', 'apiKeyDesc');
+
+    // About tab
+    if (dom.appVersionValue) dom.appVersionValue.textContent = APP_VERSION;
+    setText(document.querySelector('.about-action-label'), 'clearLocalCache');
+    setText(document.querySelector('.about-action-desc'), 'clearCacheDesc');
 
     setText('#resultsModal h2', 'analysisResults');
     setText('#resultsDemoBadge span', 'offlineDemoData');
@@ -1134,24 +1149,18 @@ function asArray(value) {
 function getStatusLabel(status) {
     const normalized = typeof status === 'string' ? status.toLowerCase() : status;
     if (normalized === true || normalized === 'true' || normalized === 'recyclable') return t('recyclable');
-    if (normalized === 'partial') return t('partial');
-    if (normalized === 'special' || normalized === 'special handling') return t('special');
     return t('nonRecyclable');
 }
 
 function getStatusKind(status) {
     const normalized = typeof status === 'string' ? status.toLowerCase() : status;
     if (normalized === true || normalized === 'true' || normalized === 'recyclable') return 'recyclable';
-    if (normalized === 'partial') return 'partial';
-    if (normalized === 'special' || normalized === 'special handling') return 'special';
     return 'nonRecyclable';
 }
 
 function getStatusClasses(status) {
     const kind = getStatusKind(status);
     if (kind === 'recyclable') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-    if (kind === 'partial') return 'bg-blue-100 text-blue-700 border-blue-200';
-    if (kind === 'special') return 'bg-amber-100 text-amber-700 border-amber-200';
     return 'bg-orange-100 text-orange-700 border-orange-200';
 }
 
@@ -2840,8 +2849,6 @@ function renderStatus(result) {
 }
 
 function summarizeBatchStatus(objects) {
-    if (objects.some(item => getStatusKind(item.recyclable) === 'special')) return 'special';
-    if (objects.some(item => getStatusKind(item.recyclable) === 'partial')) return 'partial';
     if (objects.every(item => getStatusKind(item.recyclable) === 'recyclable')) return true;
     return false;
 }
@@ -3744,7 +3751,7 @@ function finishEcoQuiz() {
 function updateUserLevel() {
     const { totalEcoScore } = getMetrics();
     let level = {
-        icon: '1',
+        icon: '🌱',
         name: t('sprout'),
         color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
         threshold: 0,
@@ -3753,7 +3760,7 @@ function updateUserLevel() {
 
     if (totalEcoScore >= 500) {
         level = {
-            icon: '3',
+            icon: '🏆',
             name: t('master'),
             color: 'bg-yellow-50 text-yellow-700 border-yellow-200',
             threshold: 500,
@@ -3761,7 +3768,7 @@ function updateUserLevel() {
         };
     } else if (totalEcoScore >= 100) {
         level = {
-            icon: '2',
+            icon: '⭐',
             name: t('warrior'),
             color: 'bg-blue-50 text-blue-700 border-blue-200',
             threshold: 100,
@@ -3970,16 +3977,15 @@ function renderChart() {
     if (history.length === 0) return;
 
     const recyclableCount = metrics.recyclableCount;
-    const partialCount = objects.filter(item => getStatusKind(item.recyclable) === 'partial').length;
-    const otherCount = Math.max(0, objects.length - recyclableCount - partialCount);
+    const otherCount = Math.max(0, objects.length - recyclableCount);
 
     statsChartInstance = new Chart(dom.statsChartCanvas, {
         type: 'doughnut',
         data: {
-            labels: [t('recyclable'), t('partial'), t('nonRecyclable')],
+            labels: [t('recyclable'), t('nonRecyclable')],
             datasets: [{
-                data: [recyclableCount, partialCount, otherCount],
-                backgroundColor: ['#10b981', '#3b82f6', '#f97316'],
+                data: [recyclableCount, otherCount],
+                backgroundColor: ['#10b981', '#f97316'],
                 borderWidth: 0,
                 hoverOffset: 4
             }]
@@ -4006,9 +4012,15 @@ function renderChart() {
 function openSettings() {
     dom.settingsModal.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
+
+    // Reset to general tab
+    document.querySelectorAll('.settings-tab').forEach(t => t.classList.toggle('active', t.dataset.settingsTab === 'general'));
+    document.querySelectorAll('.settings-tab-pane').forEach(p => p.classList.toggle('hidden', p.id !== 'tab-general'));
+
     selectedProvider = localStorage.getItem(STORAGE_KEYS.provider) || selectedProvider || 'openai';
     dom.providerSelect.value = aiProviders[selectedProvider] ? selectedProvider : 'openai';
-    
+    syncProviderCards(selectedProvider);
+
     const isDemoMode = localStorage.getItem(STORAGE_KEYS.demoMode) === 'true';
     if (dom.demoModeSwitch) {
         dom.demoModeSwitch.checked = isDemoMode;
@@ -4016,6 +4028,13 @@ function openSettings() {
     updateDemoModeUI(isDemoMode);
 
     loadProviderSettings(dom.providerSelect.value);
+
+    // Update About tab level
+    const aboutLevelEl = document.getElementById('aboutLevelNum');
+    if (aboutLevelEl) {
+        const metrics = getMetrics();
+        aboutLevelEl.textContent = metrics.totalEcoScore;
+    }
 }
 
 function closeSettings() {
@@ -4026,11 +4045,9 @@ function closeSettings() {
 function updateApiKeyStatus(isConfigured) {
     const providerMeta = aiProviders[dom.providerSelect.value] || aiProviders.openai;
     dom.apiKeyStatus.classList.remove('hidden');
-    dom.apiKeyStatus.className = isConfigured
-        ? 'p-3 rounded-xl text-sm flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200'
-        : 'p-3 rounded-xl text-sm flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200';
+    dom.apiKeyStatus.className = isConfigured ? 'verified' : 'warning';
     dom.apiKeyStatus.replaceChildren(
-        icon(isConfigured ? 'ph ph-check-circle' : 'ph ph-warning'),
+        icon(isConfigured ? 'ph ph-check-circle-fill' : 'ph ph-warning-circle-fill'),
         document.createTextNode(isConfigured
             ? t('keyConfigured', { provider: providerMeta.label })
             : t('keyMissing', { provider: providerMeta.label }))
@@ -4043,34 +4060,44 @@ function loadProviderSettings(provider) {
     const config = getProviderConfig(normalizedProvider);
 
     dom.providerSelect.value = normalizedProvider;
-    dom.apiKeyLabel.textContent = t('apiKeyLabel', { provider: providerMeta.label });
+    syncProviderCards(normalizedProvider);
+
+    const modelDropdown = document.getElementById('modelDropdown');
+    const apiKeyHelp = document.getElementById('apiKeyHelp');
+
+    modelDropdown.replaceChildren();
+    providerMeta.recommendedModels.forEach(model => {
+        modelDropdown.appendChild(createElement('option', { text: model }));
+        modelDropdown.lastElementChild.value = model;
+    });
+    modelDropdown.appendChild(createElement('option', { text: 'Custom' }));
+    modelDropdown.lastElementChild.value = 'custom';
+
+    const hasCustomModel = config.customModel && config.customModel.trim() !== '';
+    const isKnownModel = providerMeta.recommendedModels.includes(config.selectedModel);
+    if (hasCustomModel) {
+        modelDropdown.value = 'custom';
+        dom.modelInput.value = config.customModel;
+        dom.modelInputWrapper.classList.remove('hidden');
+    } else {
+        modelDropdown.value = isKnownModel ? config.selectedModel : providerMeta.defaultModel;
+        dom.modelInput.value = '';
+        dom.modelInputWrapper.classList.add('hidden');
+    }
+    dom.modelInput.placeholder = t('customModelPlaceholder');
+
     dom.apiKeyInput.placeholder = providerMeta.keyPlaceholder;
     dom.apiKeyInput.value = config.apiKey;
-    dom.modelSelect.replaceChildren();
-    providerMeta.recommendedModels.forEach(model => {
-        dom.modelSelect.appendChild(createElement('option', {
-            text: model
-        }));
-        dom.modelSelect.lastElementChild.value = model;
-    });
-    dom.modelSelect.value = providerMeta.recommendedModels.includes(config.selectedModel)
-        ? config.selectedModel
-        : providerMeta.defaultModel;
-    dom.modelInput.value = config.customModel;
-    dom.modelInput.placeholder = t('optionalCustomModel', { provider: providerMeta.label });
-    dom.modelHint.textContent = t('recommendedVisionHint');
-
-    dom.apiKeyHelp.replaceChildren(
-        document.createTextNode(`${t('keyHelpText', { provider: providerMeta.label })} `),
-        createElement('a', {
-            className: 'text-emerald-600 hover:underline',
-            text: providerMeta.label
-        })
+    apiKeyHelp.replaceChildren(
+        document.createTextNode(t('keyHelpText', { provider: providerMeta.label }) + ' '),
+        createElement('a', { className: 'text-emerald-600 hover:underline', text: providerMeta.label })
     );
-    const link = dom.apiKeyHelp.querySelector('a');
-    link.href = providerMeta.keyHelpUrl;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
+    const link = apiKeyHelp.querySelector('a');
+    if (link) {
+        link.href = providerMeta.keyHelpUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+    }
 
     updateApiKeyStatus(Boolean(config.apiKey));
 }
@@ -4079,9 +4106,18 @@ function saveSettings() {
     const provider = dom.providerSelect.value;
     const providerMeta = aiProviders[provider] || aiProviders.openai;
     const key = dom.apiKeyInput.value.trim();
-    const selectedModel = dom.modelSelect.value || providerMeta.defaultModel;
-    const customModel = dom.modelInput.value.trim();
-    const effectiveModel = customModel || selectedModel;
+    const modelDropdown = document.getElementById('modelDropdown');
+    const selectedModel = modelDropdown ? modelDropdown.value : (dom.modelSelect.value || providerMeta.defaultModel);
+    let customModel = '';
+    let effectiveModel = '';
+
+    if (selectedModel === 'custom') {
+        customModel = dom.modelInput.value.trim();
+        effectiveModel = customModel;
+    } else {
+        customModel = '';
+        effectiveModel = selectedModel || providerMeta.defaultModel;
+    }
 
     if (!key) {
         showToast(t('invalidProviderKey', { provider: providerMeta.label }));
@@ -4182,6 +4218,28 @@ async function clearLocalAppCache() {
             await Promise.all(registrations.map(registration => registration.unregister()));
         }
 
+        // Preserve settings keys only
+        const preserveKeys = [
+            STORAGE_KEYS.apiKey,
+            STORAGE_KEYS.provider,
+            STORAGE_KEYS.providerKeys,
+            STORAGE_KEYS.providerModels,
+            STORAGE_KEYS.providerRecommendedModels,
+            STORAGE_KEYS.providerCustomModels,
+            STORAGE_KEYS.language,
+            STORAGE_KEYS.theme,
+            STORAGE_KEYS.demoMode
+        ];
+
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && !preserveKeys.includes(key)) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+
         showToast(t('cacheClearedReload'));
     } catch (error) {
         console.error('[App] Failed to clear local cache:', error);
@@ -4199,6 +4257,12 @@ function closeResults() {
     dom.resultsModal.classList.add('hidden');
     document.body.classList.remove('overflow-hidden');
     resetToCamera();
+}
+
+function syncProviderCards(provider) {
+    document.querySelectorAll('.provider-card').forEach(card => {
+        card.classList.toggle('active', card.dataset.provider === provider);
+    });
 }
 
 function bindEvents() {
@@ -4221,9 +4285,51 @@ function bindEvents() {
     dom.closeSettingsBtn.addEventListener('click', closeSettings);
     dom.cancelSettingsBtn.addEventListener('click', closeSettings);
     dom.saveSettingsBtn.addEventListener('click', saveSettings);
+
+    // Tab switching
+    document.querySelectorAll('.settings-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.dataset.settingsTab;
+            document.querySelectorAll('.settings-tab').forEach(t => t.classList.toggle('active', t === tab));
+            document.querySelectorAll('.settings-tab-pane').forEach(p => p.classList.toggle('hidden', p.id !== 'tab-' + tabName));
+        });
+    });
+
+    // Provider card selection
+    document.querySelectorAll('.provider-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const provider = card.dataset.provider;
+            dom.providerSelect.value = provider;
+            syncProviderCards(provider);
+            loadProviderSettings(provider);
+        });
+    });
+
+    // Model dropdown change (visible dropdown in AI tab)
+    const modelDropdown = document.getElementById('modelDropdown');
+    modelDropdown?.addEventListener('change', () => {
+        if (modelDropdown.value === 'custom') {
+            dom.modelInputWrapper.classList.remove('hidden');
+            dom.modelInput.focus();
+        } else {
+            dom.modelInputWrapper.classList.add('hidden');
+        }
+    });
+
+    // Hidden modelSelect change (fallback)
+    dom.modelSelect.addEventListener('change', () => {
+        if (dom.modelSelect.value === 'custom') {
+            dom.modelInputWrapper.classList.remove('hidden');
+            dom.modelInput.focus();
+        } else {
+            dom.modelInputWrapper.classList.add('hidden');
+        }
+    });
+
     dom.providerSelect.addEventListener('change', () => {
         selectedProvider = dom.providerSelect.value;
         localStorage.setItem(STORAGE_KEYS.provider, selectedProvider);
+        syncProviderCards(selectedProvider);
         loadProviderSettings(selectedProvider);
     });
     dom.startQuizBtn.addEventListener('click', startEcoQuiz);

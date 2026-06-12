@@ -19,7 +19,7 @@
     <!-- Confetti for Gamification -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="style.css?v=14">
+    <link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
 
@@ -34,7 +34,7 @@
                 <!-- User Level & XP Bar (Always visible) -->
                 <div class="flex items-center gap-2">
                     <div id="userLevelBadge" class="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold border border-emerald-200">
-                        <span id="levelIcon">ðŸŒ±</span>
+                        <span id="levelIcon">🌱</span>
                         <span id="levelText">Sprout</span>
                     </div>
                     <div class="flex-1 flex flex-col gap-0.5">
@@ -322,146 +322,267 @@
 
         <!-- Settings Modal -->
     <div id="settingsModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3 sm:p-4 backdrop-blur-sm overflow-hidden">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col">
-            <div class="flex justify-between items-center p-5 sm:p-6 border-b border-gray-100 bg-white flex-shrink-0">
+        <div class="settings-modal-inner bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col">
+            <!-- Header -->
+            <div class="settings-header flex justify-between items-center px-5 sm:px-6 pt-5 sm:pt-6 pb-0 flex-shrink-0">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
-                        <i class="ph ph-gear-six text-xl text-emerald-600"></i>
+                    <div class="settings-header-icon">
+                        <i class="ph ph-gear-six text-xl text-emerald-500"></i>
                     </div>
                     <h2 class="text-xl font-bold text-gray-800">Settings</h2>
                 </div>
-                <button id="closeSettingsBtn" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <button id="closeSettingsBtn" class="settings-close-btn">
                     <i class="ph ph-x text-2xl"></i>
                 </button>
             </div>
-            
-            <div class="p-5 sm:p-6 space-y-6 overflow-y-auto overscroll-contain flex-1 min-h-0">
 
-                <!-- Appearance Section -->
-                <div class="space-y-4">
-                    <div class="flex items-center gap-2 pb-1 border-b border-gray-100">
-                        <i class="ph ph-palette text-emerald-600"></i>
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500">Appearance</h3>
+            <!-- Tabs -->
+            <div class="settings-tab-bar" role="tablist">
+                <button class="settings-tab active" data-settings-tab="general" role="tab" aria-selected="true">
+                    <i class="ph ph-sliders text-sm"></i>
+                    <span>General</span>
+                </button>
+                <button class="settings-tab" data-settings-tab="ai" role="tab" aria-selected="false">
+                    <i class="ph ph-robot text-sm"></i>
+                    <span>AI Setup</span>
+                </button>
+                <button class="settings-tab" data-settings-tab="about" role="tab" aria-selected="false">
+                    <i class="ph ph-info text-sm"></i>
+                    <span>About</span>
+                </button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="settings-tab-body flex-1 min-h-0 overflow-y-auto overscroll-contain">
+
+                <!-- General Tab -->
+                <div id="tab-general" class="settings-tab-pane">
+                    <!-- Theme -->
+                    <div class="settings-row">
+                        <div class="settings-row-meta">
+                            <div class="settings-row-icon">
+                                <i class="ph ph-sun text-base text-amber-500"></i>
+                            </div>
+                            <div>
+                                <p class="settings-row-label">Theme</p>
+                                <p class="settings-row-desc">Light or dark appearance</p>
+                            </div>
+                        </div>
+                        <div id="themeToggleGroup" class="theme-toggle-group" role="radiogroup">
+                            <button id="lightThemeBtn" type="button" class="theme-toggle-btn active" data-theme-option="light" role="radio" aria-checked="true">
+                                <i class="ph ph-sun text-sm"></i>
+                                <span>Light</span>
+                            </button>
+                            <button id="darkThemeBtn" type="button" class="theme-toggle-btn" data-theme-option="dark" role="radio" aria-checked="false">
+                                <i class="ph ph-moon text-sm"></i>
+                                <span>Dark</span>
+                            </button>
+                        </div>
                     </div>
 
-                    <div>
-                        <label for="languageSelect" class="block text-sm font-medium text-gray-700 mb-2">Language</label>
-                        <select id="languageSelect" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-white">
+                    <!-- Language -->
+                    <div id="languageRow" class="settings-row lang-row">
+                        <div class="settings-row-meta">
+                            <div class="settings-row-icon">
+                                <i class="ph ph-translate text-base text-blue-500"></i>
+                            </div>
+                            <div>
+                                <label for="languageSelect" class="settings-row-label cursor-pointer">Language</label>
+                                <p class="settings-row-desc">App display language</p>
+                            </div>
+                        </div>
+                        <select id="languageSelect" class="settings-select-sm settings-select-inline">
                             <option value="en">English</option>
                             <option value="vi">Tiếng Việt</option>
                         </select>
                     </div>
 
-                    <div>
-                        <span id="themeControlLabel" class="block text-sm font-medium text-gray-700 mb-2">Theme</span>
-                        <div id="themeToggleGroup" class="grid grid-cols-2 gap-2" role="radiogroup" aria-labelledby="themeControlLabel">
-                            <button id="lightThemeBtn" type="button" class="theme-option active" data-theme-option="light" role="radio" aria-checked="true">
-                                <i class="ph ph-sun text-xl"></i>
-                                <span>Light</span>
-                            </button>
-                            <button id="darkThemeBtn" type="button" class="theme-option" data-theme-option="dark" role="radio" aria-checked="false">
-                                <i class="ph ph-moon text-xl"></i>
-                                <span>Dark</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- AI Configuration Section -->
-                <div class="space-y-4">
-                    <div class="flex items-center gap-2 pb-1 border-b border-gray-100">
-                        <i class="ph ph-robot text-emerald-600"></i>
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500">AI Configuration</h3>
-                    </div>
-
-                    <div class="p-3 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 text-xs flex items-start gap-2">
-                        <i class="ph ph-warning text-base mt-0.5 flex-shrink-0"></i>
-                        <span>This app requires a vision-capable model. Text-only models will not work.</span>
-                    </div>
-
-                    <div>
-                        <label for="providerSelect" class="block text-sm font-medium text-gray-700 mb-2">AI Provider</label>
-                        <select id="providerSelect" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-white">
-                            <option value="openai">OpenAI</option>
-                            <option value="openrouter">OpenRouter</option>
-                            <option value="gemini">Gemini</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="modelSelect" class="block text-sm font-medium text-gray-700 mb-2">Vision Model</label>
-                        <select id="modelSelect" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-white"></select>
-                        <p id="modelHint" class="text-xs text-gray-500 mt-2">Select a vision-capable model from the list.</p>
-                    </div>
-
-                    <div>
-                        <label for="modelInput" class="block text-sm font-medium text-gray-700 mb-2">Custom Model (optional)</label>
-                        <input type="text" id="modelInput" placeholder="Leave blank to use the recommended model" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
-                        <p class="text-xs text-gray-500 mt-2">Advanced users can override the dropdown with any vision-capable model.</p>
-                    </div>
-
-                    <div>
-                        <label for="apiKeyInput" id="apiKeyLabel" class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
-                        <div class="relative">
-                            <input type="password" id="apiKeyInput" placeholder="sk-..." class="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
-                            <button id="toggleApiKeyBtn" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                                <i class="ph ph-eye text-lg"></i>
-                            </button>
-                        </div>
-                        <p id="apiKeyHelp" class="text-xs text-gray-500 mt-2">Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" class="text-emerald-600 hover:underline">OpenAI Platform</a></p>
-                    </div>
-                    
-                    <div id="apiKeyStatus" class="hidden p-3 rounded-xl text-sm flex items-center gap-2">
-                        <!-- Dynamic status -->
-                    </div>
-                </div>
-
-                <!-- Demo Mode Section -->
-                <div class="space-y-4">
-                    <div class="flex items-center gap-2 pb-1 border-b border-gray-100">
-                        <i class="ph ph-flask text-emerald-600"></i>
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500">Demo Mode</h3>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50 rounded-xl">
-                        <div class="flex items-center gap-2 text-left">
+                    <!-- Demo Mode -->
+                    <div id="demoModeRow" class="settings-row demo-section">
+                        <div class="settings-row-meta">
+                            <div class="settings-row-icon demo">
+                                <i class="ph ph-flask text-base text-cyan-500"></i>
+                            </div>
                             <div>
-                                <span class="block text-sm font-bold text-amber-700 dark:text-amber-400">Offline Demo Mode</span>
-                                <span class="text-xs text-amber-600 dark:text-amber-400">Simulate scans without internet or API keys</span>
+                                <p class="settings-row-label">Try Without Signing Up</p>
+                                <p class="settings-row-desc">Simulate scans offline without API keys</p>
                             </div>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer ml-2 flex-shrink-0">
+                        <label class="toggle-switch">
                             <input type="checkbox" id="demoModeSwitch" class="sr-only peer">
-                            <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                            <div class="toggle-track">
+                                <div class="toggle-thumb"></div>
+                            </div>
                         </label>
                     </div>
                 </div>
 
-                <!-- App Info Section -->
-                <div class="space-y-4">
-                    <div class="flex items-center gap-2 pb-1 border-b border-gray-100">
-                        <i class="ph ph-info text-emerald-600"></i>
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500">About</h3>
+                <!-- AI Setup Tab -->
+                <div id="tab-ai" class="settings-tab-pane hidden">
+                    <!-- Info Banner -->
+                    <div class="settings-info-banner">
+                        <i class="ph ph-shield-check text-base text-emerald-500 flex-shrink-0 mt-0.5"></i>
+                        <p>Connect your own AI account to unlock full scanning capabilities. A vision-capable model is required.</p>
                     </div>
 
-                    <div class="p-3 rounded-xl border border-gray-200 bg-gray-50 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold uppercase tracking-wider text-gray-500">App Version</span>
-                            <span id="appVersionValue" class="text-sm font-semibold text-gray-800">v13</span>
+                    <!-- Provider -->
+                    <div id="aiProviderRow" class="settings-row stacked">
+                        <div class="settings-row-meta">
+                            <div class="settings-row-icon">
+                                <i class="ph ph-cloud-arrow-up text-base text-indigo-500"></i>
+                            </div>
+                            <div>
+                                <p class="settings-row-label">AI Provider</p>
+                                <p class="settings-row-desc">Choose your AI service provider</p>
+                            </div>
                         </div>
-                        <button id="clearLocalCacheBtn" type="button" class="w-full px-4 py-2.5 bg-white hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 transition-colors">
-                            Clear Local Cache
+                    </div>
+                    <div id="providerCardGroup" class="provider-card-group">
+                        <button class="provider-card" data-provider="openai" type="button">
+                            <div class="provider-card-inner">
+                                <div class="provider-logo-sm openai-logo">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.872zm16.597 3.855l-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z"/></svg>
+                                </div>
+                                <div>
+                                    <p class="provider-card-name">OpenAI</p>
+                                </div>
+                            </div>
+                            <div class="provider-card-check">
+                                <i class="ph ph-check-circle-fill"></i>
+                            </div>
                         </button>
+                        <button class="provider-card" data-provider="openrouter" type="button">
+                            <div class="provider-card-inner">
+                                <div class="provider-logo-sm openrouter-logo">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.804 1.957l7.22 4.105v.087L16.73 10.21l.017-2.117-.821-.03c-1.059-.028-1.611.002-2.268.11-1.064.175-2.038.577-3.147 1.352L8.345 11.03c-.284.195-.495.336-.68.455l-.515.322-.397.234.385.23.53.338c.476.314 1.17.796 2.701 1.866 1.11.775 2.083 1.177 3.147 1.352l.3.045c.694.091 1.375.094 2.825.033l.022-2.159 7.22 4.105v.087L16.589 22l.014-1.862-.635.022c-1.386.042-2.137.002-3.138-.162-1.694-.28-3.26-.926-4.881-2.059l-2.158-1.5a21.997 21.997 0 00-.755-.498l-.467-.28a55.927 55.927 0 00-.76-.443C2.908 14.73.563 14.116 0 14.116V9.888l.14.004c.564-.007 2.91-.622 3.809-1.124l1.016-.58.438-.274c.428-.28 1.072-.726 2.686-1.853 1.621-1.133 3.186-1.78 4.881-2.059 1.152-.19 1.974-.213 3.814-.138l.02-1.907z" fill="currentColor"/></svg>
+                                </div>
+                                <div>
+                                    <p class="provider-card-name">OpenRouter</p>
+                                </div>
+                            </div>
+                            <div class="provider-card-check">
+                                <i class="ph ph-check-circle-fill"></i>
+                            </div>
+                        </button>
+                        <button class="provider-card" data-provider="gemini" type="button">
+                            <div class="provider-card-inner">
+                                <div class="provider-logo-sm gemini-logo">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="#3186FF"/><path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="url(#gemini-grad-1)"/><path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="url(#gemini-grad-2)"/><path d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z" fill="url(#gemini-grad-3)"/><defs><linearGradient id="gemini-grad-1" x1="7" x2="11" y1="15.5" y2="12" gradientUnits="userSpaceOnUse"><stop stop-color="#08B962"/><stop offset="1" stop-color="#08B962" stop-opacity="0"/></linearGradient><linearGradient id="gemini-grad-2" x1="8" x2="11.5" y1="5.5" y2="11" gradientUnits="userSpaceOnUse"><stop stop-color="#F94543"/><stop offset="1" stop-color="#F94543" stop-opacity="0"/></linearGradient><linearGradient id="gemini-grad-3" x1="3.5" x2="17.5" y1="13.5" y2="12" gradientUnits="userSpaceOnUse"><stop stop-color="#FABC12"/><stop offset=".46" stop-color="#FABC12" stop-opacity="0"/></linearGradient></defs></svg>
+                                </div>
+                                <div>
+                                    <p class="provider-card-name">Gemini</p>
+                                </div>
+                            </div>
+                            <div class="provider-card-check">
+                                <i class="ph ph-check-circle-fill"></i>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Model (hidden select, driven by provider cards) -->
+                    <select id="providerSelect" class="hidden"><option value="openai">OpenAI</option><option value="openrouter">OpenRouter</option><option value="gemini">Gemini</option></select>
+                    <select id="modelSelect" class="hidden"></select>
+
+                    <!-- AI Model -->
+                    <div id="aiModelRow" class="settings-row stacked ai-tab-row">
+                        <div class="settings-row-meta">
+                            <div class="settings-row-icon">
+                                <i class="ph ph-brain text-base text-emerald-500"></i>
+                            </div>
+                            <div>
+                                <p class="settings-row-label">AI Model</p>
+                                <p class="settings-row-desc">Vision-capable model for scanning</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ai-tab-field-wrap">
+                        <select id="modelDropdown" class="settings-select-sm">
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <div id="modelInputWrapper" class="hidden ai-tab-field-wrap">
+                        <input type="text" id="modelInput" placeholder="e.g. gpt-4o, claude-3-opus" class="settings-input-sm">
+                        <p class="settings-row-desc" style="margin-top:0.4rem;">Enter the full model name. Vision-capable models only.</p>
+                    </div>
+
+                    <!-- API Key -->
+                    <div id="apiKeyRow" class="settings-row stacked ai-tab-row">
+                        <div class="settings-row-meta">
+                            <div class="settings-row-icon">
+                                <i class="ph ph-key text-base text-orange-500"></i>
+                            </div>
+                            <div>
+                                <p class="settings-row-label">API Key</p>
+                                <p class="settings-row-desc">Your provider API key</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ai-tab-field-wrap">
+                        <div class="settings-input-group">
+                            <input type="password" id="apiKeyInput" placeholder="sk-..." class="settings-input-sm">
+                            <button id="toggleApiKeyBtn" type="button" class="settings-input-action">
+                                <i class="ph ph-eye text-base"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="ai-tab-field-wrap">
+                        <p id="apiKeyHelp" class="settings-row-desc"></p>
+                    </div>
+                    <div id="apiKeyStatus" class="hidden ai-tab-field-wrap"></div>
+                </div>
+
+                <!-- About Tab -->
+                <div id="tab-about" class="settings-tab-pane hidden">
+                    <!-- App Hero -->
+                    <div class="about-hero-card">
+                        <div class="about-app-icon">
+                            <i class="ph ph-leaf text-2xl text-emerald-500"></i>
+                        </div>
+                        <div class="about-app-info">
+                            <h3 class="about-app-name">RecycleCheck AI</h3>
+                            <p class="about-app-tagline">Smart waste sorting assistant</p>
+                        </div>
+                        <div id="appVersionValue" class="about-version-chip">v13</div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="about-stats-row">
+                        <div class="about-stat-item">
+                            <span id="totalRecycledCount" class="about-stat-num">0</span>
+                            <span class="about-stat-label">Total Scans</span>
+                        </div>
+                        <div class="about-stat-divider"></div>
+                        <div class="about-stat-item">
+                            <span id="aboutLevelNum" class="about-stat-num">1</span>
+                            <span class="about-stat-label">Current Level</span>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="about-action-list">
+                        <button id="clearLocalCacheBtn" type="button" class="about-action-row">
+                            <i class="ph ph-trash text-base text-red-400"></i>
+                            <div class="about-action-text">
+                                <span class="about-action-label">Clear Local Cache</span>
+                                <span class="about-action-desc">Remove cached images and data</span>
+                            </div>
+                            <i class="ph ph-caret-right text-sm text-gray-400"></i>
+                        </button>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="about-footer">
+                        <p>Built with care for a greener planet.</p>
                     </div>
                 </div>
 
             </div>
-            
-            <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
-                <button id="cancelSettingsBtn" class="px-5 py-2.5 text-gray-600 hover:bg-gray-200 rounded-xl font-medium transition-colors">
-                    Cancel
-                </button>
-                <button id="saveSettingsBtn" class="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-colors shadow-sm">
+
+            <!-- Footer -->
+            <div class="settings-footer">
+                <button id="cancelSettingsBtn" class="settings-btn-cancel">Cancel</button>
+                <button id="saveSettingsBtn" class="settings-btn-save">
+                    <i class="ph ph-check text-base"></i>
                     Save Changes
                 </button>
             </div>
@@ -604,7 +725,7 @@
                         <div class="w-12 h-12 mx-auto mb-2 bg-blue-500 rounded-full flex items-center justify-center">
                             <i class="ph ph-cloud text-white text-xl"></i>
                         </div>
-                        <p class="text-xs text-blue-600 font-medium uppercase mb-1">COâ‚‚ Saved</p>
+                        <p class="text-xs text-blue-600 font-medium uppercase mb-1">CO₂ Saved</p>
                         <p id="carbonSavedValue" class="text-2xl font-bold text-blue-700">0g</p>
                     </div>
                 </div>
