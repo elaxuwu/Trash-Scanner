@@ -131,246 +131,269 @@
             width: 100%;
         }
 
-        /* Responsive Camera Viewport */
-        .camera-viewport {
+        /* TikTok-style Full-Viewport Camera */
+        .tiktok-viewport {
             position: relative;
             width: 100%;
-            aspect-ratio: 16 / 9;
-            background-color: var(--camera-bg);
-            border-radius: 0; /* Clean edge on mobile */
+            height: min(100svh - 5rem, 640px);
+            background: #000;
             overflow: hidden;
-            box-shadow: var(--shadow-soft);
+            user-select: none;
         }
 
-        .input-choice-panel {
+        .tiktok-video,
+        .tiktok-preview {
             position: absolute;
             inset: 0;
-            z-index: 8;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Initial CTA overlay */
+        .tiktok-cta-panel {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 1.25rem;
-            background:
-                radial-gradient(circle at top left, rgba(16, 185, 129, 0.18), transparent 34%),
-                linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.92));
-            color: white;
+            background: rgba(0, 0, 0, 0.45);
+        }
+
+        .tiktok-cta-inner {
             text-align: center;
+            padding: 1.5rem;
         }
 
-        .input-choice-card {
-            width: min(100%, 34rem);
-            padding: 1.25rem;
-            border: 1px solid rgba(255, 255, 255, 0.14);
-            border-radius: 1.35rem;
-            background: rgba(15, 23, 42, 0.64);
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
-            backdrop-filter: blur(14px);
-        }
-
-        .input-choice-actions {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.75rem;
-            margin-top: 1rem;
-        }
-
-        .input-choice-button {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 0.45rem;
-            min-height: 6.5rem;
-            border-radius: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.16);
-            font-weight: 800;
-            transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
-        }
-
-        .input-choice-button:hover {
-            transform: translateY(-1px);
-        }
-
-        .input-choice-button.primary {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-        }
-
-        .input-choice-button.secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-        }
-
-        .input-choice-button.secondary:hover {
-            background: rgba(255, 255, 255, 0.16);
-        }
-
-        .input-choice-hints {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 0.6rem;
-            margin-top: 0.9rem;
-            color: rgba(255, 255, 255, 0.76);
-            font-size: 0.78rem;
-            font-weight: 650;
-        }
-
-        .input-choice-hints span {
+        .tiktok-cta-btn {
             display: inline-flex;
             align-items: center;
-            gap: 0.35rem;
-        }
-
-        .camera-status-message {
-            margin-top: 0.85rem;
-            padding: 0.7rem 0.85rem;
-            border-radius: 0.85rem;
-            background: rgba(251, 191, 36, 0.14);
-            color: #fde68a;
-            font-size: 0.82rem;
+            gap: 0.5rem;
+            padding: 0.7rem 1.6rem;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            border-radius: 9999px;
+            color: white;
             font-weight: 700;
+            font-size: 0.9rem;
+            backdrop-filter: blur(8px);
+            transition: background 0.2s, transform 0.15s;
         }
 
-        .theme-option {
+        .tiktok-cta-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.03);
+        }
+
+        /* Bottom controls overlay */
+        .tiktok-controls {
+            position: absolute;
+            bottom: 2.5rem;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 1.5rem;
+            pointer-events: none;
+        }
+
+        .tiktok-controls > * {
+            pointer-events: auto;
+        }
+
+        /* Gallery icon – bottom-left, always visible in viewport */
+        .tiktok-gallery-btn {
+            position: absolute;
+            bottom: 2.5rem;
+            left: 1.5rem;
+            z-index: 11;
+            width: 2.75rem;
+            height: 2.75rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
-            padding: 0.8rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: 0.9rem;
-            background: var(--surface-muted);
-            color: var(--text-secondary);
-            font-weight: 800;
-            transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+            background: rgba(255, 255, 255, 0.18);
+            border: 1.5px solid rgba(255, 255, 255, 0.4);
+            border-radius: 0.6rem;
+            color: white;
+            backdrop-filter: blur(6px);
+            transition: background 0.2s, transform 0.15s;
         }
 
-        .theme-option.active {
-            border-color: var(--primary);
-            background: rgba(16, 185, 129, 0.12);
-            color: var(--primary);
+        .tiktok-gallery-btn:hover {
+            background: rgba(255, 255, 255, 0.28);
+            transform: scale(1.05);
         }
 
-        .camera-action-controls {
+        /* Snap button – TikTok style */
+        .tiktok-snap-wrap {
             position: relative;
             display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tiktok-snap-ring {
+            position: absolute;
+            inset: -8px;
+            border-radius: 50%;
+            border: 2.5px solid rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+        }
+
+        .tiktok-snap-btn {
+            width: 4.5rem;
+            height: 4.5rem;
+            border-radius: 50%;
+            background: white;
+            border: 4px solid rgba(255, 255, 255, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.12s, border-color 0.12s;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .tiktok-snap-btn:active {
+            transform: scale(0.92);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .tiktok-snap-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: white;
+        }
+
+        /* Close camera button – top-right */
+        .tiktok-close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10;
+            width: 2.4rem;
+            height: 2.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            color: white;
+            backdrop-filter: blur(6px);
+            transition: background 0.2s;
+        }
+
+        .tiktok-close-btn:hover {
+            background: rgba(0, 0, 0, 0.65);
+        }
+
+        /* Drop overlay */
+        .tiktok-drop-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.85rem;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.55);
+            border: 2.5px dashed rgba(255, 255, 255, 0.6);
         }
 
-        .back-to-options-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.45rem;
-            padding: 0.65rem 0.95rem;
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            background: var(--surface);
-            color: var(--text-secondary);
-            font-size: 0.82rem;
-            font-weight: 800;
-            box-shadow: var(--shadow-soft);
-            transition: transform 0.18s ease, border-color 0.18s ease;
-        }
-
-        .back-to-options-btn:hover {
-            transform: translateY(-1px);
-            border-color: rgba(16, 185, 129, 0.55);
-            color: var(--primary);
-        }
-
-        .drop-zone-hint {
+        /* Demo mode panel */
+        .tiktok-demo-panel {
             position: absolute;
+            top: 1rem;
             left: 1rem;
-            right: 1rem;
-            bottom: 1rem;
-            z-index: 9;
+            right: 4.5rem;
+            z-index: 10;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 0.75rem;
-            padding: 0.7rem 0.85rem;
-            border: 1px solid rgba(255, 255, 255, 0.16);
-            border-radius: 0.9rem;
-            background: rgba(15, 23, 42, 0.68);
+            background: rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.75rem;
+            padding: 0.6rem 0.75rem;
+            backdrop-filter: blur(8px);
+        }
+
+        .tiktok-demo-select {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 0.5rem;
             color: white;
-            font-size: 0.82rem;
+            font-size: 0.78rem;
             font-weight: 700;
-            backdrop-filter: blur(10px);
-            pointer-events: none;
+            padding: 0.25rem 0.5rem;
+            outline: none;
+            flex: 1;
+            min-width: 0;
         }
 
-        .paste-shortcut-hint {
-            color: rgba(255, 255, 255, 0.72);
-            font-size: 0.72rem;
-            font-weight: 600;
-            white-space: nowrap;
+        .tiktok-demo-select option {
+            background: #1f2937;
+            color: white;
         }
 
-        .drop-zone-overlay {
+        /* Zoom slider */
+        .tiktok-zoom-wrap {
             position: absolute;
-            inset: 0;
-            z-index: 25;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
+            gap: 0.5rem;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 9999px;
+            padding: 0.85rem 0.5rem;
+            backdrop-filter: blur(6px);
+        }
+
+        .tiktok-zoom-slider {
+            writing-mode: vertical-lr;
+            direction: rtl;
+            width: 6rem;
+            height: 4px;
+            appearance: none;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.35);
+            border-radius: 9999px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .tiktok-zoom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+        }
+
+        .tiktok-zoom-label {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.65rem;
+            font-weight: 700;
+            min-width: 2.2rem;
             text-align: center;
-            padding: 2rem;
-            background: rgba(6, 78, 59, 0.82);
-            border: 3px dashed rgba(167, 243, 208, 0.95);
-            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        /* Camera status message */
+        .tiktok-status {
             pointer-events: none;
-        }
-
-        .camera-viewport.drag-over {
-            outline: 3px solid rgba(52, 211, 153, 0.9);
-            outline-offset: 4px;
-        }
-
-        @media (max-width: 640px) {
-            .drop-zone-hint {
-                align-items: flex-start;
-                flex-direction: column;
-                gap: 0.2rem;
-                font-size: 0.76rem;
-            }
-
-            .paste-shortcut-hint {
-                display: none;
-            }
-
-            .input-choice-panel {
-                padding: 0.75rem;
-            }
-
-            .input-choice-card {
-                padding: 1rem;
-                border-radius: 1rem;
-            }
-
-            .input-choice-actions {
-                gap: 0.5rem;
-            }
-
-            .input-choice-button {
-                min-height: 5rem;
-                padding: 0.75rem;
-            }
-
-            .input-choice-button span {
-                font-size: 0.8rem;
-            }
-
-            #inputChoiceTitle {
-                font-size: 0.7rem;
-            }
-
-            .camera-viewport {
-                aspect-ratio: 4 / 3;
-            }
         }
 
         /* Tablet & Desktop adjustments */
@@ -584,17 +607,6 @@
 
         html[data-theme="dark"] .bg-gray-900 {
             background-color: #020617 !important;
-        }
-
-        @media (max-width: 640px) {
-            .input-choice-actions {
-                grid-template-columns: 1fr;
-            }
-
-            .input-choice-button {
-                min-height: 4.75rem;
-                flex-direction: row;
-            }
         }
 
         .scan-mode-card span,

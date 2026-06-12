@@ -1,31 +1,27 @@
 const dom = {
-    videoCanvas: document.getElementById('videoCanvas'),
+    videoCanvas: document.getElementById('videoCanvas'), // <video> when live, <img> when photo shown
     scanBtn: document.getElementById('scanBtn'),
     scanActionSection: document.getElementById('scanActionSection'),
     flashOverlay: document.getElementById('flashOverlay'),
     loadingOverlay: document.getElementById('loadingOverlay'),
     loadingModeText: document.getElementById('loadingModeText'),
-    dropZoneHint: document.getElementById('dropZoneHint'),
     dropZoneOverlay: document.getElementById('dropZoneOverlay'),
-    dropZoneTitle: document.getElementById('dropZoneTitle'),
-    dropZoneMessage: document.getElementById('dropZoneMessage'),
     fileInput: document.getElementById('fileInput'),
     cameraSection: document.getElementById('cameraSection'),
     inputChoicePanel: document.getElementById('inputChoicePanel'),
-    inputChoiceTitle: document.getElementById('inputChoiceTitle'),
     useCameraBtn: document.getElementById('useCameraBtn'),
-    uploadImageBtn: document.getElementById('uploadImageBtn'),
-    pasteImageBtn: document.getElementById('pasteImageBtn'),
-    dragDropImageBtn: document.getElementById('dragDropImageBtn'),
-    backToOptionsBtn: document.getElementById('backToOptionsBtn'),
-    pasteHintText: document.getElementById('pasteHintText'),
-    dragHintText: document.getElementById('dragHintText'),
     cameraStatusMessage: document.getElementById('cameraStatusMessage'),
     previewModal: document.getElementById('previewModal'),
     previewImage: document.getElementById('previewImage'),
     closePreviewBtn: document.getElementById('closePreviewBtn'),
     retakeBtn: document.getElementById('retakeBtn'),
     analyzeBtn: document.getElementById('analyzeBtn'),
+    // New TikTok-style elements
+    closeCameraBtn: document.getElementById('closeCameraBtn'),
+    galleryBtn: document.getElementById('galleryBtn'),
+    zoomSlider: document.getElementById('zoomSlider'),
+    zoomLabel: document.getElementById('zoomLabel'),
+    zoomControlWrap: document.getElementById('zoomControlWrap'),
     settingsBtn: document.getElementById('settingsBtn'),
     settingsModal: document.getElementById('settingsModal'),
     closeSettingsBtn: document.getElementById('closeSettingsBtn'),
@@ -2377,7 +2373,10 @@ async function initCamera() {
     setCameraStatus(t('cameraStarting'), false);
     dom.inputChoicePanel?.classList.add('hidden');
     dom.videoCanvas.classList.add('hidden');
+    dom.videoCanvas.classList.remove('tiktok-preview');
     dom.scanActionSection.classList.add('hidden');
+    dom.zoomControlWrap?.classList.add('hidden');
+    dom.closeCameraBtn?.classList.add('hidden');
 
     if (!navigator.mediaDevices?.getUserMedia) {
         handleCameraError();
@@ -2388,44 +2387,40 @@ async function initCamera() {
     video.autoplay = true;
     video.playsInline = true;
     video.muted = true;
+    video.className = 'tiktok-video';
 
     try {
-        stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                facingMode: { ideal: 'environment' },
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
+        const capabilities = { video: { facingMode: { ideal: 'environment' } } };
+        stream = await navigator.mediaDevices.getUserMedia(capabilities);
+
+        // Apply zoom if slider has a non-default value
+        const zoomVal = parseFloat(dom.zoomSlider?.value || '1');
+        const videoTrack = stream.getVideoTracks()[0];
+        if (videoTrack) {
+            const maxZoom = videoTrack.getCapabilities?.()?.zoom?.max ?? 5;
+            dom.zoomSlider?.setAttribute('max', maxZoom);
+            if (zoomVal > 1) {
+                videoTrack.applyConstraints({ advanced: [{ zoom: zoomVal }] }).catch(() => {});
             }
-        });
+        }
+
         video.srcObject = stream;
+        dom.videoCanvas.replaceWith(video);
+        dom.videoCanvas = video;
         dom.videoCanvas.classList.remove('hidden');
         dom.inputChoicePanel?.classList.add('hidden');
         dom.scanActionSection.classList.remove('hidden');
+        dom.zoomControlWrap?.classList.remove('hidden');
+        dom.closeCameraBtn?.classList.remove('hidden');
         setCameraStatus('', true);
 
         video.onloadedmetadata = () => {
             video.play();
-            startCanvasLoop();
         };
     } catch (error) {
         console.error('Camera access error:', error);
         handleCameraError();
     }
-}
-
-function startCanvasLoop() {
-    canvasContext = dom.videoCanvas.getContext('2d');
-
-    const loop = () => {
-        if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
-            if (dom.videoCanvas.width !== video.videoWidth) dom.videoCanvas.width = video.videoWidth;
-            if (dom.videoCanvas.height !== video.videoHeight) dom.videoCanvas.height = video.videoHeight;
-            canvasContext.drawImage(video, 0, 0, dom.videoCanvas.width, dom.videoCanvas.height);
-        }
-        if (stream) animationFrameId = requestAnimationFrame(loop);
-    };
-
-    loop();
 }
 
 function stopCamera() {
@@ -2434,7 +2429,7 @@ function stopCamera() {
         animationFrameId = null;
     }
     if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getVideoTracks().forEach(track => track.stop());
         stream = null;
     }
 }
@@ -2443,6 +2438,8 @@ function handleCameraError() {
     stopCamera();
     dom.videoCanvas.classList.add('hidden');
     dom.scanActionSection.classList.add('hidden');
+    dom.zoomControlWrap?.classList.add('hidden');
+    dom.closeCameraBtn?.classList.add('hidden');
     showInputChoices(t('cameraDeniedUploadStillAvailable'));
 }
 
@@ -2455,8 +2452,10 @@ function setCameraStatus(message, shouldHide = false) {
 function showInputChoices(message = '') {
     stopCamera();
     dom.videoCanvas.classList.add('hidden');
-    dom.inputChoicePanel?.classList.remove('hidden');
     dom.scanActionSection.classList.add('hidden');
+    dom.zoomControlWrap?.classList.add('hidden');
+    dom.closeCameraBtn?.classList.add('hidden');
+    dom.inputChoicePanel?.classList.remove('hidden');
     setCameraStatus(message, !message);
 }
 
@@ -2492,7 +2491,14 @@ async function compressImage(source, maxDimension = MAX_IMAGE_DIMENSION, quality
 
 async function captureImage() {
     dom.flashOverlay.classList.add('active');
-    const imageData = canvasToDataUrl(dom.videoCanvas, 0.86);
+
+    // Draw the current video frame to a canvas
+    const capCanvas = document.createElement('canvas');
+    capCanvas.width = dom.videoCanvas.videoWidth || dom.videoCanvas.offsetWidth;
+    capCanvas.height = dom.videoCanvas.videoHeight || dom.videoCanvas.offsetHeight;
+    capCanvas.getContext('2d').drawImage(dom.videoCanvas, 0, 0, capCanvas.width, capCanvas.height);
+    const imageData = capCanvas.toDataURL('image/jpeg', 0.86);
+
     capturedImageData = await compressImage(imageData, MAX_IMAGE_DIMENSION, 0.82);
     capturedHistoryImageData = await compressImage(imageData, HISTORY_IMAGE_DIMENSION, 0.72);
 
@@ -2525,6 +2531,23 @@ function readFileAsDataUrl(file) {
     });
 }
 
+function showUploadedImage(imageData) {
+    stopCamera();
+    const previewImg = document.createElement('img');
+    previewImg.src = imageData;
+    previewImg.alt = 'Uploaded waste';
+    previewImg.className = 'tiktok-preview';
+    dom.videoCanvas.replaceWith(previewImg);
+    dom.videoCanvas = previewImg;
+
+    dom.inputChoicePanel?.classList.add('hidden');
+    dom.scanActionSection.classList.add('hidden');
+    dom.zoomControlWrap?.classList.add('hidden');
+    dom.closeCameraBtn?.classList.add('hidden');
+    // Keep gallery visible so user can pick a different image
+    setCameraStatus('', true);
+}
+
 async function processImageFile(file, successMessage, noteMessage = '') {
     const validationError = validateImageFile(file);
     if (validationError) {
@@ -2536,7 +2559,7 @@ async function processImageFile(file, successMessage, noteMessage = '') {
         const imageDataUrl = await readFileAsDataUrl(file);
         capturedImageData = await compressImage(imageDataUrl, MAX_IMAGE_DIMENSION, 0.82);
         capturedHistoryImageData = await compressImage(imageDataUrl, HISTORY_IMAGE_DIMENSION, 0.72);
-        showSnappedPhoto(capturedImageData);
+        showUploadedImage(capturedImageData);
         showPreviewModal(capturedImageData);
         showToast(noteMessage ? `${successMessage} ${noteMessage}` : successMessage);
         return true;
@@ -2591,11 +2614,9 @@ function hasDraggedFiles(event) {
     return Array.from(event.dataTransfer?.types || []).includes('Files');
 }
 
-function setDropZoneActive(isActive, title = t('dropImagePreview'), message = t('onlyImagesAccepted')) {
+function setDropZoneActive(isActive) {
     dom.cameraSection.classList.toggle('drag-over', isActive);
     dom.dropZoneOverlay.classList.toggle('hidden', !isActive);
-    dom.dropZoneTitle.textContent = title;
-    dom.dropZoneMessage.textContent = message;
 }
 
 function handleDragEnter(event) {
@@ -2641,26 +2662,25 @@ async function handleDrop(event) {
 
 function showSnappedPhoto(imageData) {
     stopCamera();
-    canvasContext = null;
-    dom.videoCanvas.classList.add('hidden');
+    dom.videoCanvas.pause?.();
+    dom.videoCanvas.srcObject = null;
+    dom.videoCanvas.src = imageData;
+    dom.videoCanvas.classList.add('hidden', 'tiktok-preview');
+    dom.videoCanvas.classList.remove('tiktok-video');
+
+    const previewImg = document.createElement('img');
+    previewImg.src = imageData;
+    previewImg.alt = 'Captured waste';
+    previewImg.className = 'tiktok-preview tiktok-video';
+    dom.videoCanvas.replaceWith(previewImg);
+    dom.videoCanvas = previewImg;
+
     dom.inputChoicePanel?.classList.add('hidden');
-    setCameraStatus('', true);
-
-    let snappedPhoto = document.getElementById('snappedPhoto');
-    if (!snappedPhoto) {
-        snappedPhoto = createElement('img', {
-            className: 'w-full h-full absolute inset-0',
-            alt: 'Captured waste'
-        });
-        snappedPhoto.id = 'snappedPhoto';
-        snappedPhoto.style.objectFit = 'contain';
-        snappedPhoto.style.backgroundColor = '#000';
-        dom.cameraSection.appendChild(snappedPhoto);
-    }
-
-    snappedPhoto.src = imageData;
-    snappedPhoto.classList.remove('hidden');
     dom.scanActionSection.classList.add('hidden');
+    dom.zoomControlWrap?.classList.add('hidden');
+    dom.closeCameraBtn?.classList.add('hidden');
+    // Keep gallery visible so user can upload a different image after snapping
+    setCameraStatus('', true);
 }
 
 function showPreviewModal(imageData) {
@@ -2676,14 +2696,20 @@ function hidePreviewModal() {
 
 function resetToCamera() {
     hidePreviewModal();
-    const snappedPhoto = document.getElementById('snappedPhoto');
-    if (snappedPhoto) {
-        snappedPhoto.classList.add('hidden');
-        snappedPhoto.src = '';
-    }
     dom.fileInput.value = '';
     capturedImageData = null;
     capturedHistoryImageData = null;
+
+    // Restore the original canvas if it was replaced by a preview img
+    const previewImg = dom.videoCanvas;
+    if (previewImg && previewImg.tagName === 'IMG') {
+        const canvas = document.createElement('canvas');
+        canvas.id = 'videoCanvas';
+        canvas.className = 'hidden';
+        previewImg.replaceWith(canvas);
+        dom.videoCanvas = canvas;
+    }
+
     showInputChoices();
 }
 
@@ -4341,17 +4367,19 @@ function bindEvents() {
         dom.toggleApiKeyBtn.replaceChildren(icon(isHidden ? 'ph ph-eye-slash text-lg' : 'ph ph-eye text-lg'));
     });
     dom.useCameraBtn?.addEventListener('click', initCamera);
-    dom.uploadImageBtn?.addEventListener('click', openUploadPicker);
-    dom.pasteImageBtn?.addEventListener('click', () => {
-        setCameraStatus(t('pasteShortcut'));
-    });
-    dom.dragDropImageBtn?.addEventListener('click', () => {
-        setCameraStatus(t('dragDropImageHere'));
-    });
-    dom.backToOptionsBtn?.addEventListener('click', () => showInputChoices());
     dom.scanBtn.addEventListener('click', () => {
         if (!stream) return;
         captureImage();
+    });
+    dom.closeCameraBtn?.addEventListener('click', () => showInputChoices());
+    dom.galleryBtn?.addEventListener('click', openUploadPicker);
+    dom.zoomSlider?.addEventListener('input', () => {
+        const zoom = parseFloat(dom.zoomSlider.value);
+        dom.zoomLabel.textContent = zoom.toFixed(1) + 'x';
+        const track = stream?.getVideoTracks()[0];
+        if (track) {
+            track.applyConstraints({ advanced: [{ zoom }] }).catch(() => {});
+        }
     });
     dom.fileInput.addEventListener('change', handleFileUpload);
     window.addEventListener('paste', handlePaste);
