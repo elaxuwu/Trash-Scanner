@@ -1,11 +1,12 @@
-const APP_VERSION = 'v13';
-const CACHE_NAME = `recyclecheck-${APP_VERSION}`;
+const APP_VERSION = 'v16';
+const CACHE_PREFIX = 'recyclecheck-';
+const CACHE_NAME = `${CACHE_PREFIX}${APP_VERSION}`;
 const urlsToCache = [
   './',
   './index.html',
-  './manifest.json?v=13',
-  './style.css?v=13',
-  './script.js?v=13'
+  './manifest.json?v=16',
+  './style.css?v=16',
+  './script.js?v=16'
 ];
 
 function isLocalDevelopment(url) {
@@ -26,7 +27,7 @@ self.addEventListener('activate', event => {
     Promise.all([
       caches.keys().then(cacheNames => Promise.all(
         cacheNames
-          .filter(cacheName => cacheName !== CACHE_NAME)
+          .filter(cacheName => cacheName.startsWith(CACHE_PREFIX) && cacheName !== CACHE_NAME)
           .map(cacheName => {
             console.log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);

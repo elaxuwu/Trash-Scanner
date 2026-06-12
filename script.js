@@ -109,7 +109,8 @@ const dom = {
     resultsDemoBadge: document.getElementById('resultsDemoBadge')
 };
 
-const APP_VERSION = 'v13';
+const APP_VERSION = 'v16';
+const APP_CACHE_PREFIX = 'recyclecheck-';
 
 const STORAGE_KEYS = {
     apiKey: 'openai_api_key',
@@ -202,6 +203,13 @@ const scanModeTranslationKeys = {
     batch: { label: 'batch', description: 'batchDesc', loading: 'batchLoading' },
     education: { label: 'education', description: 'educationDesc', loading: 'educationLoading' },
     carbon: { label: 'carbon', description: 'carbonDesc', loading: 'carbonLoading' }
+};
+
+const bottomNavTranslationKeys = {
+    scan: 'navScan',
+    history: 'navHistory',
+    quiz: 'navQuiz',
+    profile: 'navProfile'
 };
 
 const achievements = [
@@ -312,6 +320,10 @@ const translationOverrides = {
         cancel: 'Cancel',
         saveChanges: 'Save Changes',
         settings: 'Settings',
+        navScan: 'Scan',
+        navHistory: 'History',
+        navQuiz: 'Quiz',
+        navProfile: 'Profile',
         uploadImage: 'Upload Image',
         analyzingWaste: 'Analyzing waste...',
         loadingGuidance: 'Building recycling guidance',
@@ -476,6 +488,10 @@ const translationOverrides = {
         cancel: 'Hủy',
         saveChanges: 'Lưu thay đổi',
         settings: 'Cài đặt',
+        navScan: 'Quét',
+        navHistory: 'Lịch sử',
+        navQuiz: 'Câu hỏi',
+        navProfile: 'Hồ sơ',
         uploadImage: 'Tải ảnh lên',
         analyzingWaste: 'Đang phân tích rác...',
         loadingGuidance: 'Đang tạo hướng dẫn phân loại',
@@ -679,13 +695,22 @@ Object.assign(translations.en, {
     dragDropImageHere: 'Drag & drop an image here',
     cameraDeniedUploadStillAvailable: 'Camera access was denied. You can still upload, paste, or drag and drop an image.',
     cameraStarting: 'Starting camera...',
+    settingsTabGeneral: 'General',
+    settingsTabAi: 'AI Setup',
+    settingsTabAbout: 'About',
     language: 'Language',
+    languageDesc: 'App display language',
     theme: 'Theme',
+    themeDesc: 'Light or dark appearance',
     light: 'Light',
     dark: 'Dark',
+    custom: 'Custom',
     appVersion: 'App Version',
+    appTagline: 'Smart waste sorting assistant',
+    currentLevel: 'Current Level',
+    aboutFooter: 'Built with care for a greener planet.',
     clearLocalCache: 'Clear Local Cache',
-    clearCacheDesc: 'Remove cached images and data',
+    clearCacheDesc: 'Clear cached app files only',
     aiModel: 'AI Model',
     aiModelDesc: 'Vision-capable model for scanning',
     aiProviderDesc: 'Choose your AI service provider',
@@ -832,18 +857,27 @@ Object.assign(translations.vi, {
     dragDropImageHere: 'Kéo và thả ảnh vào đây',
     cameraDeniedUploadStillAvailable: 'Quyền truy cập camera đã bị từ chối. Bạn vẫn có thể tải ảnh lên, dán ảnh hoặc kéo thả ảnh.',
     cameraStarting: 'Đang mở camera...',
+    settingsTabGeneral: 'Chung',
+    settingsTabAi: 'Thiết lập AI',
+    settingsTabAbout: 'Giới thiệu',
     language: 'Ngôn ngữ',
+    languageDesc: 'Ngôn ngữ hiển thị của ứng dụng',
     theme: 'Giao diện',
+    themeDesc: 'Giao diện sáng hoặc tối',
     light: 'Sáng',
     dark: 'Tối',
+    custom: 'Tùy chỉnh',
     appVersion: 'Phiên bản ứng dụng',
+    appTagline: 'Trợ lý phân loại rác thông minh',
+    currentLevel: 'Cấp hiện tại',
+    aboutFooter: 'Được xây dựng vì một hành tinh xanh hơn.',
     clearLocalCache: 'Xóa bộ nhớ đệm cục bộ',
-    clearCacheDesc: 'Xóa hình ảnh và dữ liệu đã lưu',
+    clearCacheDesc: 'Chỉ xóa tệp ứng dụng đã lưu đệm',
     aiModel: 'Mô hình AI',
     aiModelDesc: 'Mô hình có hỗ trợ hình ảnh để quét',
     aiProviderDesc: 'Chọn nhà cung cấp AI của bạn',
-    apiKey: 'API Key',
-    apiKeyDesc: 'API key từ nhà cung cấp của bạn',
+    apiKey: 'Khóa API',
+    apiKeyDesc: 'Khóa API từ nhà cung cấp của bạn',
     cacheClearedReload: 'Đã xóa bộ nhớ đệm. Vui lòng tải lại trang.',
     achEcoStarter: 'Người mới xanh',
     achEcoStarterDesc: 'Đạt 50 điểm sinh thái',
@@ -998,6 +1032,10 @@ function applyStaticTranslations() {
     document.documentElement.lang = currentLanguage;
     setText('h1', 'appTitle');
     dom.settingsBtn.title = t('settings');
+    document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+        const labelKey = bottomNavTranslationKeys[item.dataset.page];
+        if (labelKey) setText(item.querySelector('span'), labelKey);
+    });
 
     setText(dom.inputChoiceTitle, 'chooseImageMethod');
     setText(dom.useCameraBtn?.querySelector('span'), 'useCamera');
@@ -1046,10 +1084,17 @@ function applyStaticTranslations() {
     setText('#settingsModal h2', 'settings');
     setText('#cancelSettingsBtn', 'cancel');
     setText('#saveSettingsBtn', 'saveChanges');
+    setText('[data-settings-tab="general"] span', 'settingsTabGeneral');
+    setText('[data-settings-tab="ai"] span', 'settingsTabAi');
+    setText('[data-settings-tab="about"] span', 'settingsTabAbout');
 
     // General tab
     setText(document.querySelector('#tab-general .settings-row .settings-row-label'), 'theme');
+    setText(document.querySelector('#tab-general .settings-row .settings-row-desc'), 'themeDesc');
+    setText(dom.lightThemeBtn?.querySelector('span'), 'light');
+    setText(dom.darkThemeBtn?.querySelector('span'), 'dark');
     setText(document.querySelector('#languageRow .settings-row-label'), 'language');
+    setText(document.querySelector('#languageRow .settings-row-desc'), 'languageDesc');
     setText('#tab-general .demo-section .settings-row-label', 'offlineDemoMode');
     setText('#tab-general .demo-section .settings-row-desc', 'offlineDemoDesc');
 
@@ -1066,8 +1111,13 @@ function applyStaticTranslations() {
 
     // About tab
     if (dom.appVersionValue) dom.appVersionValue.textContent = APP_VERSION;
+    setText('.about-app-tagline', 'appTagline');
+    const aboutStatLabels = document.querySelectorAll('#tab-about .about-stat-label');
+    setText(aboutStatLabels[0], 'totalScans');
+    setText(aboutStatLabels[1], 'currentLevel');
     setText(document.querySelector('.about-action-label'), 'clearLocalCache');
     setText(document.querySelector('.about-action-desc'), 'clearCacheDesc');
+    setText('#tab-about .about-footer p', 'aboutFooter');
 
     setText('#resultsModal h2', 'analysisResults');
     setText('#resultsDemoBadge span', 'offlineDemoData');
@@ -2355,8 +2405,13 @@ function setupPwa() {
     if ('serviceWorker' in navigator) {
         const isLocalDevelopment = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
         if (isLocalDevelopment) {
+            const appScope = new URL('./', window.location.href).href;
             navigator.serviceWorker.getRegistrations()
-                .then(registrations => Promise.all(registrations.map(registration => registration.unregister())))
+                .then(registrations => Promise.all(
+                    registrations
+                        .filter(registration => registration.scope === appScope || registration.scope.startsWith(appScope))
+                        .map(registration => registration.unregister())
+                ))
                 .then(() => console.log(`[App] Service workers disabled for local development (${APP_VERSION}).`))
                 .catch(error => console.warn('[App] Local service worker cleanup failed:', error));
             return;
@@ -4070,7 +4125,7 @@ function loadProviderSettings(provider) {
         modelDropdown.appendChild(createElement('option', { text: model }));
         modelDropdown.lastElementChild.value = model;
     });
-    modelDropdown.appendChild(createElement('option', { text: 'Custom' }));
+    modelDropdown.appendChild(createElement('option', { text: t('custom') }));
     modelDropdown.lastElementChild.value = 'custom';
 
     const hasCustomModel = config.customModel && config.customModel.trim() !== '';
@@ -4210,35 +4265,22 @@ async function clearLocalAppCache() {
     try {
         if ('caches' in window) {
             const cacheNames = await caches.keys();
-            await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+            await Promise.all(
+                cacheNames
+                    .filter(cacheName => cacheName.startsWith(APP_CACHE_PREFIX))
+                    .map(cacheName => caches.delete(cacheName))
+            );
         }
 
         if ('serviceWorker' in navigator) {
+            const appScope = new URL('./', window.location.href).href;
             const registrations = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(registrations.map(registration => registration.unregister()));
+            await Promise.all(
+                registrations
+                    .filter(registration => registration.scope === appScope || registration.scope.startsWith(appScope))
+                    .map(registration => registration.unregister())
+            );
         }
-
-        // Preserve settings keys only
-        const preserveKeys = [
-            STORAGE_KEYS.apiKey,
-            STORAGE_KEYS.provider,
-            STORAGE_KEYS.providerKeys,
-            STORAGE_KEYS.providerModels,
-            STORAGE_KEYS.providerRecommendedModels,
-            STORAGE_KEYS.providerCustomModels,
-            STORAGE_KEYS.language,
-            STORAGE_KEYS.theme,
-            STORAGE_KEYS.demoMode
-        ];
-
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && !preserveKeys.includes(key)) {
-                keysToRemove.push(key);
-            }
-        }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
 
         showToast(t('cacheClearedReload'));
     } catch (error) {

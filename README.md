@@ -67,3 +67,21 @@ http://127.0.0.1:8000/index.html?v=latest
 ```
 
 If Opera still shows stale content, disable Opera VPN/proxy or test in Chrome/Edge.
+
+## Cache and PWA Behavior
+
+- Local development on `localhost`, `127.0.0.1`, or `[::1]` disables app service workers so old cached UI does not hide current local files.
+- The local Node server sends `Cache-Control: no-store, no-cache, must-revalidate` headers for local testing.
+- Production still uses the service worker for PWA caching, offline fallback, `skipWaiting()`, `clients.claim()`, and old app cache cleanup.
+- **Settings → Clear Local Cache** clears only this app's `recyclecheck-*` Cache Storage entries and unregisters this app's service worker scope. It does not delete scan history, achievements, quiz stats, API keys, language/theme settings, or other localStorage progress.
+- Full offline PWA support currently depends on network access for CDN-hosted dependencies such as Tailwind CSS, Phosphor Icons, Chart.js, and Confetti. To make offline mode complete, vendor or bundle those assets locally.
+
+## Version Bump Checklist
+
+When shipping a new frontend version, update all of these together:
+
+1. `APP_VERSION` in `script.js`
+2. `APP_VERSION` in `sw.js`
+3. Asset query strings in `index.html`
+4. The service worker pre-cache URLs in `sw.js`
+5. The visible app version marker in `index.html`

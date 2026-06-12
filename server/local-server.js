@@ -29,7 +29,7 @@ const noCacheHeaders = {
 
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
     console.error(`Invalid port: ${process.argv[2]}`);
-    console.error('Usage: node local-server.js 8000');
+    console.error('Usage: node server/local-server.js 8000');
     process.exit(1);
 }
 
@@ -81,7 +81,7 @@ const server = http.createServer((request, response) => {
 server.on('error', error => {
     if (error.code === 'EADDRINUSE') {
         console.error(`Local server failed: port ${port} is already in use.`);
-        console.error(`Try another port, for example: node local-server.js ${port === 8000 ? 5500 : 8000}`);
+        console.error(`Try another port, for example: node server/local-server.js ${port === 8000 ? 5500 : 8000}`);
     } else {
         console.error(`Local server failed: ${error.message}`);
     }
