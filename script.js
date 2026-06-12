@@ -707,11 +707,20 @@ Object.assign(translations.en, {
     unsupportedProvider: 'Unsupported AI provider.',
     imageAnalysisUserPrompt: 'Analyze this waste image. Return JSON only. All user-facing string values must be in English.',
     chooseImageMethod: 'Choose how to scan your item!',
+    pointSnapScan: 'Point & snap to scan',
+    cameraPasteDragHint: 'Tap camera to start / Ctrl+V to paste / Drag image to upload',
     pasteImage: 'Paste Image',
     dragDrop: 'Drag & Drop',
     backToUploadOptions: 'Back to upload options',
     pasteWithCtrlV: 'Paste with Ctrl+V',
     dragDropImageHere: 'Drag & drop an image here',
+    dropImageHere: 'Drop image here',
+    closeCamera: 'Close camera',
+    uploadFromGallery: 'Upload from gallery',
+    captureAnalyze: 'Capture & analyze',
+    zoom: 'Zoom',
+    imagePreviewAlt: 'Image preview',
+    scannedItemAlt: 'Scanned item',
     cameraDeniedUploadStillAvailable: 'Camera access was denied. You can still upload, paste, or drag and drop an image.',
     cameraStarting: 'Starting camera...',
     settingsTabGeneral: 'General',
@@ -868,11 +877,20 @@ Object.assign(translations.vi, {
     unsupportedProvider: 'Nhà cung cấp AI không được hỗ trợ.',
     imageAnalysisUserPrompt: 'Phân tích ảnh rác này. Chỉ trả về JSON. Tất cả giá trị chuỗi hiển thị cho người dùng phải bằng tiếng Việt có đầy đủ dấu.',
     chooseImageMethod: 'Chọn cách thêm ảnh',
+    pointSnapScan: 'Đưa vào khung và chụp để quét',
+    cameraPasteDragHint: 'Nhấn camera để bắt đầu / Ctrl+V để dán / Kéo ảnh để tải lên',
     pasteImage: 'Dán ảnh',
     dragDrop: 'Kéo & thả',
     backToUploadOptions: 'Quay lại tùy chọn tải ảnh',
     pasteWithCtrlV: 'Dán bằng Ctrl+V',
     dragDropImageHere: 'Kéo và thả ảnh vào đây',
+    dropImageHere: 'Thả ảnh vào đây',
+    closeCamera: 'Đóng camera',
+    uploadFromGallery: 'Tải ảnh từ thư viện',
+    captureAnalyze: 'Chụp & phân tích',
+    zoom: 'Thu phóng',
+    imagePreviewAlt: 'Ảnh xem trước',
+    scannedItemAlt: 'Vật phẩm đã quét',
     cameraDeniedUploadStillAvailable: 'Quyền truy cập camera đã bị từ chối. Bạn vẫn có thể tải ảnh lên, dán ảnh hoặc kéo thả ảnh.',
     cameraStarting: 'Đang mở camera...',
     settingsTabGeneral: 'Chung',
@@ -1050,12 +1068,21 @@ function applyStaticTranslations() {
     document.documentElement.lang = currentLanguage;
     setText('h1', 'appTitle');
     dom.settingsBtn.title = t('settings');
+    dom.closeCameraBtn?.setAttribute('title', t('closeCamera'));
+    dom.galleryBtn?.setAttribute('title', t('uploadFromGallery'));
+    dom.scanBtn?.setAttribute('title', t('captureAnalyze'));
+    dom.zoomToggleBtn?.setAttribute('title', t('zoom'));
+    dom.confirmBtn?.setAttribute('title', t('analyze'));
+    dom.videoCanvas?.setAttribute?.('alt', t('imagePreviewAlt'));
+    dom.resultImage?.setAttribute('alt', t('scannedItemAlt'));
     document.querySelectorAll('.nav-item[data-page]').forEach(item => {
         const labelKey = bottomNavTranslationKeys[item.dataset.page];
         if (labelKey) setText(item.querySelector('span'), labelKey);
     });
 
     setText(dom.inputChoiceTitle, 'chooseImageMethod');
+    setText('#inputChoicePanel .font-bold', 'pointSnapScan');
+    setText('#inputChoicePanel .text-xs', 'cameraPasteDragHint');
     setText(dom.uploadImageBtn?.querySelector('span'), 'uploadImage');
     setText(dom.pasteImageBtn?.querySelector('span'), 'pasteImage');
     setText(dom.dragDropImageBtn?.querySelector('span'), 'dragDrop');
@@ -1067,6 +1094,7 @@ function applyStaticTranslations() {
     }
     setText('#dropZoneHint span:not(.paste-shortcut-hint)', 'uploadPasteDropPhoto');
     setText('.paste-shortcut-hint', 'pasteShortcut');
+    setText('#dropZoneOverlay p', 'dropImageHere');
     setText('#dropZoneTitle', 'dropImagePreview');
     setText('#dropZoneMessage', 'onlyImagesAccepted');
     setText('#loadingOverlay p.font-semibold', 'analyzingWaste');
@@ -1149,6 +1177,9 @@ function applyStaticTranslations() {
     setText('#disposalPlanSection h6', 'steps');
     setText(dom.compositionBars?.closest('.bg-white')?.querySelector('h5'), 'materialBreakdown');
     setText(dom.actionSteps?.closest('.bg-white')?.querySelector('h5'), 'preparationSteps');
+    setText(dom.ecoScoreValue?.closest('.bg-white')?.querySelector('h5'), 'sustainabilityTracker');
+    setText(dom.ecoScoreValue?.previousElementSibling, 'ecoScore');
+    setText(dom.carbonSavedValue?.previousElementSibling, 'carbonSaved');
     setText('#saveToHistoryBtn span', 'saveToHistory');
 
     setText('#quizModalTitle', 'ecoQuiz');
