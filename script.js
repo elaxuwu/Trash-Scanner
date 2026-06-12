@@ -263,6 +263,32 @@ const achievements = [
     }
 ];
 
+const achievementIconClasses = {
+    eco_starter: 'ph ph-leaf',
+    recycling_hero: 'ph ph-recycle',
+    plastic_hunter: 'ph ph-magnifying-glass',
+    battery_guardian: 'ph ph-shield-warning',
+    batch_master: 'ph ph-images',
+    eco_learner: 'ph ph-graduation-cap',
+    sorting_student: 'ph ph-student',
+    perfect_sorter: 'ph ph-trophy',
+    waste_wisdom: 'ph ph-brain'
+};
+
+const levelIconClasses = {
+    sprout: 'ph ph-leaf',
+    eco_starter: 'ph ph-leaf',
+    eco_learner: 'ph ph-graduation-cap',
+    warrior: 'ph ph-shield-check',
+    eco_warrior: 'ph ph-shield-check',
+    eco_champion: 'ph ph-trophy',
+    master: 'ph ph-medal',
+    eco_master: 'ph ph-medal',
+    recycle_master: 'ph ph-medal',
+    eco_legend: 'ph ph-crown',
+    default: 'ph ph-star'
+};
+
 const translations = {
     en: {
         noScans: 'No recent scans yet.',
@@ -3839,7 +3865,7 @@ function finishEcoQuiz() {
 function updateUserLevel() {
     const { totalEcoScore } = getMetrics();
     let level = {
-        icon: '🌱',
+        id: 'sprout',
         name: t('sprout'),
         color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
         threshold: 0,
@@ -3848,7 +3874,7 @@ function updateUserLevel() {
 
     if (totalEcoScore >= 500) {
         level = {
-            icon: '🏆',
+            id: 'master',
             name: t('master'),
             color: 'bg-yellow-50 text-yellow-700 border-yellow-200',
             threshold: 500,
@@ -3856,7 +3882,7 @@ function updateUserLevel() {
         };
     } else if (totalEcoScore >= 100) {
         level = {
-            icon: '⭐',
+            id: 'warrior',
             name: t('warrior'),
             color: 'bg-blue-50 text-blue-700 border-blue-200',
             threshold: 100,
@@ -3864,7 +3890,8 @@ function updateUserLevel() {
         };
     }
 
-    dom.levelIcon.textContent = level.icon;
+    dom.levelIcon.className = 'inline-flex items-center';
+    setIcon(dom.levelIcon, `${levelIconClasses[level.id] || levelIconClasses.default} text-sm`);
     dom.levelText.textContent = level.name;
     dom.userLevelBadge.className = `flex items-center gap-1 px-2 py-0.5 ${level.color} rounded-full text-xs font-bold border`;
 
@@ -3874,7 +3901,7 @@ function updateUserLevel() {
     currentXpEl.textContent = `${totalEcoScore} ${t('xp')}`;
 
     if (level.nextThreshold) {
-        nextLevelXpEl.textContent = `${t('next')} ${level.nextThreshold} XP`;
+        nextLevelXpEl.textContent = `${t('next')} ${level.nextThreshold} ${t('xp')}`;
         const progress = ((totalEcoScore - level.threshold) / (level.nextThreshold - level.threshold)) * 100;
         xpBar.style.width = `${Math.min(progress, 100)}%`;
     } else {
@@ -3882,19 +3909,28 @@ function updateUserLevel() {
         xpBar.style.width = '100%';
     }
 }
-
 function renderAchievements() {
     const unlockedIds = new Set(getUnlockedAchievementIds());
     dom.achievementList.replaceChildren();
     achievements.forEach(achievement => {
         const unlocked = unlockedIds.has(achievement.id);
         const title = getAchievementTitle(achievement);
+        const iconClass = achievementIconClasses[achievement.id] || 'ph ph-medal';
         dom.achievementList.appendChild(createElement('div', {
             className: `achievement-card border rounded-xl p-4 ${unlocked ? 'border-amber-200 bg-amber-50' : 'locked border-gray-100 bg-gray-50'}`
         }, [
-            createElement('p', { className: 'font-bold text-gray-800', text: title }),
-            createElement('p', { className: 'text-xs text-gray-500 mt-1', text: getAchievementDescription(achievement) }),
-            createElement('p', { className: `text-xs font-semibold mt-2 ${unlocked ? 'text-amber-700' : 'text-gray-400'}`, text: unlocked ? t('unlocked') : t('locked') })
+            createElement('div', { className: 'flex items-start gap-3' }, [
+                createElement('div', {
+                    className: `achievement-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${unlocked ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-400'}`
+                }, [
+                    icon(`${iconClass} text-xl`)
+                ]),
+                createElement('div', { className: 'min-w-0' }, [
+                    createElement('p', { className: 'font-bold text-gray-800', text: title }),
+                    createElement('p', { className: 'text-xs text-gray-500 mt-1', text: getAchievementDescription(achievement) }),
+                    createElement('p', { className: `text-xs font-semibold mt-2 ${unlocked ? 'text-amber-700' : 'text-gray-400'}`, text: unlocked ? t('unlocked') : t('locked') })
+                ])
+            ])
         ]));
     });
 }
