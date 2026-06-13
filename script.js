@@ -1,5 +1,6 @@
 const dom = {
-    videoCanvas: document.getElementById('videoCanvas'), // <video> when live, <img> when photo shown
+    videoCanvas: document.getElementById('videoCanvas'), // <video> when live
+    capturedImageCanvas: document.getElementById('capturedImageCanvas'), // <img> for captured/uploaded
     scanBtn: document.getElementById('scanBtn'),
     scanActionSection: document.getElementById('scanActionSection'),
     flashOverlay: document.getElementById('flashOverlay'),
@@ -8,7 +9,6 @@ const dom = {
     dropZoneOverlay: document.getElementById('dropZoneOverlay'),
     fileInput: document.getElementById('fileInput'),
     cameraSection: document.getElementById('cameraSection'),
-    inputChoicePanel: document.getElementById('inputChoicePanel'),
     cameraStatusMessage: document.getElementById('cameraStatusMessage'),
     // New HUD elements
     confirmBtn: document.getElementById('confirmBtn'),
@@ -41,24 +41,11 @@ const dom = {
     resultImage: document.getElementById('resultImage'),
     resultItemName: document.getElementById('resultItemName'),
     resultTimestamp: document.getElementById('resultTimestamp'),
-    resultSummaryEcoScore: document.getElementById('resultSummaryEcoScore'),
-    resultSummaryCard: document.getElementById('resultSummaryCard'),
-    resultSummaryText: document.getElementById('resultSummaryText'),
     statusCard: document.getElementById('statusCard'),
     statusIcon: document.getElementById('statusIcon'),
     statusMessage: document.getElementById('statusMessage'),
-    disposalPlanSection: document.getElementById('disposalPlanSection'),
-    disposalPlanItemName: document.getElementById('disposalPlanItemName'),
-    disposalPlanGrid: document.getElementById('disposalPlanGrid'),
-    disposalPlanSteps: document.getElementById('disposalPlanSteps'),
-    detectedObjectsSection: document.getElementById('detectedObjectsSection'),
-    detectedObjectsList: document.getElementById('detectedObjectsList'),
-    compositionBars: document.getElementById('compositionBars'),
-    actionSteps: document.getElementById('actionSteps'),
     ecoScoreValue: document.getElementById('ecoScoreValue'),
     carbonSavedValue: document.getElementById('carbonSavedValue'),
-    saveHistoryContainer: document.getElementById('saveHistoryContainer'),
-    saveToHistoryBtn: document.getElementById('saveToHistoryBtn'),
     userLevelBadge: document.getElementById('userLevelBadge'),
     levelIcon: document.getElementById('levelIcon'),
     levelText: document.getElementById('levelText'),
@@ -99,8 +86,7 @@ const dom = {
     quizSummaryCard: document.getElementById('quizSummaryCard'),
     demoModeSwitch: document.getElementById('demoModeSwitch'),
     demoSelectorPanel: document.getElementById('demoSelectorPanel'),
-    demoScenarioSelect: document.getElementById('demoScenarioSelect'),
-    resultsDemoBadge: document.getElementById('resultsDemoBadge')
+    demoScenarioSelect: document.getElementById('demoScenarioSelect')
 };
 
 const APP_VERSION = 'v21';
@@ -1149,9 +1135,6 @@ function applyStaticTranslations() {
         if (labelKey) setText(item.querySelector('span'), labelKey);
     });
 
-    setText(dom.inputChoiceTitle, 'chooseImageMethod');
-    setText('#inputChoicePanel .font-bold', 'pointSnapScan');
-    setText('#inputChoicePanel .text-xs', 'cameraPasteDragHint');
     setText(dom.uploadImageBtn?.querySelector('span'), 'uploadImage');
     setText(dom.pasteImageBtn?.querySelector('span'), 'pasteImage');
     setText(dom.dragDropImageBtn?.querySelector('span'), 'dragDrop');
@@ -1234,22 +1217,11 @@ function applyStaticTranslations() {
     setText('#tab-about .about-footer p', 'aboutFooter');
 
     setText('#resultsModal h2', 'analysisResults');
-    setText('#resultsDemoBadge span', 'offlineDemoData');
     setText('#closeResultsBtn', 'done');
-    setText('#resultSummaryCard h5', 'summary');
-    setText('#detectedObjectsSection h5', 'detectedItems');
     setText('#statusCard p', 'recyclabilityStatus');
-    setText('#disposalPlanSection h5', 'whatNow');
-    if (dom.disposalPlanItemName && dom.disposalPlanItemName.textContent === translations.en.selectItemPlan) {
-        setText(dom.disposalPlanItemName, 'selectItemPlan');
-    }
-    setText('#disposalPlanSection h6', 'steps');
-    setText(dom.compositionBars?.closest('.bg-white')?.querySelector('h5'), 'materialBreakdown');
-    setText(dom.actionSteps?.closest('.bg-white')?.querySelector('h5'), 'preparationSteps');
     setText(dom.ecoScoreValue?.closest('.bg-white')?.querySelector('h5'), 'sustainabilityTracker');
     setText(dom.ecoScoreValue?.previousElementSibling, 'ecoScore');
     setText(dom.carbonSavedValue?.previousElementSibling, 'carbonSaved');
-    setText('#saveToHistoryBtn span', 'saveToHistory');
 
     setText('#quizModalTitle', 'ecoQuiz');
     setText('#closeQuizBtn', 'close');
@@ -2553,7 +2525,7 @@ function getScanModeText(mode, field) {
 function setScanMode(mode) {
     selectedScanMode = scanModes[mode] ? mode : 'quick';
     localStorage.setItem(STORAGE_KEYS.selectedMode, selectedScanMode);
-    dom.scanModeOptions.querySelectorAll('[data-mode]').forEach(button => {
+    dom.scanModeOptions?.querySelectorAll('[data-mode]').forEach(button => {
         button.classList.toggle('active', button.dataset.mode === selectedScanMode);
     });
 }
@@ -2587,7 +2559,6 @@ function setupPwa() {
 async function initCamera() {
     stopCamera();
     setCameraStatus(t('cameraStarting'), false);
-    dom.inputChoicePanel?.classList.add('hidden');
     dom.videoCanvas.classList.add('hidden');
     dom.videoCanvas.classList.remove('tiktok-preview');
     dom.scanActionSection?.classList.add('hidden');
@@ -2629,7 +2600,6 @@ async function initCamera() {
         dom.videoCanvas.replaceWith(video);
         dom.videoCanvas = video;
         dom.videoCanvas.classList.remove('hidden');
-        dom.inputChoicePanel?.classList.add('hidden');
         dom.zoomToggleBtn?.classList.remove('hidden');
         dom.closeCameraBtn?.classList.remove('hidden');
         setCameraStatus('', true);
@@ -2660,23 +2630,13 @@ function handleCameraError() {
     dom.scanActionSection?.classList.add('hidden');
     dom.zoomControlWrap?.classList.add('hidden');
     dom.closeCameraBtn?.classList.add('hidden');
-    showInputChoices(t('cameraDeniedUploadStillAvailable'));
+    setCameraStatus(t('cameraDeniedUploadStillAvailable'), false);
 }
 
 function setCameraStatus(message, shouldHide = false) {
     if (!dom.cameraStatusMessage) return;
     dom.cameraStatusMessage.textContent = message || '';
     dom.cameraStatusMessage.classList.toggle('hidden', shouldHide || !message);
-}
-
-function showInputChoices(message = '') {
-    stopCamera();
-    dom.videoCanvas.classList.add('hidden');
-    dom.zoomToggleBtn?.classList.add('hidden');
-    dom.zoomControlWrap?.classList.add('hidden');
-    dom.closeCameraBtn?.classList.add('hidden');
-    dom.inputChoicePanel?.classList.remove('hidden');
-    setCameraStatus(message, !message);
 }
 
 function openUploadPicker() {
@@ -2752,14 +2712,10 @@ function readFileAsDataUrl(file) {
 
 function showUploadedImage(imageData) {
     stopCamera();
-    const previewImg = document.createElement('img');
-    previewImg.src = imageData;
-    previewImg.alt = 'Uploaded waste';
-    previewImg.className = 'tiktok-preview';
-    dom.videoCanvas.replaceWith(previewImg);
-    dom.videoCanvas = previewImg;
+    dom.videoCanvas.classList.add('hidden');
+    dom.capturedImageCanvas.src = imageData;
+    dom.capturedImageCanvas.classList.remove('hidden');
 
-    dom.inputChoicePanel?.classList.add('hidden');
     dom.scanActionSection?.classList.add('hidden');
     dom.zoomControlWrap?.classList.add('hidden');
     dom.closeCameraBtn?.classList.add('hidden');
@@ -2896,18 +2852,12 @@ function showSnappedPhoto(imageData) {
     stopCamera();
     dom.videoCanvas.pause?.();
     dom.videoCanvas.srcObject = null;
-    dom.videoCanvas.src = imageData;
-    dom.videoCanvas.classList.add('hidden', 'tiktok-preview');
-    dom.videoCanvas.classList.remove('tiktok-video');
+    dom.videoCanvas.src = '';
+    dom.videoCanvas.classList.add('hidden');
 
-    const previewImg = document.createElement('img');
-    previewImg.src = imageData;
-    previewImg.alt = 'Captured waste';
-    previewImg.className = 'tiktok-preview tiktok-video';
-    dom.videoCanvas.replaceWith(previewImg);
-    dom.videoCanvas = previewImg;
+    dom.capturedImageCanvas.src = imageData;
+    dom.capturedImageCanvas.classList.remove('hidden');
 
-    dom.inputChoicePanel?.classList.add('hidden');
     dom.scanActionSection?.classList.add('hidden');
     dom.zoomControlWrap?.classList.add('hidden');
     dom.closeCameraBtn?.classList.add('hidden');
@@ -2922,20 +2872,15 @@ function showSnappedPhoto(imageData) {
 }
 
 function resetToCamera() {
-    // Preview modal removed — just clear captured data
     dom.fileInput.value = '';
     capturedImageData = null;
     capturedHistoryImageData = null;
 
-    // Restore the original canvas if it was replaced by a preview img
-    const previewImg = dom.videoCanvas;
-    if (previewImg && previewImg.tagName === 'IMG') {
-        const canvas = document.createElement('canvas');
-        canvas.id = 'videoCanvas';
-        canvas.className = 'scan-video hidden';
-        previewImg.replaceWith(canvas);
-        dom.videoCanvas = canvas;
-    }
+    // Hide captured image, restore video
+    dom.capturedImageCanvas.src = '';
+    dom.capturedImageCanvas.classList.add('hidden');
+    dom.videoCanvas.src = '';
+    dom.videoCanvas.classList.add('hidden');
 
     // Restore HUD: show scan frame / line, show capture button, hide confirm
     dom.scanFrame?.classList.remove('hidden');
@@ -2944,8 +2889,8 @@ function resetToCamera() {
     dom.scanBtn?.classList.remove('hidden');
     dom.captureRing?.classList.remove('hidden');
 
-    // Restart the camera feed (wrap to avoid breaking on permission errors)
-    showInputChoices();
+    // Restart the camera feed
+    initCamera();
 }
 
 async function analyzeWithAI() {
@@ -3026,13 +2971,6 @@ function showResults(result, shouldSave) {
         minute: '2-digit'
     });
 
-    const isDemoMode = result.isDemo ?? (localStorage.getItem(STORAGE_KEYS.demoMode) === 'true');
-    if (isDemoMode) {
-        dom.resultsDemoBadge.classList.remove('hidden');
-    } else {
-        dom.resultsDemoBadge.classList.add('hidden');
-    }
-
     if (result.scanType === 'unclear') {
         renderUnclearResult(result);
     } else {
@@ -3040,19 +2978,13 @@ function showResults(result, shouldSave) {
             ? t('itemDetected', { count: result.objects.length })
             : result.mainItem;
         dom.resultItemName.textContent = title;
-        dom.resultSummaryEcoScore.textContent = result.totalEcoScore || 0;
-        renderSummary(result);
         renderStatus(result);
-        renderDetectedObjects(result);
         renderGrid(result);
-        renderObjectDetails(result.objects[0]);
-        renderDisposalPlan(result.objects[0]);
         renderSustainability(result);
     }
 
     dom.resultsModal.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
-    dom.saveHistoryContainer.classList.add('hidden');
 
     if (shouldSave) {
         addToHistory(result);
@@ -3061,142 +2993,13 @@ function showResults(result, shouldSave) {
 
 function renderUnclearResult(result) {
     dom.resultItemName.textContent = t('unclear');
-    dom.resultSummaryCard.classList.remove('hidden');
-    dom.resultSummaryText.textContent = result.message;
-    renderSavedLanguageNote(result);
     dom.statusCard.className = 'rounded-2xl p-6 shadow-sm bg-gradient-to-r from-gray-500 to-gray-600';
     setIcon(dom.statusIcon, 'ph ph-warning text-white text-3xl');
     dom.statusMessage.textContent = t('unclearConfidence', { percent: Math.round(result.confidence * 100) });
-    dom.detectedObjectsSection.classList.add('hidden');
     dom.gridOverlay.classList.add('hidden');
     dom.objectFocusBox.classList.add('hidden');
-    renderObjectDetails(null);
-    renderDisposalPlan(null);
-    dom.resultSummaryEcoScore.textContent = '0';
-    dom.ecoScoreValue.textContent = '0';
+    dom.ecoScoreValue.textContent = '+0';
     dom.carbonSavedValue.textContent = '0g';
-}
-
-function renderSummary(result) {
-    dom.resultSummaryCard.classList.remove('hidden');
-    dom.resultSummaryCard.replaceChildren(buildResultOverview(result));
-    dom.resultSummaryText = document.getElementById('resultSummaryText');
-    renderSavedLanguageNote(result);
-}
-
-function getPrimaryResultItem(result) {
-    return result?.objects?.[0] || normalizeObject({
-        name: result?.mainItem,
-        category: result?.category,
-        recyclable: result?.recyclable,
-        confidence: result?.confidence,
-        ecoScore: result?.ecoScore || result?.totalEcoScore,
-        disposalAction: result?.disposalAction,
-        disposalPlan: result?.disposalPlan,
-        components: result?.components,
-        preparationSteps: result?.preparationSteps,
-        education: result?.education || result?.overallSummary
-    }, 0);
-}
-
-function getConfidenceInfo(confidence) {
-    const percent = Math.round(clampNumber(confidence, 0, 1, 0) * 100);
-    if (percent >= 80) {
-        return { percent, label: t('highConfidence'), className: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
-    }
-    if (percent >= 55) {
-        return { percent, label: t('mediumConfidence'), className: 'bg-amber-50 text-amber-700 border-amber-100' };
-    }
-    return { percent, label: t('lowConfidence'), className: 'bg-orange-50 text-orange-700 border-orange-100' };
-}
-
-function getResultNotes(item) {
-    const text = `${item.name} ${item.category} ${item.disposalAction} ${item.disposalPlan?.handlingType || ''}`.toLowerCase();
-    const kind = getStatusKind(item.recyclable);
-    const notes = [];
-    if (kind === 'recyclable' || kind === 'partial') notes.push(t('cleanDryNote'));
-    if (/plastic|pet|hdpe|ldpe|container|bottle|cup|lid|straw|wrapper/.test(text) || isPlasticCupText(text)) notes.push(t('rinseResidueNote'));
-    if (isPlasticCupText(text)) notes.push(t('plasticCupNote'));
-    if (/battery|e-waste|ewaste|electronic|lithium|charger|cable|phone|pin/.test(text)) notes.push(t('batteryEwasteNote'));
-    if (/hazard|hazardous|chemical|toxic|poison|paint|solvent|medical|sharp|cigarette|butt|mask|ppe|sanitary/.test(text)) notes.push(t('hazardousWasteNote'));
-    if (isOrganicWasteText(text)) notes.push(t('compostNote'));
-    if (notes.length === 0) notes.push(t('localRulesNote'));
-    return [...new Set(notes)].slice(0, 3);
-}
-function buildResultOverview(result) {
-    const item = getPrimaryResultItem(result);
-    const plan = normalizeDisposalPlan(item.disposalPlan, getFallbackDisposalPlan(item, item.recyclable, item.components || [], item.preparationSteps || []));
-    const confidence = getConfidenceInfo(item.confidence ?? result.confidence);
-    const explanation = item.education || result.overallSummary || buildSummary(result.objects || [item]);
-    const notes = getResultNotes(item);
-    const additionalItems = asArray(result.objects).slice(1);
-    const statusBadge = createElement('span', {
-        className: `inline-flex items-center px-3 py-1 rounded-full border text-xs font-bold ${getStatusClasses(item.recyclable)}`,
-        text: getStatusLabel(item.recyclable)
-    });
-    const confidenceBadge = createElement('span', {
-        className: `inline-flex items-center px-3 py-1 rounded-full border text-xs font-bold ${confidence.className}`,
-        text: `${t('confidenceLevel')}: ${confidence.label} (${confidence.percent}%)`
-    });
-    const categoryBadge = createElement('span', {
-        className: 'inline-flex items-center px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold',
-        text: `${t('wasteCategory')}: ${item.category || t('unknown')}`
-    });
-    const scanAgainButton = createElement('button', {
-        type: 'button',
-        className: 'inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition-colors',
-        text: t('scanAnotherItem')
-    });
-    scanAgainButton.addEventListener('click', closeResults);
-
-    return createElement('div', { className: 'space-y-4' }, [
-        createElement('div', { className: 'flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3' }, [
-            createElement('div', {}, [
-                createElement('h5', { className: 'text-lg font-bold text-gray-800 flex items-center gap-2', text: t('resultOverview') }),
-                createElement('p', { className: 'text-sm text-gray-500 mt-1', text: `${t('detectedItem')}: ${item.name || result.mainItem || t('unknown')}` })
-            ]),
-            scanAgainButton
-        ]),
-        createElement('div', { className: 'flex flex-wrap gap-2' }, [statusBadge, categoryBadge, confidenceBadge]),
-        ...(additionalItems.length > 0 ? [
-            createElement('div', { className: 'rounded-2xl border border-blue-100 bg-blue-50 p-4' }, [
-                createElement('p', { className: 'text-xs font-bold uppercase tracking-wide text-blue-700 mb-1', text: t('alsoVisible') }),
-                createElement('p', {
-                    className: 'text-sm text-gray-700',
-                    text: additionalItems.slice(0, 8).map(visibleItem => visibleItem.name).filter(Boolean).join(', ')
-                }),
-                createElement('p', { className: 'text-xs text-gray-500 mt-2', text: t('someItemsLocalRules') })
-            ])
-        ] : []),
-        createElement('div', { className: 'rounded-2xl border border-emerald-100 bg-emerald-50 p-4' }, [
-            createElement('p', { className: 'text-xs font-bold uppercase tracking-wide text-emerald-700 mb-1', text: t('mainInstruction') }),
-            createElement('p', { className: 'text-sm font-semibold text-gray-800', text: plan.immediateAction || item.disposalAction || t('checkLocalRules') })
-        ]),
-        createElement('div', {}, [
-            createElement('p', { className: 'text-xs font-bold uppercase tracking-wide text-gray-500 mb-1', text: t('explanation') }),
-            createElement('p', { id: 'resultSummaryText', className: 'text-sm text-gray-600', text: explanation })
-        ]),
-        createElement('div', { className: 'rounded-2xl border border-amber-100 bg-amber-50 p-4' }, [
-            createElement('p', { className: 'text-xs font-bold uppercase tracking-wide text-amber-700 mb-2', text: t('importantNote') }),
-            createElement('div', { className: 'space-y-2' }, notes.map(note => createElement('p', { className: 'text-sm text-gray-700', text: `? ${note}` })))
-        ])
-    ]);
-}
-
-function renderSavedLanguageNote(result) {
-    const existingNote = document.getElementById('savedLanguageNote');
-    if (existingNote) existingNote.remove();
-
-    const savedLanguage = result.savedLanguage || result.language || '';
-    const shouldShow = Boolean(result.isFromHistory) && (!savedLanguage || savedLanguage !== currentLanguage);
-    if (!shouldShow) return;
-
-    const note = createElement('p', {
-        className: 'mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2',
-        text: t('savedLanguageNote')
-    });
-    note.id = 'savedLanguageNote';
-    dom.resultSummaryCard.appendChild(note);
 }
 
 function renderStatus(result) {
@@ -3228,90 +3031,6 @@ function summarizeBatchStatus(objects) {
 
 function setIcon(container, className) {
     container.replaceChildren(icon(className));
-}
-
-function renderDetectedObjects(result) {
-    dom.detectedObjectsSection.classList.remove('hidden');
-    dom.detectedObjectsList.replaceChildren();
-
-    result.objects.forEach((item, index) => {
-        const statusBadge = createElement('span', {
-            className: `inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-semibold ${getStatusClasses(item.recyclable)}`,
-            text: getStatusLabel(item.recyclable)
-        });
-        const score = createElement('span', {
-            className: 'inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold',
-            text: `${item.ecoScore} ${t('ecoShort')}`
-        });
-        const confidence = createElement('span', {
-            className: 'text-xs text-gray-500',
-            text: `${Math.round(item.confidence * 100)}% ${t('confidence')}${item.gridCell ? ` | ${t('cell')} ${item.gridCell}` : ''}`
-        });
-        const roleBadge = createElement('span', {
-            className: item.role === 'primary'
-                ? 'inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-bold'
-                : 'inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-bold',
-            text: item.role === 'primary' ? t('primaryItem') : t('secondaryItem')
-        });
-        const lowConfidenceBadge = item.confidence < 0.55
-            ? createElement('span', {
-                className: 'inline-flex items-center px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 text-[11px] font-bold',
-                text: t('lowConfidenceItem')
-            })
-            : null;
-        const positionBadge = item.position
-            ? createElement('span', {
-                className: 'inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-bold',
-                text: `${t('positionLabel')}: ${item.position}`
-            })
-            : null;
-        const title = createElement('h6', {
-            className: 'font-bold text-gray-800',
-            text: item.name
-        });
-        const category = createElement('p', {
-            className: 'text-xs text-gray-500',
-            text: item.category
-        });
-        const action = createElement('p', {
-            className: 'text-sm text-gray-600 mt-3',
-            text: item.disposalAction
-        });
-        const card = createElement('button', {
-            type: 'button',
-            className: 'result-card text-left border border-gray-100 rounded-2xl p-4 hover:border-emerald-200 hover:bg-emerald-50/40 transition-colors',
-            dataset: { cell: item.gridCell || '', objectId: item.id }
-        }, [
-            createElement('div', { className: 'flex items-start justify-between gap-3' }, [
-                createElement('div', {}, [
-                    createElement('div', { className: 'flex flex-wrap items-center gap-2 mb-1' }, [title, roleBadge, lowConfidenceBadge, positionBadge].filter(Boolean)),
-                    category,
-                    confidence
-                ]),
-                createElement('div', { className: 'flex flex-col items-end gap-2' }, [statusBadge, score])
-            ]),
-            action
-        ]);
-
-        card.style.animationDelay = `${index * 70}ms`;
-        card.addEventListener('click', () => {
-            setActiveDetectedObject(item.id);
-            renderObjectDetails(item);
-            renderDisposalPlan(item);
-            focusGridCell(item.gridCell);
-        });
-        dom.detectedObjectsList.appendChild(card);
-    });
-
-    if (result.objects[0]) {
-        setActiveDetectedObject(result.objects[0].id);
-    }
-}
-
-function setActiveDetectedObject(objectId) {
-    dom.detectedObjectsList.querySelectorAll('.result-card').forEach(card => {
-        card.classList.toggle('active', String(card.dataset.objectId) === String(objectId));
-    });
 }
 
 function renderGrid(result) {
@@ -3393,151 +3112,9 @@ function focusGridCell(cell) {
     dom.objectFocusBox.classList.remove('hidden');
 }
 
-function renderObjectDetails(item) {
-    dom.compositionBars.replaceChildren();
-    dom.actionSteps.replaceChildren();
-
-    if (!item) {
-        dom.compositionBars.appendChild(createElement('p', {
-            className: 'text-gray-400 text-sm',
-            text: t('noMaterialBreakdown')
-        }));
-        dom.actionSteps.appendChild(createElement('p', {
-            className: 'text-gray-400 text-sm',
-            text: t('noPreparationSteps')
-        }));
-        return;
-    }
-
-    if (item.components.length === 0) {
-        dom.compositionBars.appendChild(createElement('p', {
-            className: 'text-gray-400 text-sm',
-            text: t('noComponentDetails')
-        }));
-    } else {
-        item.components.forEach(component => {
-            const badge = createElement('span', {
-                className: `inline-flex items-center px-2 py-1 rounded-full border text-xs font-semibold ${getStatusClasses(component.recyclable)}`,
-                text: getStatusLabel(component.recyclable)
-            });
-            dom.compositionBars.appendChild(createElement('div', {
-                className: 'result-card border border-gray-100 rounded-xl p-4'
-            }, [
-                createElement('div', { className: 'flex justify-between items-start gap-3 mb-2' }, [
-                    createElement('div', {}, [
-                        createElement('p', { className: 'font-semibold text-gray-800', text: component.part }),
-                        createElement('p', { className: 'text-xs text-gray-500', text: component.material })
-                    ]),
-                    badge
-                ]),
-                createElement('p', { className: 'text-sm text-gray-600', text: component.instruction })
-            ]));
-        });
-    }
-
-    const steps = item.preparationSteps.length > 0 ? item.preparationSteps : [item.disposalAction];
-    steps.forEach((step, index) => {
-        dom.actionSteps.appendChild(createElement('div', {
-            className: 'result-card flex items-start gap-3 p-3 bg-gray-50 rounded-xl'
-        }, [
-            createElement('div', {
-                className: 'w-6 h-6 flex-shrink-0 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xs font-bold',
-                text: index + 1
-            }),
-            createElement('p', { className: 'text-gray-700 text-sm', text: step })
-        ]));
-    });
-
-    if (item.education) {
-        dom.actionSteps.appendChild(createElement('div', {
-            className: 'result-card p-4 bg-blue-50 text-blue-800 rounded-xl text-sm'
-        }, [
-            createElement('p', { className: 'font-semibold mb-1', text: t('whyThisMatters') }),
-            createElement('p', { text: item.education })
-        ]));
-    }
-}
-
-function renderDisposalPlan(item) {
-    dom.disposalPlanGrid.replaceChildren();
-    dom.disposalPlanSteps.replaceChildren();
-
-    if (!item) {
-        dom.disposalPlanItemName.textContent = t('noDisposalPlan');
-        dom.disposalPlanGrid.appendChild(createElement('p', {
-            className: 'text-sm text-gray-400',
-            text: t('retakeForPlan')
-        }));
-        return;
-    }
-
-    const plan = normalizeDisposalPlan(item.disposalPlan, getFallbackDisposalPlan(item, item.recyclable, item.components || [], item.preparationSteps || []));
-    dom.disposalPlanItemName.textContent = item.name;
-
-    const cards = [
-        {
-            iconClass: 'ph ph-lightning text-emerald-600 text-xl',
-            label: t('immediateAction'),
-            value: plan.immediateAction,
-            color: 'bg-emerald-50 border-emerald-100'
-        },
-        {
-            iconClass: 'ph ph-trash text-blue-600 text-xl',
-            label: t('correctBinHandling'),
-            value: plan.handlingType,
-            color: 'bg-blue-50 border-blue-100'
-        },
-        {
-            iconClass: 'ph ph-warning text-amber-600 text-xl',
-            label: t('safetyWarning'),
-            value: plan.safetyWarning || t('noSafetyWarning'),
-            color: 'bg-amber-50 border-amber-100'
-        },
-        {
-            iconClass: 'ph ph-prohibit text-orange-600 text-xl',
-            label: t('mistakeToAvoid'),
-            value: plan.mistakeToAvoid,
-            color: 'bg-orange-50 border-orange-100'
-        }
-    ];
-
-    cards.forEach(card => {
-        dom.disposalPlanGrid.appendChild(createElement('div', {
-            className: `border rounded-xl p-4 ${card.color}`
-        }, [
-            createElement('div', { className: 'flex items-center gap-2 mb-2' }, [
-                icon(card.iconClass),
-                createElement('p', { className: 'text-xs font-bold uppercase text-gray-500', text: card.label })
-            ]),
-            createElement('p', { className: 'text-sm font-semibold text-gray-800', text: card.value })
-        ]));
-    });
-
-    const steps = plan.steps.length > 0 ? plan.steps : item.preparationSteps || [];
-    if (steps.length === 0) {
-        dom.disposalPlanSteps.appendChild(createElement('p', {
-            className: 'text-sm text-gray-400',
-            text: t('noStepPlan')
-        }));
-        return;
-    }
-
-    steps.forEach((step, index) => {
-        dom.disposalPlanSteps.appendChild(createElement('div', {
-            className: 'flex items-start gap-3 p-3 bg-gray-50 rounded-xl'
-        }, [
-            createElement('div', {
-                className: 'w-6 h-6 flex-shrink-0 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xs font-bold',
-                text: index + 1
-            }),
-            createElement('p', { className: 'text-sm text-gray-700', text: step })
-        ]));
-    });
-}
-
 function renderSustainability(result) {
-    dom.ecoScoreValue.textContent = result.totalEcoScore;
-    dom.carbonSavedValue.textContent = `${result.carbonSavedGrams || Math.round(result.totalEcoScore * 0.5)}g`;
+    dom.ecoScoreValue.textContent = `+${result.totalEcoScore || 0}`;
+    dom.carbonSavedValue.textContent = `${result.carbonSavedGrams || Math.round((result.totalEcoScore || 0) * 0.5)}g`;
 }
 
 function addToHistory(result) {
@@ -4584,12 +4161,8 @@ function refreshLanguage() {
             dom.resultItemName.textContent = lastAnalysisResult.scanType === 'batch'
                 ? t('itemDetected', { count: lastAnalysisResult.objects.length })
                 : lastAnalysisResult.mainItem;
-            renderSummary(lastAnalysisResult);
             renderStatus(lastAnalysisResult);
-            renderDetectedObjects(lastAnalysisResult);
             renderGrid(lastAnalysisResult);
-            renderObjectDetails(lastAnalysisResult.objects[0]);
-            renderDisposalPlan(lastAnalysisResult.objects[0]);
             renderSustainability(lastAnalysisResult);
         }
     }
@@ -4667,7 +4240,7 @@ function syncProviderCards(provider) {
 }
 
 function bindEvents() {
-    dom.scanModeOptions.addEventListener('click', event => {
+    dom.scanModeOptions?.addEventListener('click', event => {
         const button = event.target.closest('[data-mode]');
         if (button) setScanMode(button.dataset.mode);
     });
@@ -4749,7 +4322,10 @@ function bindEvents() {
         if (!stream) return;
         captureImage();
     });
-    dom.closeCameraBtn?.addEventListener('click', () => showInputChoices());
+    dom.closeCameraBtn?.addEventListener('click', () => {
+        stopCamera();
+        setCameraStatus('Camera closed');
+    });
     dom.galleryBtn?.addEventListener('click', openUploadPicker);
     dom.zoomSlider?.addEventListener('input', () => {
         const zoom = parseFloat(dom.zoomSlider.value);
@@ -4770,9 +4346,11 @@ function bindEvents() {
     dom.confirmBtn?.addEventListener('click', analyzeWithAI);
     dom.closeResultsBtn.addEventListener('click', closeResults);
     dom.clearHistoryBtn.addEventListener('click', clearHistory);
-    dom.saveToHistoryBtn.addEventListener('click', () => {
-        if (lastAnalysisResult) addToHistory(lastAnalysisResult);
-    });
+    if (dom.saveToHistoryBtn) {
+        dom.saveToHistoryBtn.addEventListener('click', () => {
+            if (lastAnalysisResult) addToHistory(lastAnalysisResult);
+        });
+    }
     if (dom.demoModeSwitch) {
         dom.demoModeSwitch.addEventListener('change', event => {
             const isActive = event.target.checked;
@@ -4810,7 +4388,7 @@ function initializeApp() {
     }
     updateDemoModeUI(isDemoMode);
 
-    showInputChoices();
+    setCameraStatus('');
     loadHistory();
     renderChart();
     updateUserLevel();

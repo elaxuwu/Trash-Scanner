@@ -116,6 +116,29 @@
             -webkit-overflow-scrolling: touch;
         }
 
+        #resultsModal .max-w-2xl > .space-y-4 > .bg-white {
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+        }
+
+        .result-image-frame {
+            position: relative;
+            width: 100%;
+            height: min(42vh, 300px);
+            min-height: 180px;
+            max-height: 320px;
+            overflow: hidden;
+            border-radius: 1rem;
+            background: #0f172a;
+        }
+
+        .result-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
         @media (min-width: 640px) {
             #settingsModal > div {
                 max-height: calc(100vh - 2rem);
@@ -126,7 +149,7 @@
         .app-container {
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
+            height: 100dvh; /* dynamic viewport: correct on mobile with collapsible URL bar */
             background-color: var(--app-bg);
             width: 100%;
         }
@@ -135,14 +158,24 @@
            SCAN VIEWPORT — Premium Scanning HUD
            ═══════════════════════════════════════════ */
 
-        /* Viewport container */
+        /* Viewport container — fills space between header and bottom of screen (nav floats over) */
         .scan-viewport {
             position: relative;
             width: 100%;
-            height: min(100svh - 5rem, 640px);
+            height: calc(100dvh - var(--header-height, 72px) - var(--nav-height, 64px));
             background: #0a0a0a;
-            overflow: hidden;
             user-select: none;
+        }
+
+        :root {
+            --header-height: 72px; /* ~py-3 py-4 + XP bar */
+            --nav-height: 64px;    /* bottom nav bar height */
+        }
+
+        @media (min-width: 768px) {
+            :root {
+                --header-height: 88px;
+            }
         }
 
         .scan-video,
@@ -542,6 +575,7 @@
         /* Tablet & Desktop adjustments */
         @media (min-width: 768px) {
             .app-container {
+                height: 100vh;
                 max-width: 1200px;
                 margin: 0 auto;
                 flex-direction: column;
@@ -567,6 +601,8 @@
             main {
                 display: flex;
                 flex-direction: column;
+                flex: 1;
+                min-height: 0;
                 gap: 2rem;
                 padding-bottom: 0 !important;
             }
@@ -603,9 +639,28 @@
             color: var(--primary);
         }
 
-        /* Page transitions */
-        .page-content {
-            animation: fadeIn 0.2s ease;
+        /* Scan page: viewport fills available height */
+        #page-scan {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* Main content area — flex column so children expand vertically */
+        main {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* Other pages scroll normally */
+        #page-history,
+        #page-quiz,
+        #page-profile {
+            overflow-y: auto;
+            flex: 1;
         }
 
         @keyframes fadeIn {
@@ -801,31 +856,6 @@
             grid-template-columns: repeat(4, 1fr);
             grid-template-rows: repeat(4, 1fr);
             pointer-events: none;
-        }
-
-        .result-image-frame {
-            position: relative;
-            width: 100%;
-            height: min(56vh, 400px);
-            min-height: 220px;
-            max-height: 420px;
-            overflow: hidden;
-            border-radius: 1rem;
-            background: #0f172a;
-        }
-
-        .result-image {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
-        }
-
-        @media (max-width: 640px) {
-            .result-image-frame {
-                height: min(52vh, 330px);
-                min-height: 210px;
-            }
         }
 
         .detected-objects-list {
