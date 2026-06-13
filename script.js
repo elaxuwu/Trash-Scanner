@@ -4343,6 +4343,7 @@ function bindEvents() {
     dom.cameraSection.addEventListener('dragover', handleDragOver);
     dom.cameraSection.addEventListener('dragleave', handleDragLeave);
     dom.cameraSection.addEventListener('drop', handleDrop);
+    dom.scanBtn?.addEventListener('click', initCamera);
     dom.confirmBtn?.addEventListener('click', analyzeWithAI);
     dom.closeResultsBtn.addEventListener('click', closeResults);
     dom.clearHistoryBtn.addEventListener('click', clearHistory);
@@ -4416,8 +4417,14 @@ function setupBottomNavigation() {
                     pageEl.classList.toggle('hidden', p !== page);
                 }
             });
+
+            // Start camera when navigating to scan page
+            if (page === 'scan') {
+                initCamera();
+            }
         });
     });
 }
 
 initializeApp();
+initCamera();
