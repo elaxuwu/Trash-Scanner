@@ -2610,7 +2610,7 @@ async function initCamera() {
         setCameraStatus('', true);
 
         video.onloadedmetadata = () => {
-            video.play();
+            video.play().catch(() => {});
         };
     } catch (error) {
         console.error('Camera access error:', error);
@@ -2680,20 +2680,52 @@ async function compressImage(source, maxDimension = MAX_IMAGE_DIMENSION, quality
 async function captureImage() {
     dom.flashOverlay.classList.add('active');
 
-    // Draw the current video frame to a canvas
+    // Defensive: resolve video element each time
+    const video = dom.videoCanvas;
+    if (!video || !stream || !video.srcObject) {
+        dom.flashOverlay.classList.remove('active');
+        setCameraStatus(t('cameraStarting'));
+        showToast(t('cameraStarting'));
+        return;
+    }
+
+    // Wait for the next rendered video frame
+    try {
+        if (typeof video.requestVideoFrameCallback !== 'undefined') {
+            await new Promise((resolve) => { video.requestVideoFrameCallback(resolve); });
+        } else {
+            await new Promise(r => setTimeout(r, 300));
+        }
+    } catch {
+        await new Promise(r => setTimeout(r, 300));
+    }
+
+    // Fallback: wait until video has non-zero dimensions (up to 2s)
+    const maxWait = Date.now() + 2000;
+    while ((!video.videoWidth || !video.videoHeight) && Date.now() < maxWait) {
+        await new Promise(r => setTimeout(r, 50));
+    }
+
+    const vidW = Math.max(video.videoWidth || 0, video.offsetWidth || 0, 640);
+    const vidH = Math.max(video.videoHeight || 0, video.offsetHeight || 0, 480);
+
     const capCanvas = document.createElement('canvas');
-    capCanvas.width = dom.videoCanvas.videoWidth || dom.videoCanvas.offsetWidth;
-    capCanvas.height = dom.videoCanvas.videoHeight || dom.videoCanvas.offsetHeight;
-    capCanvas.getContext('2d').drawImage(dom.videoCanvas, 0, 0, capCanvas.width, capCanvas.height);
+    capCanvas.width = vidW;
+    capCanvas.height = vidH;
+    capCanvas.getContext('2d').drawImage(video, 0, 0, vidW, vidH);
     const imageData = capCanvas.toDataURL('image/jpeg', 0.86);
 
-    capturedImageData = await compressImage(imageData, MAX_IMAGE_DIMENSION, 0.82);
-    capturedHistoryImageData = await compressImage(imageData, HISTORY_IMAGE_DIMENSION, 0.72);
-
-    setTimeout(() => {
-        dom.flashOverlay.classList.remove('active');
+    try {
+        capturedImageData = await compressImage(imageData, MAX_IMAGE_DIMENSION, 0.82);
+        capturedHistoryImageData = await compressImage(imageData, HISTORY_IMAGE_DIMENSION, 0.72);
+        setCameraStatus('');
         showSnappedPhoto(capturedImageData);
-    }, 100);
+    } catch (err) {
+        console.error('Capture error:', err);
+        showToast(t('tryAgain'));
+    } finally {
+        dom.flashOverlay.classList.remove('active');
+    }
 }
 
 function validateImageFile(file) {
@@ -4327,7 +4359,7 @@ function bindEvents() {
         dom.zoomToggleBtn?.classList.toggle('active');
     });
     dom.scanBtn.addEventListener('click', () => {
-        if (!stream) return;
+        if (!dom.videoCanvas) return;
         captureImage();
     });
     dom.closeCameraBtn?.addEventListener('click', () => {
