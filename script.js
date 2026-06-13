@@ -2583,7 +2583,12 @@ async function initCamera() {
 
     try {
         const capabilities = { video: { facingMode: { ideal: 'environment' } } };
-        stream = await navigator.mediaDevices.getUserMedia(capabilities);
+        try {
+            stream = await navigator.mediaDevices.getUserMedia(capabilities);
+        } catch {
+            // Fallback to front camera or any available camera
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
 
         // Apply zoom if slider has a non-default value
         const zoomVal = parseFloat(dom.zoomSlider?.value || '1');
@@ -2630,6 +2635,9 @@ function handleCameraError() {
     dom.scanActionSection?.classList.add('hidden');
     dom.zoomControlWrap?.classList.add('hidden');
     dom.closeCameraBtn?.classList.add('hidden');
+    dom.zoomToggleBtn?.classList.add('hidden');
+    dom.scanFrame?.classList.add('hidden');
+    document.querySelector('.scan-line-track')?.classList.add('hidden');
     setCameraStatus(t('cameraDeniedUploadStillAvailable'), false);
 }
 
@@ -4343,7 +4351,6 @@ function bindEvents() {
     dom.cameraSection.addEventListener('dragover', handleDragOver);
     dom.cameraSection.addEventListener('dragleave', handleDragLeave);
     dom.cameraSection.addEventListener('drop', handleDrop);
-    dom.scanBtn?.addEventListener('click', initCamera);
     dom.confirmBtn?.addEventListener('click', analyzeWithAI);
     dom.closeResultsBtn.addEventListener('click', closeResults);
     dom.clearHistoryBtn.addEventListener('click', clearHistory);
