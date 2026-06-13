@@ -114,6 +114,9 @@
                                 <button id="galleryBtn" type="button" class="hud-icon-btn hud-gallery-btn" title="Upload from gallery">
                                     <i class="ph ph-images text-xl"></i>
                                 </button>
+                                <button id="returnBtn" type="button" class="hud-icon-btn hud-gallery-btn hidden" title="Return to camera">
+                                    <i class="ph ph-arrow-left text-xl"></i>
+                                </button>
                             </div>
 
                             <!-- Capture button -->
@@ -558,6 +561,7 @@
                 <div class="flex items-center gap-2">
                     <i class="ph ph-leaf text-xl text-emerald-500"></i>
                     <h2 class="font-bold text-lg text-gray-800">Analysis Results</h2>
+                    <span id="demoResultBadge" class="hidden px-2 py-0.5 bg-cyan-100 text-cyan-700 text-xs font-bold rounded-full">DEMO</span>
                 </div>
                 <button id="closeResultsBtn" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-600 font-medium text-sm transition-colors">
                     Done
@@ -573,8 +577,6 @@
                 <div class="bg-white rounded-2xl shadow-sm overflow-hidden p-3 sm:p-4">
                     <div id="resultImageFrame" class="result-image-frame">
                         <img id="resultImage" src="" alt="Scanned item" class="result-image">
-                        <div id="gridOverlay" class="grid-overlay hidden"></div>
-                        <div id="objectFocusBox" class="object-focus-box hidden"></div>
                     </div>
                 </div>
 
@@ -591,7 +593,20 @@
                             <i class="ph text-3xl text-white"></i>
                         </div>
                         <div>
-                            <p class="text-white/80 text-sm font-medium uppercase tracking-wide">Recyclability Status</p>
+                            <div class="flex items-center gap-2 mb-1">
+                                <p class="text-white/80 text-sm font-medium uppercase tracking-wide">Recyclability Status</p>
+                                <div class="relative flex items-center gap-1 bg-white/20 rounded-full px-2 py-0.5 cursor-help">
+                                    <i class="ph ph-crosshair text-white text-xs"></i>
+                                    <span id="confidenceBadge" class="text-white/90 text-xs font-bold">0%</span>
+                                    <!-- Manga-style Popup -->
+                                    <div id="confidencePopup" class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden animate-pop-in z-50">
+                                        <div class="bg-gray-900 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap font-medium relative">
+                                            Confidence Level
+                                            <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <h4 id="statusMessage" class="text-white text-xl font-bold">Status</h4>
                         </div>
                     </div>
@@ -622,6 +637,9 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- More Details Accordion (Dynamically Generated) -->
+                <div id="moreDetailsPlaceholder"></div>
 
             </div>
         </main>
@@ -662,7 +680,7 @@
     </div>
 
     <!-- Custom JS -->
-    <script src="script.js?v=21"></script>
+    <script src="script.js?v=23"></script>
 </body>
 </html>
 

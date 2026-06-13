@@ -1,3 +1,4 @@
+const MAX_DETECTED_OBJECTS = 20;
 const dom = {
     videoCanvas: document.getElementById('videoCanvas'), // <video> when live
     capturedImageCanvas: document.getElementById('capturedImageCanvas'), // <img> for captured/uploaded
@@ -12,6 +13,7 @@ const dom = {
     cameraStatusMessage: document.getElementById('cameraStatusMessage'),
     // New HUD elements
     confirmBtn: document.getElementById('confirmBtn'),
+    returnBtn: document.getElementById('returnBtn'),
     scanHud: document.getElementById('scanHud'),
     zoomToggleBtn: document.getElementById('zoomToggleBtn'),
     galleryBtn: document.getElementById('galleryBtn'),
@@ -42,8 +44,18 @@ const dom = {
     statusCard: document.getElementById('statusCard'),
     statusIcon: document.getElementById('statusIcon'),
     statusMessage: document.getElementById('statusMessage'),
+    confidenceBadge: document.getElementById('confidenceBadge'),
+    confidencePopup: document.getElementById('confidencePopup'),
     ecoScoreValue: document.getElementById('ecoScoreValue'),
     carbonSavedValue: document.getElementById('carbonSavedValue'),
+    moreDetailsContainer: document.getElementById('moreDetailsContainer'),
+    toggleMoreDetailsBtn: document.getElementById('toggleMoreDetailsBtn'),
+    moreDetailsContent: document.getElementById('moreDetailsContent'),
+    moreDetailsIcon: document.getElementById('moreDetailsIcon'),
+    moreDetailsLabel: document.getElementById('moreDetailsLabel'),
+    compositionContent: document.getElementById('compositionContent'),
+    stepsContent: document.getElementById('stepsContent'),
+    safetyContent: document.getElementById('safetyContent'),
     userLevelBadge: document.getElementById('userLevelBadge'),
     levelIcon: document.getElementById('levelIcon'),
     levelText: document.getElementById('levelText'),
@@ -60,8 +72,6 @@ const dom = {
     impactSummaryText: document.getElementById('impactSummaryText'),
     categoryBreakdownList: document.getElementById('categoryBreakdownList'),
     clearHistoryBtn: document.getElementById('clearHistoryBtn'),
-    gridOverlay: document.getElementById('gridOverlay'),
-    objectFocusBox: document.getElementById('objectFocusBox'),
     scanModeOptions: document.getElementById('scanModeOptions'),
     achievementList: document.getElementById('achievementList'),
     achievementBanner: document.getElementById('achievementBanner'),
@@ -84,7 +94,8 @@ const dom = {
     quizSummaryCard: document.getElementById('quizSummaryCard'),
     demoModeSwitch: document.getElementById('demoModeSwitch'),
     demoSelectorPanel: document.getElementById('demoSelectorPanel'),
-    demoScenarioSelect: document.getElementById('demoScenarioSelect')
+    demoScenarioSelect: document.getElementById('demoScenarioSelect'),
+    demoResultBadge: document.getElementById('demoResultBadge')
 };
 
 const APP_VERSION = 'v21';
@@ -110,7 +121,6 @@ const MAX_HISTORY_ITEMS = 12;
 const MAX_IMAGE_DIMENSION = 1280;
 const HISTORY_IMAGE_DIMENSION = 420;
 const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
-const MAX_DETECTED_OBJECTS = 20;
 
 const co2EstimatesKg = {
     plastic: 0.08,
@@ -125,18 +135,12 @@ const co2EstimatesKg = {
 const scanModes = {
     quick: {
         label: 'Quick Scan',
-        loading: 'Fast recyclable / not recyclable check',
         instruction: 'Return a concise result with one or more detected waste items.'
     },
     detailed: {
         label: 'Detailed Scan',
         loading: 'Analyzing materials and preparation steps',
         instruction: 'Include material components, preparation steps, confidence, and disposal action.'
-    },
-    batch: {
-        label: 'Batch Scan',
-        loading: 'Finding multiple objects across the 4x4 grid',
-        instruction: 'Prioritize detecting every visible waste item. Use scanType batch when more than one object is present and assign each object a 4x4 gridCell from 1 to 16.'
     },
     education: {
         label: 'Education Mode',
@@ -180,7 +184,6 @@ const aiProviders = {
 const scanModeTranslationKeys = {
     quick: { label: 'quick', description: 'quickDesc', loading: 'quickLoading' },
     detailed: { label: 'detailed', description: 'detailedDesc', loading: 'detailedLoading' },
-    batch: { label: 'batch', description: 'batchDesc', loading: 'batchLoading' },
     education: { label: 'education', description: 'educationDesc', loading: 'educationLoading' },
     carbon: { label: 'carbon', description: 'carbonDesc', loading: 'carbonLoading' }
 };
@@ -218,12 +221,6 @@ const achievements = [
         unlocked: metrics => metrics.batteryCount >= 3
     },
     {
-        id: 'batch_master',
-        title: 'Batch Master',
-        description: 'Complete 5 batch scans',
-        unlocked: metrics => metrics.batchScans >= 5
-    },
-    {
         id: 'eco_learner',
         title: 'Eco Learner',
         description: 'Complete 1 quiz',
@@ -254,7 +251,6 @@ const achievementIconClasses = {
     recycling_hero: 'ph ph-recycle',
     plastic_hunter: 'ph ph-magnifying-glass',
     battery_guardian: 'ph ph-shield-warning',
-    batch_master: 'ph ph-images',
     eco_learner: 'ph ph-graduation-cap',
     sorting_student: 'ph ph-student',
     perfect_sorter: 'ph ph-trophy',
@@ -289,7 +285,15 @@ const translations = {
         next: 'Next:',
         xp: 'XP',
         demoModeOn: 'Offline Mode On',
-        demoModeOff: 'Offline Mode Off'
+        demoModeOff: 'Offline Mode Off',
+        moreDetails: 'More Details',
+        composition: 'Composition',
+        recyclingSteps: 'Recycling Steps',
+        safetyAndErrors: 'Safety & Errors',
+        good: 'Good',
+        bad: 'Bad',
+        noComposition: 'No composition details available.',
+        noSafetyInfo: 'No safety information available.'
     },
     vi: {
         noScans: 'Chua co lan quet nao gan day.',
@@ -304,7 +308,15 @@ const translations = {
         next: 'Ke tiep:',
         xp: 'XP',
         demoModeOn: 'Demo Ngoại tuyến Bật',
-        demoModeOff: 'Demo Ngoại tuyến Tắt'
+        demoModeOff: 'Demo Ngoại tuyến Tắt',
+        moreDetails: 'Chi tiết thêm',
+        composition: 'Thành phần',
+        recyclingSteps: 'Các bước tái chế',
+        safetyAndErrors: 'An toàn & Lỗi',
+        good: 'Tốt',
+        bad: 'Xấu',
+        noComposition: 'Không có thông tin thành phần.',
+        noSafetyInfo: 'Không có thông tin an toàn.'
     }
 };
 
@@ -341,13 +353,9 @@ const translationOverrides = {
         scanModeDesc: 'Choose how deeply the AI should analyze this image.',
         quick: 'Quick',
     quickDesc: 'Fast answer',
-    quickLoading: 'Fast recyclable / not recyclable check',
     detailed: 'Detailed',
     detailedDesc: 'Materials + steps',
     detailedLoading: 'Analyzing materials and preparation steps',
-    batch: 'Batch',
-    batchDesc: 'Multiple items',
-    batchLoading: 'Finding multiple objects across the 4x4 grid',
     education: 'Education',
     educationDesc: 'Explain why',
     educationLoading: 'Explaining recycling decisions',
@@ -515,9 +523,6 @@ const translationOverrides = {
     detailed: 'Chi tiết',
     detailedDesc: 'Vật liệu + các bước',
     detailedLoading: 'Đang phân tích vật liệu và các bước chuẩn bị',
-    batch: 'Nhiều vật phẩm',
-    batchDesc: 'Nhiều món trong ảnh',
-    batchLoading: 'Đang tìm nhiều vật thể trong lưới 4x4',
     education: 'Giải thích',
     educationDesc: 'Giải thích lý do',
     educationLoading: 'Đang giải thích quyết định tái chế',
@@ -773,8 +778,6 @@ Object.assign(translations.en, {
     achPlasticHunterDesc: 'Scan 10 plastic items',
     achBatteryGuardian: 'Battery Guardian',
     achBatteryGuardianDesc: 'Detect 3 batteries',
-    achBatchMaster: 'Batch Master',
-    achBatchMasterDesc: 'Complete 5 batch scans',
     achEcoLearner: 'Eco Learner',
     achEcoLearnerDesc: 'Complete 1 quiz',
     achSortingStudent: 'Sorting Student',
@@ -850,8 +853,8 @@ Object.assign(translations.en, {
     samplePizzaMaterial: 'Contaminated paper',
     samplePizzaInstruction: 'Keep out of clean recycling.',
     savedLanguageNote: 'Some saved scan details may remain in the language used when they were created.',
-    promptBatchExample: '{"language":"en","scanType":"batch","objects":[{"id":1,"name":"Plastic Bottle","category":"Plastic","gridCell":3,"recyclable":true,"confidence":0.92,"ecoScore":15,"disposalAction":"Empty, rinse, and recycle if accepted locally.","disposalPlan":{"immediateAction":"Empty and rinse the bottle now.","steps":["Empty remaining liquid.","Rinse before recycling.","Put in recycling if accepted locally."],"handlingType":"Recycling bin","safetyWarning":"No special safety risk if empty.","mistakeToAvoid":"Do not recycle it with liquid inside."},"components":[{"part":"Bottle body","material":"PET plastic","recyclable":true,"instruction":"Empty and rinse."}],"preparationSteps":["Empty remaining liquid.","Rinse before recycling."],"education":"Brief reason.","carbonSavedGrams":20}],"overallSummary":"Short summary.","totalEcoScore":20,"carbonSavedGrams":20}',
-    promptSingleExample: '{"language":"en","scanType":"single","mainItem":"Plastic Water Bottle","category":"Composite Packaging","recyclable":true,"confidence":0.9,"ecoScore":18,"disposalPlan":{"immediateAction":"Separate the label if possible, then empty and rinse the bottle.","steps":["Empty remaining liquid.","Rinse the bottle.","Remove label if possible.","Recycle accepted plastic parts."],"handlingType":"Separate parts before disposal","safetyWarning":"Avoid sharp edges if the bottle is damaged.","mistakeToAvoid":"Do not recycle contaminated or full packaging."},"components":[{"part":"PET bottle body","material":"Plastic PET","recyclable":true,"instruction":"Empty and rinse before recycling."}],"preparationSteps":["Empty remaining liquid.","Rinse the bottle."],"overallSummary":"Short summary.","carbonSavedGrams":15}'
+    promptBatchExample: '{"language":"en","mainItem":"Plastic Bottle","category":"Plastic","confidence":0.9,"ecoScore":15,"disposalAction":"Empty, rinse, recycle.","components":[{"part":"PET Plastic","material":"PET Plastic","recyclable":true,"percentage":80,"instruction":"Rinse and recycle."},{"part":"Water residue","material":"Water","recyclable":false,"percentage":15,"instruction":"Pour out before recycling."},{"part":"Label/adhesive","material":"Paper & adhesive","recyclable":false,"percentage":5,"instruction":"Remove label if required by local rules."}],"preparationSteps":["Empty remaining liquid.","Rinse before recycling."]}',
+    promptSingleExample: '{"language":"en","mainItem":"Plastic Water Bottle","category":"Plastic","confidence":0.9,"ecoScore":18,"disposalAction":"Empty, rinse, recycle.","components":[{"part":"Bottle body","material":"PET Plastic","recyclable":true,"percentage":85,"instruction":"Rinse and recycle."},{"part":"Cap","material":"Polypropylene (PP)","recyclable":true,"percentage":10,"instruction":"Recycle separately."},{"part":"Label","material":"Paper with adhesive","recyclable":false,"percentage":5,"instruction":"Peel off if local rules require it."}],"preparationSteps":["Empty remaining liquid.","Rinse the bottle."]}'
 });
 
 Object.assign(translations.vi, {
@@ -975,8 +978,6 @@ Object.assign(translations.vi, {
     achPlasticHunterDesc: 'Quét 10 vật phẩm nhựa',
     achBatteryGuardian: 'Người bảo vệ pin',
     achBatteryGuardianDesc: 'Phát hiện 3 viên pin',
-    achBatchMaster: 'Bậc thầy quét nhiều món',
-    achBatchMasterDesc: 'Hoàn thành 5 lượt quét nhiều vật phẩm',
     achEcoLearner: 'Học viên sinh thái',
     achEcoLearnerDesc: 'Hoàn thành 1 câu đố',
     achSortingStudent: 'Học viên phân loại',
@@ -1052,8 +1053,8 @@ Object.assign(translations.vi, {
     samplePizzaMaterial: 'Giấy bị nhiễm bẩn',
     samplePizzaInstruction: 'Không bỏ vào luồng tái chế giấy sạch.',
     savedLanguageNote: 'Một số chi tiết quét đã lưu có thể vẫn ở ngôn ngữ được dùng khi tạo.',
-    promptBatchExample: '{"language":"vi","scanType":"batch","objects":[{"id":1,"name":"Chai nhựa","category":"Nhựa","gridCell":3,"recyclable":true,"confidence":0.92,"ecoScore":15,"disposalAction":"Đổ hết, rửa sạch và tái chế nếu địa phương chấp nhận.","disposalPlan":{"immediateAction":"Đổ hết phần nước còn lại và rửa sạch chai ngay.","steps":["Đổ hết chất lỏng còn lại.","Rửa sạch trước khi tái chế.","Bỏ vào thùng tái chế nếu địa phương chấp nhận."],"handlingType":"Thùng tái chế","safetyWarning":"Không có rủi ro an toàn đặc biệt nếu chai đã rỗng.","mistakeToAvoid":"Không tái chế chai khi vẫn còn chất lỏng bên trong."},"components":[{"part":"Thân chai","material":"Nhựa PET","recyclable":true,"instruction":"Đổ hết và rửa sạch."}],"preparationSteps":["Đổ hết chất lỏng còn lại.","Rửa sạch trước khi tái chế."],"education":"Nhựa PET thường được tái chế nếu sạch và không bị nhiễm bẩn.","carbonSavedGrams":20}],"overallSummary":"Phát hiện chai nhựa có thể tái chế sau khi làm sạch.","totalEcoScore":20,"carbonSavedGrams":20}',
-    promptSingleExample: '{"language":"vi","scanType":"single","mainItem":"Chai nước nhựa","category":"Bao bì nhiều vật liệu","recyclable":"partial","confidence":0.9,"ecoScore":18,"disposalPlan":{"immediateAction":"Tách nhãn nếu có thể, sau đó đổ hết và rửa sạch chai.","steps":["Đổ hết chất lỏng còn lại.","Rửa sạch chai.","Gỡ nhãn nếu có thể.","Tái chế các phần nhựa được chấp nhận."],"handlingType":"Tách các bộ phận trước khi bỏ","safetyWarning":"Cẩn thận cạnh sắc nếu chai bị vỡ hoặc biến dạng.","mistakeToAvoid":"Không tái chế bao bì còn bẩn hoặc còn đầy."},"components":[{"part":"Thân chai PET","material":"Nhựa PET","recyclable":true,"instruction":"Đổ hết và rửa sạch trước khi tái chế."}],"preparationSteps":["Đổ hết chất lỏng còn lại.","Rửa sạch chai."],"overallSummary":"Chai nước nhựa có thể tái chế một phần nếu được làm sạch và tách nhãn.","carbonSavedGrams":15}'
+    promptBatchExample: '{"language":"vi","mainItem":"Chai nhựa","category":"Nhựa","confidence":0.9,"ecoScore":15,"disposalAction":"Đổ hết, rửa sạch và tái chế.","components":[{"part":"Thân chai","material":"Nhựa PET","recyclable":true,"percentage":80,"instruction":"Rửa sạch và tái chế."},{"part":"Nước còn lại","material":"Nước","recyclable":false,"percentage":15,"instruction":"Đổ ra trước khi tái chế."},{"part":"Nhãn","material":"Giấy và keo","recyclable":false,"percentage":5,"instruction":"Bóc nhãn nếu quy định địa phương yêu cầu."}],"preparationSteps":["Đổ hết chất lỏng còn lại.","Rửa sạch trước khi tái chế."]}',
+    promptSingleExample: '{"language":"vi","mainItem":"Chai nước nhựa","category":"Nhựa","confidence":0.9,"ecoScore":18,"disposalAction":"Đổ hết, rửa sạch và tái chế.","components":[{"part":"Thân chai","material":"Nhựa PET","recyclable":true,"percentage":85,"instruction":"Rửa sạch và tái chế."},{"part":"Nắp","material":"Polypropylene (PP)","recyclable":true,"percentage":10,"instruction":"Tái chế riêng."},{"part":"Nhãn","material":"Giấy và keo dán","recyclable":false,"percentage":5,"instruction":"Bóc nhãn nếu quy định địa phương yêu cầu."}],"preparationSteps":["Đổ hết chất lỏng còn lại.","Rửa sạch chai."]}'
 });
 
 let stream = null;
@@ -1074,7 +1075,6 @@ let selectedProvider = localStorage.getItem(STORAGE_KEYS.provider) || 'openai';
 let statsChartInstance = null;
 let currentQuiz = null;
 let dragDepth = 0;
-let currentFocusedGridCell = null;
 let isAnalyzing = false;
 
 function t(key, params = {}) {
@@ -1125,8 +1125,9 @@ function applyStaticTranslations() {
     dom.scanBtn?.setAttribute('title', t('captureAnalyze'));
     dom.zoomToggleBtn?.setAttribute('title', t('zoom'));
     dom.confirmBtn?.setAttribute('title', t('analyze'));
-    dom.videoCanvas?.setAttribute?.('alt', t('imagePreviewAlt'));
+    dom.videoCanvas?.setAttribute('alt', t('imagePreviewAlt'));
     dom.resultImage?.setAttribute('alt', t('scannedItemAlt'));
+    if (dom.moreDetailsLabel) dom.moreDetailsLabel.textContent = t('moreDetails');
     document.querySelectorAll('.nav-item[data-page]').forEach(item => {
         const labelKey = bottomNavTranslationKeys[item.dataset.page];
         if (labelKey) setText(item.querySelector('span'), labelKey);
@@ -1278,12 +1279,9 @@ function asArray(value) {
 }
 
 function getStatusLabel(status) {
-    const normalized = typeof status === 'string' ? status.toLowerCase() : status;
-    if (normalized === 'partial') return t('partial');
-    if (normalized === 'special') return t('special');
-    if (normalized === 'compost' || normalized === 'compostable' || normalized === 'organic') return t('organic');
-    if (normalized === true || normalized === 'true' || normalized === 'recyclable') return t('recyclable');
-    return t('nonRecyclable');
+    const kind = getStatusKind(status);
+    if (kind === 'recyclable') return 'Recyclable';
+    return 'Non-Recyclable';
 }
 
 function getStatusKind(status) {
@@ -1461,6 +1459,7 @@ function normalizeComponent(component) {
         part: safeString(component.part || component.material || t('material')),
         material: safeString(component.material || component.part || t('unknownMaterial')),
         recyclable: component.recyclable === true || component.recyclable === 'true' || component.recyclable === 'partial' || component.recyclable === 'special' || component.recyclable === 'special handling' ? component.recyclable : false,
+        percentage: clampNumber(component.percentage ?? component.percent ?? null, 0, 100, null),
         instruction: safeString(component.instruction || component.disposalAction || t('checkLocalRules'))
     };
 }
@@ -1542,7 +1541,6 @@ function normalizeObject(rawObject, index) {
         id: clampNumber(rawObject.id, 1, 99, index + 1),
         name: safeString(rawObject.name || rawObject.scanned_item || rawObject.mainItem || t('unknown')),
         category: safeString(rawObject.category || t('unknown')),
-        gridCell: rawObject.gridCell ? clampNumber(rawObject.gridCell, 1, 16, null) : null,
         recyclable,
         confidence: clampNumber(rawObject.confidence, 0, 1, 0.7),
         ecoScore: clampNumber(rawObject.ecoScore ?? rawObject.eco_score, 0, 100, 0),
@@ -1560,7 +1558,6 @@ function normalizeObject(rawObject, index) {
 function normalizeResult(rawResult) {
     if (!rawResult || typeof rawResult !== 'object') {
         return {
-            scanType: 'unclear',
             language: currentLanguage,
             message: t('aiEmptyResponse'),
             confidence: 0.2,
@@ -1569,9 +1566,8 @@ function normalizeResult(rawResult) {
         };
     }
 
-    if (rawResult.scanType === 'unclear') {
+    if ((rawResult.message && !asArray(rawResult.objects).length) || rawResult.confidence < 0.3) {
         return {
-            scanType: 'unclear',
             language: safeString(rawResult.language || currentLanguage),
             message: safeString(rawResult.message, t('unclearRetakeMessage')),
             confidence: clampNumber(rawResult.confidence, 0, 1, 0.3),
@@ -1583,7 +1579,6 @@ function normalizeResult(rawResult) {
     const rawObjects = asArray(rawResult.objects).length > 0
         ? asArray(rawResult.objects)
         : asArray(rawResult.detectedItems || rawResult.detected_items || rawResult.items);
-    const inferredBatch = rawObjects.length > 1 || rawResult.scanType === 'batch';
     const objects = rawObjects.length > 0
         ? rawObjects.slice(0, MAX_DETECTED_OBJECTS).map(normalizeObject)
         : [normalizeObject({
@@ -1609,7 +1604,6 @@ function normalizeResult(rawResult) {
     );
 
     return {
-        scanType: inferredBatch ? 'batch' : 'single',
         language: safeString(rawResult.language || currentLanguage),
         mainItem: safeString(rawResult.mainItem || rawResult.scanned_item || objects[0]?.name || t('wasteScan')),
         category: safeString(rawResult.category || objects[0]?.category || t('unknown')),
@@ -1647,6 +1641,7 @@ function buildSystemPrompt(modeName = selectedScanMode) {
         `App language: ${currentLanguage}. Response language: ${responseLanguage}.`,
         strictLanguageInstruction,
         'Translate all user-facing string values, including item names where possible, category, disposalAction, overallSummary, disposalPlan.immediateAction, disposalPlan.handlingType, disposalPlan.safetyWarning, disposalPlan.mistakeToAvoid, disposalPlan.steps, components.part, components.material, components.instruction, preparationSteps, education, and unclear/error messages.',
+        'Do not confuse "components" with physical parts. Components MUST describe MATERIALS the item is MADE OF (e.g., PET Plastic 85%, Water 10%, Ink 5% for a plastic bottle). Do NOT list physical parts like "bottle body" or "cap". Those are NOT materials. A bottle is NOT made of a cap; a cap is a separate physical part that happens to be attached. For a water bottle, list PET Plastic, water residue, label adhesive, etc. For an aluminum can, list aluminum alloy, interior lining, paint/coating, etc. Components array is for MATERIAL COMPOSITION, not physical anatomy.',
         'Do not translate JSON keys. Include a top-level "language" field with value "en" or "vi".',
         'Scan the entire image systematically from top-left to bottom-right, then center, then edges and corners.',
         'Identify every visible waste item, not only the most obvious or largest object. Detect as many visible waste items as possible, up to 20 objects.',
@@ -1655,20 +1650,20 @@ function buildSystemPrompt(modeName = selectedScanMode) {
         'Do not ignore visible bottles, cups, bags, cans, wrappers, cardboard, paper, banana peels, leaves, spoons, foil, cigarette butts, masks, glass bottles, food containers, lids, straws, or food scraps.',
         'Classify organic waste separately from general trash. Organic waste includes food scraps, fruit peels, vegetable scraps, leaves, flowers, tea bags, coffee grounds, eggshells, leftover food, and compostable organic matter.',
         'For plastic cups, include them as plastic items even when transparent, small, or partially occluded. Explain that they should be emptied, rinsed, and recycled only if accepted locally.',
-        'If multiple waste items are visible, return scanType = "batch" with objects for each visible item, set mainItem to the primary item, and mention additional visible items in overallSummary.',
-        'For each object include: name, category, confidence, recyclable, disposalAction, role, position, optional gridCell, disposalPlan, components, preparationSteps, education, ecoScore, and carbonSavedGrams.',
+        'If multiple waste items are visible, return multiple objects in the "objects" array for each visible item, set mainItem to the primary item, and mention additional visible items in overallSummary.',
+        'For each object include: name, category, confidence, recyclable, disposalAction, role, position, disposalPlan, components, preparationSteps, education, ecoScore, and carbonSavedGrams.',
         'Use role = "primary" for the main/most prominent item and role = "secondary" for every additional visible item. Use position for approximate image location such as top-left, center, bottom-right, or partially visible edge.',
         'If uncertain, use confidence below 0.7 and suggest retaking the photo.',
-        'If the image has multiple objects, use scanType = "batch".',
         'If an item has multiple materials, include components.',
-        'Every single result or detected object must include disposalPlan with immediateAction, steps, handlingType, safetyWarning, and mistakeToAvoid.',
+        'Every single result or detected object MUST include disposalPlan with immediateAction, steps, handlingType, safetyWarning, and mistakeToAvoid. These are STRICTLY REQUIRED.',
+        'Every single result or detected object MUST include a components array (can be empty if truly homogeneous, but must exist) and a preparationSteps array (must have at least one step). These are STRICTLY REQUIRED.',
+        'The "More Details" section in the UI relies entirely on disposalPlan, components, and preparationSteps. If any of these are missing or empty, the UI will not show the section. STRICTLY ENSURE these fields are present and populated.',
         currentLanguage === 'vi'
             ? 'Use Vietnamese handlingType values such as Thùng tái chế, Rác thường, Ủ phân, Xử lý đặc biệt, Điểm thu gom rác điện tử, Điểm thu gom pin, or Tách các bộ phận trước khi bỏ.'
             : 'Use handlingType values such as Recycling bin, General waste, Compost, Special handling, E-waste drop-off, Battery drop-off, or Separate parts before disposal.',
-        `If the image is unclear, return exactly: {"language":"${currentLanguage}","scanType":"unclear","message":"${unclearMessage}","confidence":0.3}`,
+        `If the image is unclear, return exactly: {"language":"${currentLanguage}","message":"${unclearMessage}","confidence":0.3,"objects":[]}`,
         `Selected mode: ${getScanModeText(modeName, 'label')}. ${mode.instruction}`,
-        `Expected batch JSON: ${t('promptBatchExample')}`,
-        `Expected single JSON: ${t('promptSingleExample')}`
+        `Expected JSON format: ${t('promptBatchExample')}`
     ].join(' ');
 }
 
@@ -1676,7 +1671,6 @@ function getLocalizedDemoData(scenario) {
     const demoData = {
         en: {
             bottle: {
-                scanType: 'single',
                 language: 'en',
                 mainItem: 'PET Plastic Water Bottle',
                 category: 'Plastic Packaging',
@@ -1689,7 +1683,6 @@ function getLocalizedDemoData(scenario) {
                     id: 1,
                     name: 'Plastic Bottle Body',
                     category: 'Plastic #1 PET',
-                    gridCell: 6,
                     recyclable: true,
                     confidence: 0.98,
                     ecoScore: 90,
@@ -1712,7 +1705,6 @@ function getLocalizedDemoData(scenario) {
                 }]
             },
             battery: {
-                scanType: 'single',
                 language: 'en',
                 mainItem: 'Lithium Household Battery',
                 category: 'Hazardous Waste',
@@ -1725,7 +1717,6 @@ function getLocalizedDemoData(scenario) {
                     id: 1,
                     name: 'Used Battery',
                     category: 'Battery',
-                    gridCell: 11,
                     recyclable: 'special',
                     confidence: 0.95,
                     ecoScore: 10,
@@ -1747,7 +1738,6 @@ function getLocalizedDemoData(scenario) {
                 }]
             },
             bag: {
-                scanType: 'single',
                 language: 'en',
                 mainItem: 'Soft Plastic Grocery Bag',
                 category: 'Plastic #4 LDPE',
@@ -1760,7 +1750,6 @@ function getLocalizedDemoData(scenario) {
                     id: 1,
                     name: 'Plastic Shopping Bag',
                     category: 'LDPE Plastic',
-                    gridCell: 7,
                     recyclable: 'special',
                     confidence: 0.89,
                     ecoScore: 40,
@@ -1779,7 +1768,6 @@ function getLocalizedDemoData(scenario) {
                 }]
             },
             mixed: {
-                scanType: 'batch',
                 language: 'en',
                 mainItem: 'Mixed Waste Scene',
                 category: 'Mixed Waste',
@@ -1793,7 +1781,6 @@ function getLocalizedDemoData(scenario) {
                         id: 1,
                         name: 'Aluminum Soda Can',
                         category: 'Metal',
-                        gridCell: 2,
                         recyclable: true,
                         confidence: 0.98,
                         ecoScore: 95,
@@ -1814,7 +1801,6 @@ function getLocalizedDemoData(scenario) {
                         id: 2,
                         name: 'Cardboard Box',
                         category: 'Paper',
-                        gridCell: 4,
                         recyclable: true,
                         confidence: 0.96,
                         ecoScore: 88,
@@ -1838,7 +1824,6 @@ function getLocalizedDemoData(scenario) {
                         id: 3,
                         name: 'AA Battery',
                         category: 'Battery',
-                        gridCell: 9,
                         recyclable: 'special',
                         confidence: 0.97,
                         ecoScore: 10,
@@ -1859,7 +1844,6 @@ function getLocalizedDemoData(scenario) {
                         id: 4,
                         name: 'Soiled Styrofoam Box',
                         category: 'Polystyrene',
-                        gridCell: 15,
                         recyclable: false,
                         confidence: 0.9,
                         ecoScore: 20,
@@ -1881,7 +1865,6 @@ function getLocalizedDemoData(scenario) {
         },
         vi: {
             bottle: {
-                scanType: 'single',
                 language: 'vi',
                 mainItem: 'Chai nước nhựa PET',
                 category: 'Bao bì nhựa',
@@ -1894,7 +1877,6 @@ function getLocalizedDemoData(scenario) {
                     id: 1,
                     name: 'Thân chai nhựa',
                     category: 'Nhựa PET số 1',
-                    gridCell: 6,
                     recyclable: true,
                     confidence: 0.98,
                     ecoScore: 90,
@@ -1917,7 +1899,6 @@ function getLocalizedDemoData(scenario) {
                 }]
             },
             battery: {
-                scanType: 'single',
                 language: 'vi',
                 mainItem: 'Pin gia dụng lithium',
                 category: 'Chất thải nguy hại',
@@ -1930,7 +1911,6 @@ function getLocalizedDemoData(scenario) {
                     id: 1,
                     name: 'Pin đã dùng',
                     category: 'Pin',
-                    gridCell: 11,
                     recyclable: 'special',
                     confidence: 0.95,
                     ecoScore: 10,
@@ -1952,7 +1932,6 @@ function getLocalizedDemoData(scenario) {
                 }]
             },
             bag: {
-                scanType: 'single',
                 language: 'vi',
                 mainItem: 'Túi nhựa mềm đi chợ',
                 category: 'Nhựa LDPE số 4',
@@ -1965,7 +1944,6 @@ function getLocalizedDemoData(scenario) {
                     id: 1,
                     name: 'Túi nhựa mua sắm',
                     category: 'Nhựa LDPE',
-                    gridCell: 7,
                     recyclable: 'special',
                     confidence: 0.89,
                     ecoScore: 40,
@@ -1984,7 +1962,6 @@ function getLocalizedDemoData(scenario) {
                 }]
             },
             mixed: {
-                scanType: 'batch',
                 language: 'vi',
                 mainItem: 'Cảnh rác hỗn hợp',
                 category: 'Rác hỗn hợp',
@@ -1998,7 +1975,6 @@ function getLocalizedDemoData(scenario) {
                         id: 1,
                         name: 'Lon nước ngọt nhôm',
                         category: 'Kim loại',
-                        gridCell: 2,
                         recyclable: true,
                         confidence: 0.98,
                         ecoScore: 95,
@@ -2019,7 +1995,6 @@ function getLocalizedDemoData(scenario) {
                         id: 2,
                         name: 'Hộp bìa carton',
                         category: 'Giấy',
-                        gridCell: 4,
                         recyclable: true,
                         confidence: 0.96,
                         ecoScore: 88,
@@ -2043,7 +2018,6 @@ function getLocalizedDemoData(scenario) {
                         id: 3,
                         name: 'Pin AA',
                         category: 'Pin',
-                        gridCell: 9,
                         recyclable: 'special',
                         confidence: 0.97,
                         ecoScore: 10,
@@ -2064,7 +2038,6 @@ function getLocalizedDemoData(scenario) {
                         id: 4,
                         name: 'Hộp xốp dính bẩn',
                         category: 'Nhựa polystyrene',
-                        gridCell: 15,
                         recyclable: false,
                         confidence: 0.9,
                         ecoScore: 20,
@@ -2097,7 +2070,6 @@ function getMockDemoResponse() {
 
     const mockData = {
         bottle: {
-            scanType: 'single',
             mainItem: isVietnamese ? 'Chai nước nhựa PET' : 'PET Plastic Water Bottle',
             category: isVietnamese ? 'Rác tái chế' : 'Plastic Packaging',
             recyclable: 'partial',
@@ -2112,7 +2084,6 @@ function getMockDemoResponse() {
                     id: 1,
                     name: isVietnamese ? 'Thân chai nước nhựa' : 'Plastic Bottle Body',
                     category: 'Plastic #1 (PET)',
-                    gridCell: 6,
                     recyclable: true,
                     confidence: 0.98,
                     ecoScore: 90,
@@ -2148,7 +2119,6 @@ function getMockDemoResponse() {
             ]
         },
         battery: {
-            scanType: 'single',
             mainItem: isVietnamese ? 'Pin gia dụng Lithium' : 'Lithium Household Battery',
             category: isVietnamese ? 'Chất thải độc hại' : 'Hazardous Waste',
             recyclable: 'special',
@@ -2163,7 +2133,6 @@ function getMockDemoResponse() {
                     id: 1,
                     name: isVietnamese ? 'Pin khô' : 'Dry Cell Battery',
                     category: 'Hazardous Waste',
-                    gridCell: 11,
                     recyclable: 'special',
                     confidence: 0.95,
                     ecoScore: 10,
@@ -2195,7 +2164,6 @@ function getMockDemoResponse() {
             ]
         },
         bag: {
-            scanType: 'single',
             mainItem: isVietnamese ? 'Túi Nilon Nhựa Mềm' : 'Soft Plastic Grocery Bag',
             category: 'Plastic #4 (LDPE)',
             recyclable: 'special',
@@ -2210,7 +2178,6 @@ function getMockDemoResponse() {
                     id: 1,
                     name: isVietnamese ? 'Túi nhựa mỏng' : 'Plastic Shopping Bag',
                     category: 'LDPE Plastic',
-                    gridCell: 7,
                     recyclable: 'special',
                     confidence: 0.89,
                     ecoScore: 40,
@@ -2236,7 +2203,6 @@ function getMockDemoResponse() {
             ]
         },
         mixed: {
-            scanType: 'batch',
             mainItem: isVietnamese ? 'Hỗn hợp rác thải' : 'Mixed Trash Scene',
             category: 'Mixed Waste',
             recyclable: 'partial',
@@ -2251,7 +2217,6 @@ function getMockDemoResponse() {
                     id: 1,
                     name: isVietnamese ? 'Lon nước ngọt nhôm' : 'Aluminum Soda Can',
                     category: 'Metal',
-                    gridCell: 2,
                     recyclable: true,
                     confidence: 0.98,
                     ecoScore: 95,
@@ -2276,7 +2241,6 @@ function getMockDemoResponse() {
                     id: 2,
                     name: isVietnamese ? 'Hộp Carton các-tông' : 'Cardboard Box Slices',
                     category: 'Paper',
-                    gridCell: 4,
                     recyclable: true,
                     confidence: 0.96,
                     ecoScore: 88,
@@ -2307,7 +2271,6 @@ function getMockDemoResponse() {
                     id: 3,
                     name: isVietnamese ? 'Pin AA cũ' : 'AA Alkaline Battery',
                     category: 'Hazardous Waste',
-                    gridCell: 9,
                     recyclable: 'special',
                     confidence: 0.97,
                     ecoScore: 10,
@@ -2332,7 +2295,6 @@ function getMockDemoResponse() {
                     id: 4,
                     name: isVietnamese ? 'Hộp cơm xốp' : 'Soiled Styrofoam Box',
                     category: 'Polystyrene (PS #6)',
-                    gridCell: 15,
                     recyclable: false,
                     confidence: 0.90,
                     ecoScore: 20,
@@ -2414,7 +2376,7 @@ async function analyzeWithOpenAI({ apiKey, model, imageBase64, mode, prompt }) {
                     ]
                 }
             ],
-            max_tokens: 4500
+            max_completion_tokens: 4500
         })
     });
 
@@ -2455,7 +2417,7 @@ async function analyzeWithOpenRouter({ apiKey, model, imageBase64, prompt }) {
                     ]
                 }
             ],
-            max_tokens: 4500
+            max_completion_tokens: 4500
         })
     });
 
@@ -2758,6 +2720,10 @@ function showUploadedImage(imageData) {
     dom.confirmBtn?.classList.remove('hidden');
     dom.scanBtn?.classList.add('hidden');
     dom.captureRing?.classList.add('hidden');
+    
+    // Switch gallery button to return button
+    dom.galleryBtn?.classList.add('hidden');
+    dom.returnBtn?.classList.remove('hidden');
 }
 
 async function processImageFile(file, successMessage, noteMessage = '') {
@@ -2900,6 +2866,10 @@ function showSnappedPhoto(imageData) {
     dom.scanBtn?.classList.add('hidden');
     dom.captureRing?.classList.add('hidden');
     setCameraStatus('', true);
+
+    // Switch gallery button to return button
+    dom.galleryBtn?.classList.add('hidden');
+    dom.returnBtn?.classList.remove('hidden');
 }
 
 function resetToCamera() {
@@ -2919,6 +2889,10 @@ function resetToCamera() {
     dom.confirmBtn?.classList.add('hidden');
     dom.scanBtn?.classList.remove('hidden');
     dom.captureRing?.classList.remove('hidden');
+    
+    // Switch return button to gallery button
+    dom.returnBtn?.classList.add('hidden');
+    dom.galleryBtn?.classList.remove('hidden');
 
     // Restart the camera feed
     initCamera();
@@ -2962,6 +2936,7 @@ async function analyzeWithAI() {
             // Simulate AI latency for demo realism
             await new Promise(resolve => setTimeout(resolve, 1500));
             normalized = getMockDemoResponse();
+            normalized.isDemo = true;
         } else {
             normalized = await analyzeWasteImage({
                 provider: config.provider,
@@ -3002,16 +2977,19 @@ function showResults(result, shouldSave) {
         minute: '2-digit'
     });
 
-    if (result.scanType === 'unclear') {
+    if (dom.demoResultBadge) {
+        dom.demoResultBadge.classList.toggle('hidden', !result.isDemo);
+    }
+
+    if (result.message && !result.objects?.length) {
         renderUnclearResult(result);
     } else {
-        const title = result.scanType === 'batch'
-            ? t('itemDetected', { count: result.objects.length })
-            : result.mainItem;
-        dom.resultItemName.textContent = title;
+        dom.resultItemName.textContent = result.mainItem || result.objects?.[0]?.name || t('wasteScan');
         renderStatus(result);
-        renderGrid(result);
         renderSustainability(result);
+        renderMoreDetails(result);
+        dom.confidenceBadge.textContent = Math.round(result.confidence * 100) + '%';
+        showConfidencePopup();
     }
 
     dom.resultsModal.classList.remove('hidden');
@@ -3026,33 +3004,29 @@ function renderUnclearResult(result) {
     dom.resultItemName.textContent = t('unclear');
     dom.statusCard.className = 'rounded-2xl p-6 shadow-sm bg-gradient-to-r from-gray-500 to-gray-600';
     setIcon(dom.statusIcon, 'ph ph-warning text-white text-3xl');
-    dom.statusMessage.textContent = t('unclearConfidence', { percent: Math.round(result.confidence * 100) });
-    dom.gridOverlay.classList.add('hidden');
-    dom.objectFocusBox.classList.add('hidden');
+    dom.statusMessage.textContent = 'Non-Recyclable';
     dom.ecoScoreValue.textContent = '+0';
     dom.carbonSavedValue.textContent = '0g';
+    const placeholder = document.getElementById('moreDetailsPlaceholder');
+    if (placeholder) placeholder.innerHTML = '';
 }
 
 function renderStatus(result) {
-    const status = result.scanType === 'batch' ? summarizeBatchStatus(result.objects) : result.recyclable;
-    const kind = getStatusKind(status);
-    const gradient = {
-        recyclable: 'from-emerald-500 to-emerald-600',
-        partial: 'from-blue-500 to-emerald-500',
-        special: 'from-amber-500 to-orange-500',
-        nonRecyclable: 'from-orange-500 to-red-500'
-    }[kind];
+    const objects = result.objects || [];
+    const firstObject = objects[0] || result;
+    const kind = getStatusKind(firstObject.recyclable);
+    
+    const gradient = kind === 'recyclable'
+        ? 'from-emerald-500 to-emerald-600'
+        : 'from-orange-500 to-red-500';
     const iconClass = kind === 'recyclable'
         ? 'ph ph-recycle text-white text-3xl'
-        : kind === 'partial'
-            ? 'ph ph-arrows-split text-white text-3xl'
-            : 'ph ph-warning text-white text-3xl';
+        : 'ph ph-warning text-white text-3xl';
+    const statusText = kind === 'recyclable' ? 'Recyclable' : 'Non-Recyclable';
 
     dom.statusCard.className = `rounded-2xl p-6 shadow-sm bg-gradient-to-r ${gradient}`;
     setIcon(dom.statusIcon, iconClass);
-    dom.statusMessage.textContent = result.scanType === 'batch'
-        ? t('multipleItemsDetected', { count: result.objects.length })
-        : t('statusWithConfidence', { status: getStatusLabel(status), percent: Math.round(result.confidence * 100) });
+    dom.statusMessage.textContent = statusText;
 }
 
 function summarizeBatchStatus(objects) {
@@ -3064,88 +3038,164 @@ function setIcon(container, className) {
     container.replaceChildren(icon(className));
 }
 
-function renderGrid(result) {
-    const detectedCells = new Set(result.objects.map(item => item.gridCell).filter(Boolean));
-    if (detectedCells.size === 0) {
-        dom.gridOverlay.classList.add('hidden');
-        dom.objectFocusBox.classList.add('hidden');
-        dom.gridOverlay.replaceChildren();
-        currentFocusedGridCell = null;
-        return;
-    }
-
-    dom.gridOverlay.replaceChildren();
-    for (let cell = 1; cell <= 16; cell += 1) {
-        dom.gridOverlay.appendChild(createElement('div', {
-            className: `grid-cell ${detectedCells.has(cell) ? 'detected' : ''}`,
-            text: cell
-        }));
-    }
-    dom.gridOverlay.classList.remove('hidden');
-    updateResultImageOverlayBounds();
-    focusGridCell([...detectedCells][0]);
-}
-
-function getContainedImageRect() {
-    const frame = dom.resultImageFrame;
-    const image = dom.resultImage;
-    if (!frame || !image) {
-        return { left: 0, top: 0, width: 0, height: 0 };
-    }
-
-    const frameWidth = frame.clientWidth;
-    const frameHeight = frame.clientHeight;
-    const naturalWidth = image.naturalWidth || frameWidth;
-    const naturalHeight = image.naturalHeight || frameHeight;
-    const scale = Math.min(frameWidth / naturalWidth, frameHeight / naturalHeight);
-    const width = naturalWidth * scale;
-    const height = naturalHeight * scale;
-
-    return {
-        left: (frameWidth - width) / 2,
-        top: (frameHeight - height) / 2,
-        width,
-        height
-    };
-}
-
-function applyBounds(element, bounds) {
-    element.style.left = `${bounds.left}px`;
-    element.style.top = `${bounds.top}px`;
-    element.style.width = `${bounds.width}px`;
-    element.style.height = `${bounds.height}px`;
-}
-
-function updateResultImageOverlayBounds() {
-    if (!dom.resultImageFrame || dom.gridOverlay.classList.contains('hidden')) return;
-    const bounds = getContainedImageRect();
-    applyBounds(dom.gridOverlay, bounds);
-    if (currentFocusedGridCell) {
-        focusGridCell(currentFocusedGridCell);
-    }
-}
-
-function focusGridCell(cell) {
-    if (!cell) {
-        dom.objectFocusBox.classList.add('hidden');
-        currentFocusedGridCell = null;
-        return;
-    }
-    currentFocusedGridCell = cell;
-    const bounds = getContainedImageRect();
-    const zeroIndex = cell - 1;
-    const row = Math.floor(zeroIndex / 4);
-    const column = zeroIndex % 4;
-    dom.objectFocusBox.style.left = `${bounds.left + (column * bounds.width / 4)}px`;
-    dom.objectFocusBox.style.top = `${bounds.top + (row * bounds.height / 4)}px`;
-    dom.objectFocusBox.style.width = `${bounds.width / 4}px`;
-    dom.objectFocusBox.style.height = `${bounds.height / 4}px`;
-    dom.objectFocusBox.classList.remove('hidden');
-}
-
 function renderSustainability(result) {
     dom.ecoScoreValue.textContent = `+${result.totalEcoScore || 0}`;
     dom.carbonSavedValue.textContent = `${result.carbonSavedGrams || Math.round((result.totalEcoScore || 0) * 0.5)}g`;
+}
+
+function renderMoreDetails(result) {
+    const objects = result.objects || [];
+    const targetObject = objects[0] || result;
+
+    const components = Array.isArray(targetObject.components) ? targetObject.components : (Array.isArray(result.components) ? result.components : []);
+    const preparationSteps = Array.isArray(targetObject.preparationSteps) ? targetObject.preparationSteps : (Array.isArray(result.preparationSteps) ? result.preparationSteps : []);
+    const disposalPlan = targetObject.disposalPlan || result.disposalPlan || {};
+
+    const safetyWarning = disposalPlan.safetyWarning || '';
+    const mistakeToAvoid = disposalPlan.mistakeToAvoid || '';
+    const safeSafetyList = ['No safety warning.', 'No special safety risk.', 'No special safety risk if empty.', 'No special safety risk if the bottle is empty.'];
+    const safeMistakeList = ['No mistake to avoid.', 'No common mistake to avoid.'];
+
+    const hasComposition = components.length > 0;
+    const hasSteps = preparationSteps.length > 0;
+    const hasSafety = (safetyWarning && !safeSafetyList.includes(safetyWarning)) || (mistakeToAvoid && !safeMistakeList.includes(mistakeToAvoid));
+
+    const hasAnyDetails = hasComposition || hasSteps || hasSafety;
+
+    const placeholder = document.getElementById('moreDetailsPlaceholder');
+    if (!placeholder) return;
+
+    if (!hasAnyDetails) {
+        placeholder.innerHTML = '';
+        return;
+    }
+
+    const isVietnamese = currentLanguage === 'vi';
+
+    // Composition HTML
+    const compositionSection = hasComposition ? `
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <button class="accordion-toggle w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors" data-accordion="composition">
+                <span class="font-semibold text-gray-700 text-sm flex items-center gap-2">
+                    <i class="ph ph-at text-emerald-500"></i>
+                    <span>${isVietnamese ? 'Thành phần' : 'Composition'}</span>
+                </span>
+                <i class="ph ph-caret-down text-gray-400 transition-transform duration-300 accordion-icon"></i>
+            </button>
+            <div id="compositionContent" class="accordion-content hidden px-4 pb-4 space-y-2">
+                ${components.map(c => {
+                    const isGood = c.recyclable === true || c.recyclable === 'good' || c.recyclable === 'recyclable';
+                    const isBad = c.recyclable === false || c.recyclable === 'bad' || c.recyclable === 'non-recyclable';
+                    const indicator = isGood ? 'bg-emerald-500' : (isBad ? 'bg-red-500' : 'bg-amber-500');
+                    const label = isGood ? (isVietnamese ? 'Tốt' : 'Good') : (isBad ? (isVietnamese ? 'Xấu' : 'Bad') : (isVietnamese ? 'Trung bình' : 'Partial'));
+                    const partName = c.part || c.material || 'Unknown';
+                    const percent = c.percentage;
+                    return `
+                        <div class="py-2 px-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full ${indicator}"></span>
+                                    <span class="text-sm text-gray-700 font-medium">${partName}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    ${percent !== null && percent !== undefined ? `<span class="text-xs font-bold text-gray-500">${percent}%</span>` : ''}
+                                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${isGood ? 'bg-emerald-100 text-emerald-700' : (isBad ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700')}">${label}</span>
+                                </div>
+                            </div>
+                            ${percent !== null && percent !== undefined ? `
+                            <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                <div class="${indicator} h-1.5 rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    ` : '';
+
+    // Steps HTML
+    const stepsSection = hasSteps ? `
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <button class="accordion-toggle w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors" data-accordion="steps">
+                <span class="font-semibold text-gray-700 text-sm flex items-center gap-2">
+                    <i class="ph ph-list-numbers text-emerald-500"></i>
+                    <span>${isVietnamese ? 'Các bước tái chế' : 'Recycling Steps'}</span>
+                </span>
+                <i class="ph ph-caret-down text-gray-400 transition-transform duration-300 accordion-icon"></i>
+            </button>
+            <div id="stepsContent" class="accordion-content hidden px-4 pb-4 space-y-2">
+                ${preparationSteps.map((step, idx) => `
+                    <div class="flex gap-3 py-2">
+                        <div class="flex-shrink-0 w-7 h-7 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-sm font-bold">
+                            ${idx + 1}
+                        </div>
+                        <div class="pt-1">
+                            <p class="text-sm text-gray-700">${step}</p>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    ` : '';
+
+    // Safety HTML
+    let safetyHtml = '';
+    if (safetyWarning && !safeSafetyList.includes(safetyWarning)) {
+        safetyHtml += `
+            <div class="mb-3">
+                <div class="flex items-start gap-2 p-3 bg-red-50 rounded-lg border border-red-100">
+                    <i class="ph ph-warning-circle text-red-500 text-lg mt-0.5"></i>
+                    <div>
+                        <p class="text-xs font-bold text-red-600 uppercase mb-1">${isVietnamese ? 'Cảnh báo an toàn' : 'Safety Warning'}</p>
+                        <p class="text-sm text-gray-700">${safetyWarning}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    if (mistakeToAvoid && !safeMistakeList.includes(mistakeToAvoid)) {
+        safetyHtml += `
+            <div>
+                <div class="flex items-start gap-2 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                    <i class="ph ph-x-circle text-amber-500 text-lg mt-0.5"></i>
+                    <div>
+                        <p class="text-xs font-bold text-amber-600 uppercase mb-1">${isVietnamese ? 'Lỗi cần tránh' : 'Mistake to Avoid'}</p>
+                        <p class="text-sm text-gray-700">${mistakeToAvoid}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    const safetySection = safetyHtml ? `
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <button class="accordion-toggle w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors" data-accordion="safety">
+                <span class="font-semibold text-gray-700 text-sm flex items-center gap-2">
+                    <i class="ph ph-warning-circle text-amber-500"></i>
+                    <span>${isVietnamese ? 'An toàn & Lỗi' : 'Safety & Errors'}</span>
+                </span>
+                <i class="ph ph-caret-down text-gray-400 transition-transform duration-300 accordion-icon"></i>
+            </button>
+            <div id="safetyContent" class="accordion-content hidden px-4 pb-4">
+                ${safetyHtml}
+            </div>
+        </div>
+    ` : '';
+
+    placeholder.innerHTML = `
+        <button class="toggle-more-details-btn w-full bg-white hover:bg-gray-50 rounded-2xl p-4 shadow-sm flex items-center justify-between transition-all duration-200 border border-transparent hover:border-emerald-200 mt-4">
+            <span class="font-semibold text-gray-700 flex items-center gap-2">
+                <i class="ph ph-list-bullets text-emerald-500"></i>
+                <span>${isVietnamese ? 'Chi tiết thêm' : 'More Details'}</span>
+            </span>
+            <i class="more-details-icon ph ph-caret-down text-gray-400 transition-transform duration-300"></i>
+        </button>
+        <div class="more-details-content hidden mt-3 space-y-3">
+            ${compositionSection}
+            ${stepsSection}
+            ${safetySection}
+        </div>
+    `;
 }
 
 function addToHistory(result) {
@@ -3177,6 +3227,54 @@ function addToHistory(result) {
     checkAchievements();
 }
 
+function showConfidencePopup() {
+    const popup = dom.confidencePopup;
+    if (popup) {
+        popup.classList.remove('hidden', 'animate-pop-in');
+        void popup.offsetWidth;
+        popup.classList.add('animate-pop-in');
+        
+        if (popup.hideTimeout) clearTimeout(popup.hideTimeout);
+        
+        popup.hideTimeout = setTimeout(() => {
+            popup.classList.add('hidden');
+        }, 3000);
+    }
+}
+
+function setupConfidencePopupListeners() {
+    const badge = dom.confidenceBadge?.parentElement;
+    if (!badge) return;
+    
+    const showPopup = (e) => {
+        e.stopPropagation();
+        const popup = dom.confidencePopup;
+        if (popup) {
+            popup.classList.remove('hidden', 'animate-pop-in');
+            void popup.offsetWidth;
+            popup.classList.add('animate-pop-in');
+            
+            if (popup.hideTimeout) {
+                clearTimeout(popup.hideTimeout);
+                popup.hideTimeout = null;
+            }
+        }
+    };
+    
+    badge.addEventListener('click', showPopup);
+    badge.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+        showPopup(e);
+    }, { passive: false });
+    
+    document.addEventListener('click', (e) => {
+        const popup = dom.confidencePopup;
+        if (popup && !popup.classList.contains('hidden') && !badge.contains(e.target)) {
+            popup.classList.add('hidden');
+        }
+    });
+}
+
 function loadHistory() {
     const recentList = document.getElementById('recentListHistory');
     const emptyRecent = document.getElementById('emptyRecentHistory');
@@ -3193,11 +3291,10 @@ function loadHistory() {
     emptyRecent.classList.add('hidden');
     history.forEach(entry => {
         const result = entry.result || {};
-        const firstObject = result.objects?.[0];
-        const title = result.scanType === 'batch'
-            ? t('itemCount', { count: result.objects.length })
-            : firstObject?.name || result.mainItem || t('wasteScan');
-        const status = result.scanType === 'batch' ? summarizeBatchStatus(result.objects || []) : firstObject?.recyclable;
+        const objects = result.objects || [];
+        const firstObject = objects[0];
+        const title = firstObject?.name || result.mainItem || t('wasteScan');
+        const status = firstObject?.recyclable;
         const date = new Date(entry.timestamp).toLocaleDateString(currentLanguage === 'vi' ? 'vi-VN' : 'en-US', {
             month: 'short',
             day: 'numeric',
@@ -3220,7 +3317,7 @@ function loadHistory() {
                     icon(getStatusKind(status) === 'recyclable' ? 'ph ph-recycle text-emerald-500' : 'ph ph-warning text-orange-500'),
                     createElement('h4', { className: 'font-semibold text-gray-800 truncate', text: title })
                 ]),
-                createElement('p', { className: 'text-xs text-gray-500', text: `${date} | ${getScanModeText(entry.mode || 'quick', 'label')} | ${aiProviders[entry.provider]?.label || 'AI'}` })
+                createElement('p', { className: 'text-xs text-gray-500', text: date })
             ]),
             createElement('span', {
                 className: 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700',
@@ -3341,7 +3438,6 @@ function getMetrics() {
         .sort((a, b) => b[1] - a[1])[0]?.[0] || 'none';
     const plasticCount = objects.filter(item => classifyWasteCategory(item) === 'plastic').length;
     const batteryCount = objects.filter(item => classifyWasteCategory(item) === 'special').length;
-    const batchScans = history.filter(entry => entry.result?.scanType === 'batch').length;
 
     return {
         history,
@@ -3360,8 +3456,7 @@ function getMetrics() {
             ? Math.round((quizStats.correctAnswers / (quizStats.correctAnswers + quizStats.incorrectAnswers)) * 100)
             : 0,
         plasticCount,
-        batteryCount,
-        batchScans
+        batteryCount
     };
 }
 
@@ -3838,7 +3933,6 @@ function getAchievementTranslationBase(achievement) {
         recycling_hero: 'achRecyclingHero',
         plastic_hunter: 'achPlasticHunter',
         battery_guardian: 'achBatteryGuardian',
-        batch_master: 'achBatchMaster',
         eco_learner: 'achEcoLearner',
         sorting_student: 'achSortingStudent',
         perfect_sorter: 'achPerfectSorter',
@@ -4195,14 +4289,12 @@ function refreshLanguage() {
     }
 
     if (dom.resultsModal && !dom.resultsModal.classList.contains('hidden') && lastAnalysisResult) {
-        if (lastAnalysisResult.scanType === 'unclear') {
+        const objects = lastAnalysisResult.objects || [];
+        if (lastAnalysisResult.message && !objects.length) {
             renderUnclearResult(lastAnalysisResult);
         } else {
-            dom.resultItemName.textContent = lastAnalysisResult.scanType === 'batch'
-                ? t('itemDetected', { count: lastAnalysisResult.objects.length })
-                : lastAnalysisResult.mainItem;
+            dom.resultItemName.textContent = lastAnalysisResult.mainItem || objects[0]?.name || t('wasteScan');
             renderStatus(lastAnalysisResult);
-            renderGrid(lastAnalysisResult);
             renderSustainability(lastAnalysisResult);
         }
     }
@@ -4254,7 +4346,14 @@ async function clearLocalAppCache() {
             );
         }
 
+        // Clear all app data from localStorage
+        localStorage.removeItem(STORAGE_KEYS.history);
+        localStorage.removeItem(STORAGE_KEYS.achievements);
+        localStorage.removeItem(STORAGE_KEYS.quizStats);
+        localStorage.removeItem(STORAGE_KEYS.selectedMode);
+
         showToast(t('cacheClearedReload'));
+        setTimeout(() => window.location.reload(), 1500);
     } catch (error) {
         console.error('[App] Failed to clear local cache:', error);
         showToast(t('cacheClearedReload'));
@@ -4284,6 +4383,36 @@ function bindEvents() {
         const button = event.target.closest('[data-mode]');
         if (button) setScanMode(button.dataset.mode);
     });
+
+    // Event delegation for dynamically generated More Details and Accordions
+    dom.resultsModal?.addEventListener('click', event => {
+        // Handle "More Details" toggle
+        const moreDetailsBtn = event.target.closest('.toggle-more-details-btn');
+        if (moreDetailsBtn) {
+            const content = dom.resultsModal.querySelector('.more-details-content');
+            const icon = dom.resultsModal.querySelector('.more-details-icon');
+            if (content) {
+                const isHidden = content.classList.contains('hidden');
+                content.classList.toggle('hidden');
+                if (icon) icon.classList.toggle('rotate-180', !isHidden);
+            }
+            return;
+        }
+
+        // Handle Accordion toggles
+        const accordionBtn = event.target.closest('.accordion-toggle');
+        if (accordionBtn) {
+            const targetId = accordionBtn.dataset.accordion + 'Content';
+            const content = dom.resultsModal.querySelector(`#${targetId}`);
+            const icon = accordionBtn.querySelector('.accordion-icon');
+            if (content) {
+                const isHidden = content.classList.contains('hidden');
+                content.classList.toggle('hidden');
+                if (icon) icon.classList.toggle('rotate-180', !isHidden);
+            }
+        }
+    });
+
     dom.languageSelect?.addEventListener('change', event => setLanguage(event.target.value));
     dom.themeToggleGroup?.addEventListener('click', event => {
         const button = event.target.closest('[data-theme-option]');
@@ -4361,6 +4490,7 @@ function bindEvents() {
         captureImage();
     });
     dom.galleryBtn?.addEventListener('click', openUploadPicker);
+    dom.returnBtn?.addEventListener('click', resetToCamera);
     dom.zoomSlider?.addEventListener('input', () => {
         const zoom = parseFloat(dom.zoomSlider.value);
         dom.zoomLabel.textContent = zoom.toFixed(1) + 'x';
@@ -4371,8 +4501,6 @@ function bindEvents() {
     });
     dom.fileInput.addEventListener('change', handleFileUpload);
     window.addEventListener('paste', handlePaste);
-    window.addEventListener('resize', updateResultImageOverlayBounds);
-    dom.resultImage.addEventListener('load', updateResultImageOverlayBounds);
     dom.cameraSection.addEventListener('dragenter', handleDragEnter);
     dom.cameraSection.addEventListener('dragover', handleDragOver);
     dom.cameraSection.addEventListener('dragleave', handleDragLeave);
@@ -4413,6 +4541,7 @@ function initializeApp() {
     applyTheme(currentTheme);
     bindEvents();
     setupBottomNavigation(); // Add bottom navigation
+    setupConfidencePopupListeners();
     applyStaticTranslations();
     setScanMode(selectedScanMode);
     
