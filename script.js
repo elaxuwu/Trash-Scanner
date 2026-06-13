@@ -153,8 +153,8 @@ const scanModes = {
 const aiProviders = {
     openai: {
         label: 'OpenAI',
-        defaultModel: 'gpt-4o-mini',
-        recommendedModels: ['gpt-4o-mini', 'gpt-4.1-mini'],
+        defaultModel: 'gpt-5.4-nano-2026-03-17',
+        recommendedModels: ['gpt-5.4-nano-2026-03-17', 'gpt-4o-mini', 'gpt-4.1-mini'],
         keyPlaceholder: 'sk-...',
         keyHelpText: 'Get your API key from OpenAI Platform.',
         keyHelpUrl: 'https://platform.openai.com/api-keys'
@@ -4031,12 +4031,22 @@ function renderChart() {
     });
 }
 
-function openSettings(tab = 'general') {
+function switchSettingsTab(tabName) {
+    document.querySelectorAll('.settings-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.settingsTab === tabName);
+        btn.setAttribute('aria-selected', btn.dataset.settingsTab === tabName ? 'true' : 'false');
+    });
+    document.querySelectorAll('.settings-tab-pane').forEach(pane => {
+        pane.classList.toggle('hidden', pane.id !== 'tab-' + tabName);
+    });
+}
+
+function openSettings(tab) {
+    const targetTab = (typeof tab === 'string' && tab) ? tab : 'general';
     dom.settingsModal.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
 
-    document.querySelectorAll('.settings-tab').forEach(t => t.classList.toggle('active', t.dataset.settingsTab === tab));
-    document.querySelectorAll('.settings-tab-pane').forEach(p => p.classList.toggle('hidden', p.id !== 'tab-' + tab));
+    switchSettingsTab(targetTab);
 
     selectedProvider = localStorage.getItem(STORAGE_KEYS.provider) || selectedProvider || 'openai';
     dom.providerSelect.value = aiProviders[selectedProvider] ? selectedProvider : 'openai';
@@ -4293,9 +4303,7 @@ function bindEvents() {
     // Tab switching
     document.querySelectorAll('.settings-tab').forEach(tab => {
         tab.addEventListener('click', () => {
-            const tabName = tab.dataset.settingsTab;
-            document.querySelectorAll('.settings-tab').forEach(t => t.classList.toggle('active', t === tab));
-            document.querySelectorAll('.settings-tab-pane').forEach(p => p.classList.toggle('hidden', p.id !== 'tab-' + tabName));
+            switchSettingsTab(tab.dataset.settingsTab);
         });
     });
 
