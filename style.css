@@ -165,6 +165,7 @@
             height: calc(100dvh - var(--header-height, 72px) - var(--nav-height, 64px));
             background: #0a0a0a;
             user-select: none;
+            overflow: hidden;
         }
 
         :root {
@@ -280,27 +281,6 @@
             text-shadow: 0 1px 3px rgba(0,0,0,0.5);
             max-width: 65%;
             line-height: 1.2;
-        }
-
-        /* ─── Close / back button ─── */
-        .hud-close-btn {
-            width: 2.2rem;
-            height: 2.2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            color: white;
-            backdrop-filter: blur(6px);
-            transition: background 0.2s, transform 0.15s;
-            flex-shrink: 0;
-        }
-
-        .hud-close-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.08);
         }
 
         /* ─── Scan frame (L-shaped corner brackets) ─── */
@@ -444,6 +424,7 @@
             box-shadow: 0 0 16px var(--scan-accent-glow);
             animation: ringPulse 2.4s ease-in-out infinite;
             transition: border-color 0.3s, box-shadow 0.3s;
+            pointer-events: none;
         }
 
         @keyframes ringPulse {
@@ -664,6 +645,16 @@
             flex-direction: column;
             flex: 1;
             min-height: 0;
+            overflow: hidden;
+        }
+
+        /* Prevent any page from being independently scrollable */
+        .page-content {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         /* Other pages scroll normally */

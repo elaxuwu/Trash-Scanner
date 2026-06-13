@@ -14,8 +14,6 @@ const dom = {
     confirmBtn: document.getElementById('confirmBtn'),
     scanHud: document.getElementById('scanHud'),
     zoomToggleBtn: document.getElementById('zoomToggleBtn'),
-    // New TikTok-style elements
-    closeCameraBtn: document.getElementById('closeCameraBtn'),
     galleryBtn: document.getElementById('galleryBtn'),
     zoomSlider: document.getElementById('zoomSlider'),
     zoomLabel: document.getElementById('zoomLabel'),
@@ -1123,7 +1121,6 @@ function applyStaticTranslations() {
     document.documentElement.lang = currentLanguage;
     setText('h1', 'appTitle');
     dom.settingsBtn.title = t('settings');
-    dom.closeCameraBtn?.setAttribute('title', t('closeCamera'));
     dom.galleryBtn?.setAttribute('title', t('uploadFromGallery'));
     dom.scanBtn?.setAttribute('title', t('captureAnalyze'));
     dom.zoomToggleBtn?.setAttribute('title', t('zoom'));
@@ -2563,8 +2560,6 @@ async function initCamera() {
     dom.videoCanvas.classList.remove('tiktok-preview');
     dom.scanActionSection?.classList.add('hidden');
     dom.zoomControlWrap?.classList.add('hidden');
-    dom.closeCameraBtn?.classList.add('hidden');
-    dom.scanFrame?.classList.remove('hidden');
     document.querySelector('.scan-line-track')?.classList.remove('hidden');
     dom.confirmBtn?.classList.add('hidden');
     dom.scanBtn?.classList.remove('hidden');
@@ -2606,7 +2601,6 @@ async function initCamera() {
         dom.videoCanvas = video;
         dom.videoCanvas.classList.remove('hidden');
         dom.zoomToggleBtn?.classList.remove('hidden');
-        dom.closeCameraBtn?.classList.remove('hidden');
         setCameraStatus('', true);
 
         video.onloadedmetadata = () => {
@@ -2634,7 +2628,6 @@ function handleCameraError() {
     dom.videoCanvas.classList.add('hidden');
     dom.scanActionSection?.classList.add('hidden');
     dom.zoomControlWrap?.classList.add('hidden');
-    dom.closeCameraBtn?.classList.add('hidden');
     dom.zoomToggleBtn?.classList.add('hidden');
     dom.scanFrame?.classList.add('hidden');
     document.querySelector('.scan-line-track')?.classList.add('hidden');
@@ -2758,7 +2751,6 @@ function showUploadedImage(imageData) {
 
     dom.scanActionSection?.classList.add('hidden');
     dom.zoomControlWrap?.classList.add('hidden');
-    dom.closeCameraBtn?.classList.add('hidden');
 
     // Hide scan frame / line, show confirm button
     dom.scanFrame?.classList.add('hidden');
@@ -2900,7 +2892,6 @@ function showSnappedPhoto(imageData) {
 
     dom.scanActionSection?.classList.add('hidden');
     dom.zoomControlWrap?.classList.add('hidden');
-    dom.closeCameraBtn?.classList.add('hidden');
 
     // Hide scan frame / line, show confirm button
     dom.scanFrame?.classList.add('hidden');
@@ -2945,12 +2936,12 @@ async function analyzeWithAI() {
 
     if (!isDemoMode) {
         if (!config.apiKey) {
-            openSettings();
+            openSettings('ai');
             showToast(t('addProviderKey', { provider: providerMeta.label }));
             return;
         }
         if (!config.model) {
-            openSettings();
+            openSettings('ai');
             showToast(t('chooseProviderModel', { provider: providerMeta.label }));
             return;
         }
@@ -4040,13 +4031,12 @@ function renderChart() {
     });
 }
 
-function openSettings() {
+function openSettings(tab = 'general') {
     dom.settingsModal.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
 
-    // Reset to general tab
-    document.querySelectorAll('.settings-tab').forEach(t => t.classList.toggle('active', t.dataset.settingsTab === 'general'));
-    document.querySelectorAll('.settings-tab-pane').forEach(p => p.classList.toggle('hidden', p.id !== 'tab-general'));
+    document.querySelectorAll('.settings-tab').forEach(t => t.classList.toggle('active', t.dataset.settingsTab === tab));
+    document.querySelectorAll('.settings-tab-pane').forEach(p => p.classList.toggle('hidden', p.id !== 'tab-' + tab));
 
     selectedProvider = localStorage.getItem(STORAGE_KEYS.provider) || selectedProvider || 'openai';
     dom.providerSelect.value = aiProviders[selectedProvider] ? selectedProvider : 'openai';
@@ -4361,10 +4351,6 @@ function bindEvents() {
     dom.scanBtn.addEventListener('click', () => {
         if (!dom.videoCanvas) return;
         captureImage();
-    });
-    dom.closeCameraBtn?.addEventListener('click', () => {
-        stopCamera();
-        setCameraStatus('Camera closed');
     });
     dom.galleryBtn?.addEventListener('click', openUploadPicker);
     dom.zoomSlider?.addEventListener('input', () => {
