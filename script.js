@@ -1650,17 +1650,8 @@ function buildSystemPrompt(modeName = selectedScanMode) {
         'Do not ignore visible bottles, cups, bags, cans, wrappers, cardboard, paper, banana peels, leaves, spoons, foil, cigarette butts, masks, glass bottles, food containers, lids, straws, or food scraps.',
         'Classify organic waste separately from general trash. Organic waste includes food scraps, fruit peels, vegetable scraps, leaves, flowers, tea bags, coffee grounds, eggshells, leftover food, and compostable organic matter.',
         'For plastic cups, include them as plastic items even when transparent, small, or partially occluded. Explain that they should be emptied, rinsed, and recycled only if accepted locally.',
-        'If multiple waste items are visible, return multiple objects in the "objects" array for each visible item, set mainItem to the primary item, and mention additional visible items in overallSummary.',
-        'For each object include: name, category, confidence, recyclable, disposalAction, role, position, disposalPlan, components, preparationSteps, education, ecoScore, and carbonSavedGrams.',
-        'Use role = "primary" for the main/most prominent item and role = "secondary" for every additional visible item. Use position for approximate image location such as top-left, center, bottom-right, or partially visible edge.',
-        'If uncertain, use confidence below 0.7 and suggest retaking the photo.',
-        'If an item has multiple materials, include components.',
-        'Every single result or detected object MUST include disposalPlan with immediateAction, steps, handlingType, safetyWarning, and mistakeToAvoid. These are STRICTLY REQUIRED.',
-        'Every single result or detected object MUST include a components array (can be empty if truly homogeneous, but must exist) and a preparationSteps array (must have at least one step). These are STRICTLY REQUIRED.',
-        'The "More Details" section in the UI relies entirely on disposalPlan, components, and preparationSteps. If any of these are missing or empty, the UI will not show the section. STRICTLY ENSURE these fields are present and populated.',
-        currentLanguage === 'vi'
-            ? 'Use Vietnamese handlingType values such as Thùng tái chế, Rác thường, Ủ phân, Xử lý đặc biệt, Điểm thu gom rác điện tử, Điểm thu gom pin, or Tách các bộ phận trước khi bỏ.'
-            : 'Use handlingType values such as Recycling bin, General waste, Compost, Special handling, E-waste drop-off, Battery drop-off, or Separate parts before disposal.',
+        '**MULTI-ITEM GROUPING**: If the image contains multiple distinct waste items, group them by WASTE TYPE. For example, if the image shows 5 plastic bags and 2 water bottles, return ONE object representing "Plastic Bags" and ONE object representing "Plastic Water Bottles". Do NOT return 7 separate objects for 7 physical items. Group identical waste types together. Each grouped object represents all items of that type found in the image.',
+        'Each grouped waste type object must include the same required fields: name, category, confidence, recyclable, disposalAction, role, position, disposalPlan, components, preparationSteps, education, ecoScore, and carbonSavedGrams.',
         `If the image is unclear, return exactly: {"language":"${currentLanguage}","message":"${unclearMessage}","confidence":0.3,"objects":[]}`,
         `Selected mode: ${getScanModeText(modeName, 'label')}. ${mode.instruction}`,
         `Expected JSON format: ${t('promptBatchExample')}`
@@ -2963,18 +2954,16 @@ async function analyzeWithAI() {
     }
 }
 
+let _wasteTypeItems = [];
+
 function showResults(result, shouldSave) {
     lastAnalysisResult = result;
     const imageData = capturedImageData || result.imageData || '';
 
     dom.resultImage.src = imageData;
     dom.resultTimestamp.textContent = new Date().toLocaleString(currentLanguage === 'vi' ? 'vi-VN' : 'en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
     });
 
     if (dom.demoResultBadge) {
@@ -2983,12 +2972,49 @@ function showResults(result, shouldSave) {
 
     if (result.message && !result.objects?.length) {
         renderUnclearResult(result);
+        document.getElementById('wasteTypeTabContainer').classList.add('hidden');
     } else {
-        dom.resultItemName.textContent = result.mainItem || result.objects?.[0]?.name || t('wasteScan');
-        renderStatus(result);
-        renderSustainability(result);
-        renderMoreDetails(result);
-        dom.confidenceBadge.textContent = Math.round(result.confidence * 100) + '%';
+        const objects = result.objects || [];
+        const tabContainer = document.getElementById('wasteTypeTabContainer');
+        const tabsWrapper = document.getElementById('wasteTypeTabs');
+
+        if (objects.length > 1) {
+            _wasteTypeItems = objects;
+            tabsWrapper.innerHTML = '';
+
+            objects.forEach((item, idx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'waste-type-tab flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-150 ' +
+                    (idx === 0
+                        ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-400 hover:text-emerald-600');
+                btn.textContent = item.name || `Item ${idx + 1}`;
+                btn.dataset.index = idx;
+
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.waste-type-tab').forEach(t => {
+                        t.className = 'waste-type-tab flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-150 ' +
+                            'bg-white text-gray-600 border-gray-200 hover:border-emerald-400 hover:text-emerald-600';
+                    });
+                    btn.className = 'waste-type-tab flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-150 ' +
+                        'bg-emerald-500 text-white border-emerald-500 shadow-sm';
+                    renderActiveItem(objects[idx], result);
+                });
+
+                tabsWrapper.appendChild(btn);
+            });
+
+            tabContainer.classList.remove('hidden');
+        } else {
+            _wasteTypeItems = objects;
+            tabContainer.classList.add('hidden');
+        }
+
+        const firstItem = objects[0] || result;
+        renderActiveItem(firstItem, result);
+
+        dom.confidenceBadge.textContent = Math.round((firstItem.confidence || result.confidence || 0) * 100) + '%';
         showConfidencePopup();
     }
 
@@ -2998,6 +3024,27 @@ function showResults(result, shouldSave) {
     if (shouldSave) {
         addToHistory(result);
     }
+}
+
+function renderActiveItem(item, result) {
+    dom.resultItemName.textContent = item.name || result.mainItem || t('wasteScan');
+
+    const kind = getStatusKind(item.recyclable);
+    const gradient = kind === 'recyclable'
+        ? 'from-emerald-500 to-emerald-600'
+        : 'from-orange-500 to-red-500';
+    const iconClass = kind === 'recyclable'
+        ? 'ph ph-recycle text-white text-3xl'
+        : 'ph ph-warning text-white text-3xl';
+    const statusText = kind === 'recyclable' ? 'Recyclable' : 'Non-Recyclable';
+    dom.statusCard.className = `rounded-2xl p-6 shadow-sm bg-gradient-to-r ${gradient}`;
+    setIcon(dom.statusIcon, iconClass);
+    dom.statusMessage.textContent = statusText;
+
+    dom.ecoScoreValue.textContent = `+${item.ecoScore || result.totalEcoScore || 0}`;
+    dom.carbonSavedValue.textContent = `${item.carbonSavedGrams || Math.round((item.ecoScore || result.totalEcoScore || 0) * 0.5)}g`;
+
+    renderMoreDetails(item);
 }
 
 function renderUnclearResult(result) {
@@ -4292,10 +4339,44 @@ function refreshLanguage() {
         const objects = lastAnalysisResult.objects || [];
         if (lastAnalysisResult.message && !objects.length) {
             renderUnclearResult(lastAnalysisResult);
+            document.getElementById('wasteTypeTabContainer').classList.add('hidden');
         } else {
-            dom.resultItemName.textContent = lastAnalysisResult.mainItem || objects[0]?.name || t('wasteScan');
-            renderStatus(lastAnalysisResult);
-            renderSustainability(lastAnalysisResult);
+            const tabContainer = document.getElementById('wasteTypeTabContainer');
+            const tabsWrapper = document.getElementById('wasteTypeTabs');
+
+            if (objects.length > 1) {
+                _wasteTypeItems = objects;
+                tabsWrapper.innerHTML = '';
+                objects.forEach((item, idx) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'waste-type-tab flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-150 ' +
+                        (idx === 0
+                            ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-400 hover:text-emerald-600');
+                    btn.textContent = item.name || `Item ${idx + 1}`;
+                    btn.dataset.index = idx;
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.waste-type-tab').forEach(t => {
+                            t.className = 'waste-type-tab flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-150 ' +
+                                'bg-white text-gray-600 border-gray-200 hover:border-emerald-400 hover:text-emerald-600';
+                        });
+                        btn.className = 'waste-type-tab flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-150 ' +
+                            'bg-emerald-500 text-white border-emerald-500 shadow-sm';
+                        renderActiveItem(objects[idx], lastAnalysisResult);
+                    });
+                    tabsWrapper.appendChild(btn);
+                });
+                tabContainer.classList.remove('hidden');
+            } else {
+                _wasteTypeItems = objects;
+                tabContainer.classList.add('hidden');
+            }
+
+            const activeIdx = _wasteTypeItems.length > 1
+                ? (parseInt(document.querySelector('.waste-type-tab.bg-emerald-500')?.dataset.index ?? '0'))
+                : 0;
+            renderActiveItem(objects[activeIdx] || objects[0] || lastAnalysisResult, lastAnalysisResult);
         }
     }
 
