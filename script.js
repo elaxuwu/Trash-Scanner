@@ -853,8 +853,8 @@ Object.assign(translations.en, {
     samplePizzaMaterial: 'Contaminated paper',
     samplePizzaInstruction: 'Keep out of clean recycling.',
     savedLanguageNote: 'Some saved scan details may remain in the language used when they were created.',
-    promptBatchExample: '{"language":"en","mainItem":"Plastic Bottle","category":"Plastic","confidence":0.9,"ecoScore":15,"disposalAction":"Empty, rinse, recycle.","components":[{"part":"PET Plastic","material":"PET Plastic","recyclable":true,"percentage":80,"instruction":"Rinse and recycle."},{"part":"Water residue","material":"Water","recyclable":false,"percentage":15,"instruction":"Pour out before recycling."},{"part":"Label/adhesive","material":"Paper & adhesive","recyclable":false,"percentage":5,"instruction":"Remove label if required by local rules."}],"preparationSteps":["Empty remaining liquid.","Rinse before recycling."]}',
-    promptSingleExample: '{"language":"en","mainItem":"Plastic Water Bottle","category":"Plastic","confidence":0.9,"ecoScore":18,"disposalAction":"Empty, rinse, recycle.","components":[{"part":"Bottle body","material":"PET Plastic","recyclable":true,"percentage":85,"instruction":"Rinse and recycle."},{"part":"Cap","material":"Polypropylene (PP)","recyclable":true,"percentage":10,"instruction":"Recycle separately."},{"part":"Label","material":"Paper with adhesive","recyclable":false,"percentage":5,"instruction":"Peel off if local rules require it."}],"preparationSteps":["Empty remaining liquid.","Rinse the bottle."]}'
+    promptBatchExample: '{"language":"en","objects":[{"name":"Plastic Bottle","category":"Plastic","confidence":0.9,"ecoScore":15,"disposalAction":"Empty, rinse, recycle.","boundingBox":[200,300,800,600],"components":[{"part":"PET Plastic","material":"PET Plastic","recyclable":true,"percentage":80,"instruction":"Rinse and recycle."},{"part":"Water residue","material":"Water","recyclable":false,"percentage":15,"instruction":"Pour out before recycling."},{"part":"Label/adhesive","material":"Paper & adhesive","recyclable":false,"percentage":5,"instruction":"Remove label if required by local rules."}],"preparationSteps":["Empty remaining liquid.","Rinse before recycling."]}]}',
+    promptSingleExample: '{"language":"en","objects":[{"name":"Plastic Water Bottle","category":"Plastic","confidence":0.9,"ecoScore":18,"disposalAction":"Empty, rinse, recycle.","boundingBox":[200,300,800,600],"components":[{"part":"Bottle body","material":"PET Plastic","recyclable":true,"percentage":85,"instruction":"Rinse and recycle."},{"part":"Cap","material":"Polypropylene (PP)","recyclable":true,"percentage":10,"instruction":"Recycle separately."},{"part":"Label","material":"Paper with adhesive","recyclable":false,"percentage":5,"instruction":"Peel off if local rules require it."}],"preparationSteps":["Empty remaining liquid.","Rinse the bottle."]}]}'
 });
 
 Object.assign(translations.vi, {
@@ -1053,8 +1053,8 @@ Object.assign(translations.vi, {
     samplePizzaMaterial: 'Giấy bị nhiễm bẩn',
     samplePizzaInstruction: 'Không bỏ vào luồng tái chế giấy sạch.',
     savedLanguageNote: 'Một số chi tiết quét đã lưu có thể vẫn ở ngôn ngữ được dùng khi tạo.',
-    promptBatchExample: '{"language":"vi","mainItem":"Chai nhựa","category":"Nhựa","confidence":0.9,"ecoScore":15,"disposalAction":"Đổ hết, rửa sạch và tái chế.","components":[{"part":"Thân chai","material":"Nhựa PET","recyclable":true,"percentage":80,"instruction":"Rửa sạch và tái chế."},{"part":"Nước còn lại","material":"Nước","recyclable":false,"percentage":15,"instruction":"Đổ ra trước khi tái chế."},{"part":"Nhãn","material":"Giấy và keo","recyclable":false,"percentage":5,"instruction":"Bóc nhãn nếu quy định địa phương yêu cầu."}],"preparationSteps":["Đổ hết chất lỏng còn lại.","Rửa sạch trước khi tái chế."]}',
-    promptSingleExample: '{"language":"vi","mainItem":"Chai nước nhựa","category":"Nhựa","confidence":0.9,"ecoScore":18,"disposalAction":"Đổ hết, rửa sạch và tái chế.","components":[{"part":"Thân chai","material":"Nhựa PET","recyclable":true,"percentage":85,"instruction":"Rửa sạch và tái chế."},{"part":"Nắp","material":"Polypropylene (PP)","recyclable":true,"percentage":10,"instruction":"Tái chế riêng."},{"part":"Nhãn","material":"Giấy và keo dán","recyclable":false,"percentage":5,"instruction":"Bóc nhãn nếu quy định địa phương yêu cầu."}],"preparationSteps":["Đổ hết chất lỏng còn lại.","Rửa sạch chai."]}'
+    promptBatchExample: '{"language":"vi","objects":[{"name":"Chai nhựa","category":"Nhựa","confidence":0.9,"ecoScore":15,"disposalAction":"Đổ hết, rửa sạch và tái chế.","boundingBox":[200,300,800,600],"components":[{"part":"Thân chai","material":"Nhựa PET","recyclable":true,"percentage":80,"instruction":"Rửa sạch và tái chế."},{"part":"Nước còn lại","material":"Nước","recyclable":false,"percentage":15,"instruction":"Đổ ra trước khi tái chế."},{"part":"Nhãn","material":"Giấy và keo","recyclable":false,"percentage":5,"instruction":"Bóc nhãn nếu quy định địa phương yêu cầu."}],"preparationSteps":["Đổ hết chất lỏng còn lại.","Rửa sạch trước khi tái chế."]}]}',
+    promptSingleExample: '{"language":"vi","objects":[{"name":"Chai nước nhựa","category":"Nhựa","confidence":0.9,"ecoScore":18,"disposalAction":"Đổ hết, rửa sạch và tái chế.","boundingBox":[200,300,800,600],"components":[{"part":"Thân chai","material":"Nhựa PET","recyclable":true,"percentage":85,"instruction":"Rửa sạch và tái chế."},{"part":"Nắp","material":"Polypropylene (PP)","recyclable":true,"percentage":10,"instruction":"Tái chế riêng."},{"part":"Nhãn","material":"Giấy và keo dán","recyclable":false,"percentage":5,"instruction":"Bóc nhãn nếu quy định địa phương yêu cầu."}],"preparationSteps":["Đổ hết chất lỏng còn lại.","Rửa sạch chai."]}]}'
 });
 
 let stream = null;
@@ -1438,6 +1438,7 @@ function normalizeGeminiModelName(model) {
 }
 
 function extractJsonObject(text) {
+    window.lastRawAIResponseText = text;
     if (typeof text !== 'string' || !text.trim()) {
         throw new Error(t('providerEmptyResponse'));
     }
@@ -1551,7 +1552,8 @@ function normalizeObject(rawObject, index) {
         education: safeString(rawObject.education || rawObject.explanation || ''),
         carbonSavedGrams: clampNumber(rawObject.carbonSavedGrams ?? rawObject.carbon_saved_grams, 0, 5000, 0),
         role: normalizeObjectRole(rawObject.role || rawObject.priority || rawObject.visibility, index),
-        position: safeString(rawObject.position || rawObject.location || rawObject.area || rawObject.region || '')
+        position: safeString(rawObject.position || rawObject.location || rawObject.area || rawObject.region || ''),
+        boundingBox: Array.isArray(rawObject.boundingBox) ? rawObject.boundingBox : null
     };
 }
 
@@ -1593,7 +1595,8 @@ function normalizeResult(rawResult) {
             components: rawResult.components || rawResult.composition,
             preparationSteps: rawResult.preparationSteps || rawResult.action_steps,
             education: rawResult.education || rawResult.explanation,
-            carbonSavedGrams: rawResult.carbonSavedGrams
+            carbonSavedGrams: rawResult.carbonSavedGrams,
+            boundingBox: Array.isArray(rawResult.boundingBox) ? rawResult.boundingBox : null
         }, 0)];
 
     const totalEcoScore = clampNumber(
@@ -1650,8 +1653,10 @@ function buildSystemPrompt(modeName = selectedScanMode) {
         'Do not ignore visible bottles, cups, bags, cans, wrappers, cardboard, paper, banana peels, leaves, spoons, foil, cigarette butts, masks, glass bottles, food containers, lids, straws, or food scraps.',
         'Classify organic waste separately from general trash. Organic waste includes food scraps, fruit peels, vegetable scraps, leaves, flowers, tea bags, coffee grounds, eggshells, leftover food, and compostable organic matter.',
         'For plastic cups, include them as plastic items even when transparent, small, or partially occluded. Explain that they should be emptied, rinsed, and recycled only if accepted locally.',
-        '**MULTI-ITEM GROUPING**: If the image contains multiple distinct waste items, group them by WASTE TYPE. For example, if the image shows 5 plastic bags and 2 water bottles, return ONE object representing "Plastic Bags" and ONE object representing "Plastic Water Bottles". Do NOT return 7 separate objects for 7 physical items. Group identical waste types together. Each grouped object represents all items of that type found in the image.',
+        '**MULTI-ITEM GROUPING**: If the image contains multiple distinct waste items, group them by WASTE TYPE. For example, if the image shows 5 plastic bags and 2 water bottles, return ONE object representing "Plastic Bags" and ONE object representing "Plastic Water Bottles". Do NOT return 7 separate objects for 7 physical items. Group identical waste types together. Each grouped object represents all items of that type found in the image. STRICT RULE: NEVER return multiple objects of the same waste type.',
         'Each grouped waste type object must include the same required fields: name, category, confidence, recyclable, disposalAction, role, position, disposalPlan, components, preparationSteps, education, ecoScore, and carbonSavedGrams.',
+        'For every object, you MUST return a "boundingBox" array containing exactly 4 numbers: [ymin, xmin, ymax, xmax]. These numbers must be normalized coordinates between 0 and 1000 representing the exact bounding box of the item in the image. If the object represents a grouped waste type scattered across the image, return the bounding box of ONLY the SINGLE largest or clearest instance of that waste type. DO NOT create a giant bounding box covering all scattered items.',
+        'For each item in the "objects" array, assign an independent "confidence" score (0.0 to 1.0) reflecting how clearly that specific item can be identified. Do not use a global confidence score.',
         `If the image is unclear, return exactly: {"language":"${currentLanguage}","message":"${unclearMessage}","confidence":0.3,"objects":[]}`,
         `Selected mode: ${getScanModeText(modeName, 'label')}. ${mode.instruction}`,
         `Expected JSON format: ${t('promptBatchExample')}`
@@ -2748,6 +2753,7 @@ function showResults(result, shouldSave) {
                     btn.className = 'waste-type-tab flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-150 ' +
                         'bg-emerald-500 text-white border-emerald-500 shadow-sm';
                     renderActiveItem(objects[idx], result);
+                    dom.confidenceBadge.textContent = Math.round((objects[idx].confidence || result.confidence || 0) * 100) + '%';
                 });
 
                 tabsWrapper.appendChild(btn);
@@ -2774,7 +2780,75 @@ function showResults(result, shouldSave) {
     }
 }
 
-function renderActiveItem(item, result) {
+async function cropImageToBoundingBox(originalImageSrc, bbox, targetWidth, targetHeight) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+
+            // 1. Extract LLM coordinates (normalized 0-1000)
+            let [ymin, xmin, ymax, xmax] = bbox;
+            if (xmin > xmax) [xmin, xmax] = [xmax, xmin];
+            if (ymin > ymax) [ymin, ymax] = [ymax, ymin];
+
+            // 2. Calculate the original bounding box dimensions
+            const boxY = (ymin / 1000) * img.height;
+            const boxX = (xmin / 1000) * img.width;
+            let boxW = ((xmax - xmin) / 1000) * img.width;
+            let boxH = ((ymax - ymin) / 1000) * img.height;
+            
+            if (boxW <= 0) boxW = 1;
+            if (boxH <= 0) boxH = 1;
+
+            const boxCenterX = boxX + boxW / 2;
+            const boxCenterY = boxY + boxH / 2;
+
+            // 3. Scale so the bounding box fits nicely in the container
+            const padding = 20;
+            const scaleX = (targetWidth - padding * 2) / boxW;
+            const scaleY = (targetHeight - padding * 2) / boxH;
+            const scale = Math.min(scaleX, scaleY);
+
+            // 4. Draw the ENTIRE original image so no black bars appear
+            const drawW = img.width * scale;
+            const drawH = img.height * scale;
+            const drawX = targetWidth / 2 - boxCenterX * scale;
+            const drawY = targetHeight / 2 - boxCenterY * scale;
+
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 5. Use the 5-argument drawImage to retain the outside context
+            ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+            resolve(canvas.toDataURL('image/jpeg', 0.9));
+        };
+        img.onerror = reject;
+        img.src = originalImageSrc;
+    });
+}
+
+async function renderActiveItem(item, result) {
+    const imageData = capturedImageData || result.imageData || '';
+    const hasMultipleItems = result && result.objects && result.objects.length > 1;
+    if (hasMultipleItems && item.boundingBox && Array.isArray(item.boundingBox) && item.boundingBox.length === 4) {
+        try {
+            const container = dom.resultImage.parentElement;
+            const w = container.clientWidth > 0 ? container.clientWidth : 800;
+            const h = container.clientHeight > 0 ? container.clientHeight : 600;
+            const croppedDataUrl = await cropImageToBoundingBox(imageData, item.boundingBox, w, h);
+            dom.resultImage.src = croppedDataUrl;
+        } catch (e) {
+            console.error("Cropping failed, falling back to original image", e);
+            dom.resultImage.src = imageData;
+        }
+    } else {
+        dom.resultImage.src = imageData;
+    }
+
     dom.resultItemName.textContent = item.name || result.mainItem || t('wasteScan');
 
     const kind = getStatusKind(item.recyclable);
@@ -4112,6 +4186,7 @@ function refreshLanguage() {
                         btn.className = 'waste-type-tab flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-150 ' +
                             'bg-emerald-500 text-white border-emerald-500 shadow-sm';
                         renderActiveItem(objects[idx], lastAnalysisResult);
+                        dom.confidenceBadge.textContent = Math.round((objects[idx].confidence || lastAnalysisResult.confidence || 0) * 100) + '%';
                     });
                     tabsWrapper.appendChild(btn);
                 });
@@ -4419,3 +4494,56 @@ function setupBottomNavigation() {
 
 initializeApp();
 initCamera();
+
+// --- Easter Egg: wwaassdd ---
+let secretKeyBuffer = '';
+document.addEventListener('keydown', (e) => {
+    if (dom.resultsModal && !dom.resultsModal.classList.contains('hidden')) {
+        secretKeyBuffer += e.key.toLowerCase();
+        if (secretKeyBuffer.length > 8) {
+            secretKeyBuffer = secretKeyBuffer.slice(-8);
+        }
+        if (secretKeyBuffer === 'wwaassdd') {
+            secretKeyBuffer = '';
+            showRawAIResponse();
+        }
+    } else {
+        secretKeyBuffer = '';
+    }
+});
+
+function showRawAIResponse() {
+    if (!lastAnalysisResult && !window.lastRawAIResponseText) return;
+    
+    let modal = document.getElementById('secretRawResponseModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'secretRawResponseModal';
+        modal.style.position = 'fixed';
+        modal.style.top = '10%';
+        modal.style.left = '10%';
+        modal.style.width = '80%';
+        modal.style.height = '80%';
+        modal.style.backgroundColor = 'rgba(15, 23, 42, 0.95)';
+        modal.style.color = '#10b981';
+        modal.style.zIndex = '99999';
+        modal.style.padding = '20px';
+        modal.style.borderRadius = '10px';
+        modal.style.overflow = 'auto';
+        modal.style.boxShadow = '0 0 20px rgba(0,0,0,0.5)';
+        modal.style.fontFamily = 'monospace';
+        modal.style.whiteSpace = 'pre-wrap';
+        modal.style.cursor = 'pointer';
+        modal.title = "Click anywhere to close";
+        
+        modal.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+        
+        document.body.appendChild(modal);
+    }
+    
+    const content = window.lastRawAIResponseText || JSON.stringify(lastAnalysisResult, null, 2);
+    modal.textContent = "=== AI RAW RESPONSE (Click to close) ===\n\n" + content;
+    modal.style.display = 'block';
+}
