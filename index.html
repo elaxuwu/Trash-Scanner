@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -167,11 +167,92 @@
             </div>
             <!-- Page: History -->
             <div id="page-history" class="page-content hidden pb-24">
+                <!-- Chart Summary Section -->
+                <section class="px-6 mt-6">
+                    <div class="bg-white rounded-2xl shadow-sm p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                <i class="ph ph-chart-pie-slice text-emerald-500"></i>
+                                <span>Scan Overview</span>
+                            </h2>
+                            <button id="viewDetailsBtn" type="button" class="text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-1">
+                                <span>View Details</span>
+                                <i class="ph ph-arrow-right text-xs"></i>
+                            </button>
+                        </div>
+                        <div class="flex flex-col md:flex-row items-center justify-around gap-6">
+                            <div class="w-full md:w-1/2 max-w-[200px]">
+                                <canvas id="statsChart"></canvas>
+                            </div>
+                            <div class="text-center md:text-right">
+                                <p class="text-sm text-gray-500 mb-1">Total Items Tracked</p>
+                                <p id="totalRecycledCount" class="text-3xl font-bold text-emerald-600">0</p>
+                                <p id="impactSummaryText" class="text-xs text-gray-400 mt-1">No scans yet</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <section class="px-6 mt-6">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg font-bold text-gray-800">Recent Scans</h2>
-                        <div class="flex gap-3">
-                            <button id="clearHistoryBtn" class="text-sm text-gray-500 font-medium hover:text-red-500 transition-colors">Clear All</button>
+                        <div class="flex items-center gap-2">
+                            <!-- Filter Button -->
+                            <div class="relative">
+                                <button id="historyFilterBtn" type="button" title="Filter" class="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-emerald-100 text-gray-500 hover:text-emerald-600 transition-colors relative">
+                                    <i class="ph ph-funnel text-lg"></i>
+                                    <span id="filterActiveDot" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500 hidden"></span>
+                                </button>
+                                <div id="historyFilterDropdown" class="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 z-50 hidden overflow-hidden">
+                                    <div class="px-3 py-2 border-b border-gray-100">
+                                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Category</p>
+                                    </div>
+                                    <div id="filterCategoryList" class="px-2 py-1.5 max-h-40 overflow-y-auto">
+                                        <!-- Populated dynamically -->
+                                    </div>
+                                    <div class="px-3 py-2 border-t border-gray-100">
+                                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</p>
+                                    </div>
+                                    <div class="px-2 py-1.5 space-y-0.5">
+                                        <button data-filter-status="recyclable" class="filter-status-option w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-700 hover:bg-emerald-50 transition-colors">
+                                            <i class="ph ph-recycle text-emerald-500"></i>
+                                            <span>Recyclable</span>
+                                        </button>
+                                        <button data-filter-status="nonRecyclable" class="filter-status-option w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-700 hover:bg-orange-50 transition-colors">
+                                            <i class="ph ph-warning text-orange-500"></i>
+                                            <span>Non-Recyclable</span>
+                                        </button>
+                                    </div>
+                                    <div class="px-2 py-2 border-t border-gray-100">
+                                        <button id="clearFilterBtn" class="w-full text-xs text-gray-400 hover:text-red-500 py-1 transition-colors">Clear Filter</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Sort Button -->
+                            <div class="relative">
+                                <button id="historySortBtn" type="button" title="Sort" class="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-emerald-100 text-gray-500 hover:text-emerald-600 transition-colors">
+                                    <i class="ph ph-sort-ascending text-lg"></i>
+                                </button>
+                                <div id="historySortDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 z-50 hidden overflow-hidden">
+                                    <div class="px-2 py-1.5 space-y-0.5">
+                                        <button data-sort="date" class="sort-option w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                            <i class="ph ph-calendar text-gray-400"></i>
+                                            <span class="flex-1 text-left">Date</span>
+                                            <i class="sort-dir-icon ph ph-sort-descending text-xs text-emerald-500 hidden"></i>
+                                        </button>
+                                        <button data-sort="name" class="sort-option w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                            <i class="ph ph-text-aa text-gray-400"></i>
+                                            <span class="flex-1 text-left">Name</span>
+                                            <i class="sort-dir-icon ph ph-sort-descending text-xs text-emerald-500 hidden"></i>
+                                        </button>
+                                        <button data-sort="eco" class="sort-option w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                            <i class="ph ph-leaf text-gray-400"></i>
+                                            <span class="flex-1 text-left">Eco Score</span>
+                                            <i class="sort-dir-icon ph ph-sort-descending text-xs text-emerald-500 hidden"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -217,17 +298,7 @@
                             <i class="ph ph-chart-pie-slice text-emerald-500"></i>
                             <span>Personal Impact Dashboard</span>
                         </h2>
-                        <div id="impactStatsGrid" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5"></div>
-                        <div class="flex flex-col md:flex-row items-center justify-around gap-6">
-                            <div class="w-full md:w-1/2 max-w-[200px]">
-                                <canvas id="statsChart"></canvas>
-                            </div>
-                            <div class="text-center md:text-right">
-                                <p class="text-sm text-gray-500 mb-1">Total Items Tracked</p>
-                                <p id="totalRecycledCount" class="text-3xl font-bold text-emerald-600">0</p>
-                                <p id="impactSummaryText" class="text-xs text-gray-400 mt-1">No scans yet</p>
-                            </div>
-                        </div>
+                        <div id="impactStatsGrid" class="flex flex-col gap-6 mb-6"></div>
                         <div class="mt-6">
                             <div class="flex items-center justify-between mb-3">
                                 <h3 class="font-bold text-gray-800 text-sm">Category Breakdown</h3>

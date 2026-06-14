@@ -71,7 +71,14 @@ const dom = {
     impactStatsGrid: document.getElementById('impactStatsGrid'),
     impactSummaryText: document.getElementById('impactSummaryText'),
     categoryBreakdownList: document.getElementById('categoryBreakdownList'),
-    clearHistoryBtn: document.getElementById('clearHistoryBtn'),
+    historyFilterBtn: document.getElementById('historyFilterBtn'),
+    historyFilterDropdown: document.getElementById('historyFilterDropdown'),
+    filterCategoryList: document.getElementById('filterCategoryList'),
+    clearFilterBtn: document.getElementById('clearFilterBtn'),
+    historySortBtn: document.getElementById('historySortBtn'),
+    historySortDropdown: document.getElementById('historySortDropdown'),
+    filterActiveDot: document.getElementById('filterActiveDot'),
+    viewDetailsBtn: document.getElementById('viewDetailsBtn'),
     scanModeOptions: document.getElementById('scanModeOptions'),
     achievementList: document.getElementById('achievementList'),
     achievementBanner: document.getElementById('achievementBanner'),
@@ -363,6 +370,11 @@ const translationOverrides = {
     carbonDesc: 'Impact estimate',
     carbonLoading: 'Estimating environmental impact',
         impactDashboard: 'Personal Impact Dashboard',
+        overview: 'Overview',
+        wasteComposition: 'Waste Composition',
+        quizProgress: 'Quiz Progress',
+        scanOverview: 'Scan Overview',
+        viewDetails: 'View Details',
         totalItemsTracked: 'Total Items Tracked',
         noScansYet: 'No scans yet',
         categoryBreakdown: 'Category Breakdown',
@@ -530,6 +542,11 @@ const translationOverrides = {
     carbonDesc: 'Ước tính tác động',
     carbonLoading: 'Đang ước tính tác động môi trường',
         impactDashboard: 'Bảng tác động cá nhân',
+        overview: 'Tổng quan',
+        wasteComposition: 'Thành phần rác',
+        quizProgress: 'Tiến độ câu đố',
+        scanOverview: 'Tổng quan quét',
+        viewDetails: 'Xem chi tiết',
         totalItemsTracked: 'Tổng vật phẩm đã theo dõi',
         noScansYet: 'Chưa có lượt quét',
         categoryBreakdown: 'Phân tích theo loại',
@@ -1074,6 +1091,8 @@ let selectedScanMode = localStorage.getItem(STORAGE_KEYS.selectedMode) || 'quick
 let selectedProvider = localStorage.getItem(STORAGE_KEYS.provider) || 'openai';
 let statsChartInstance = null;
 let currentQuiz = null;
+let currentHistoryFilter = { type: null, value: null };
+let currentHistorySort = { by: 'date', order: 'desc' };
 let dragDepth = 0;
 let isAnalyzing = false;
 
@@ -1161,6 +1180,9 @@ function applyStaticTranslations() {
 
     const dashboardTitle = dom.impactStatsGrid?.closest('.bg-white')?.querySelector('h2 span');
     setText(dashboardTitle, 'impactDashboard');
+    const scanOverviewTitle = dom.statsChartCanvas?.closest('.bg-white')?.querySelector('h2 span');
+    setText(scanOverviewTitle, 'scanOverview');
+    setText(dom.viewDetailsBtn?.querySelector('span'), 'viewDetails');
     const totalTrackedLabel = dom.totalRecycledCount?.previousElementSibling;
     setText(totalTrackedLabel, 'totalItemsTracked');
     const categoryTitle = dom.categoryBreakdownList?.previousElementSibling?.querySelector('h3');
@@ -3144,6 +3166,48 @@ function setupConfidencePopupListeners() {
     });
 }
 
+function applyHistoryFilterAndSort(history) {
+    let filtered = [...history];
+
+    if (currentHistoryFilter.type === 'category') {
+        filtered = filtered.filter(entry => {
+            const firstObject = (entry.result?.objects || [])[0];
+            if (!firstObject) return false;
+            return classifyWasteCategory(firstObject) === currentHistoryFilter.value;
+        });
+    } else if (currentHistoryFilter.type === 'status') {
+        filtered = filtered.filter(entry => {
+            const firstObject = (entry.result?.objects || [])[0];
+            if (!firstObject) return false;
+            const kind = getStatusKind(firstObject.recyclable);
+            if (currentHistoryFilter.value === 'recyclable') return kind === 'recyclable';
+            return kind !== 'recyclable';
+        });
+    }
+
+    filtered.sort((a, b) => {
+        let valA, valB;
+        if (currentHistorySort.by === 'date') {
+            valA = new Date(a.timestamp).getTime();
+            valB = new Date(b.timestamp).getTime();
+        } else if (currentHistorySort.by === 'name') {
+            const nameA = (a.result?.objects || [])[0]?.name || a.result?.mainItem || '';
+            const nameB = (b.result?.objects || [])[0]?.name || b.result?.mainItem || '';
+            valA = nameA.toLowerCase();
+            valB = nameB.toLowerCase();
+        } else if (currentHistorySort.by === 'eco') {
+            valA = a.result?.totalEcoScore || 0;
+            valB = b.result?.totalEcoScore || 0;
+        }
+
+        if (valA < valB) return currentHistorySort.order === 'asc' ? -1 : 1;
+        if (valA > valB) return currentHistorySort.order === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    return filtered;
+}
+
 function loadHistory() {
     const recentList = document.getElementById('recentListHistory');
     const emptyRecent = document.getElementById('emptyRecentHistory');
@@ -3151,9 +3215,16 @@ function loadHistory() {
     
     recentList.querySelectorAll('.history-item').forEach(item => item.remove());
 
-    const history = getHistory();
+    const rawHistory = getHistory();
+    const history = applyHistoryFilterAndSort(rawHistory);
+
     if (history.length === 0) {
         emptyRecent.classList.remove('hidden');
+        if (rawHistory.length > 0) {
+            emptyRecent.querySelector('p').textContent = t('noScans'); // Or distinct message
+        } else {
+            emptyRecent.querySelector('p').textContent = t('noScans');
+        }
         return;
     }
 
@@ -3205,6 +3276,138 @@ function loadHistory() {
         recentList.appendChild(historyItem);
     });
 }
+
+function setupHistoryControls() {
+    if (!dom.historyFilterBtn || !dom.historySortBtn) return;
+
+    // Toggle dropdowns
+    dom.historyFilterBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dom.historyFilterDropdown.classList.toggle('hidden');
+        dom.historySortDropdown.classList.add('hidden');
+        populateFilterCategories();
+    });
+
+    dom.historySortBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dom.historySortDropdown.classList.toggle('hidden');
+        dom.historyFilterDropdown.classList.add('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!dom.historyFilterBtn.contains(e.target) && !dom.historyFilterDropdown.contains(e.target)) {
+            dom.historyFilterDropdown.classList.add('hidden');
+        }
+        if (!dom.historySortBtn.contains(e.target) && !dom.historySortDropdown.contains(e.target)) {
+            dom.historySortDropdown.classList.add('hidden');
+        }
+    });
+
+    // Handle Category Filter
+    dom.filterCategoryList.addEventListener('click', (e) => {
+        const btn = e.target.closest('.filter-category-option');
+        if (!btn) return;
+        currentHistoryFilter = { type: 'category', value: btn.dataset.category };
+        updateFilterUI();
+        loadHistory();
+        dom.historyFilterDropdown.classList.add('hidden');
+    });
+
+    // Handle Status Filter
+    dom.historyFilterDropdown.querySelectorAll('.filter-status-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentHistoryFilter = { type: 'status', value: btn.dataset.filterStatus };
+            updateFilterUI();
+            loadHistory();
+            dom.historyFilterDropdown.classList.add('hidden');
+        });
+    });
+
+    // Handle Clear Filter
+    dom.clearFilterBtn.addEventListener('click', () => {
+        currentHistoryFilter = { type: null, value: null };
+        updateFilterUI();
+        loadHistory();
+        dom.historyFilterDropdown.classList.add('hidden');
+    });
+
+    // Handle Sort
+    dom.historySortDropdown.querySelectorAll('.sort-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const sortBy = btn.dataset.sort;
+            if (currentHistorySort.by === sortBy) {
+                currentHistorySort.order = currentHistorySort.order === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentHistorySort.by = sortBy;
+                currentHistorySort.order = 'desc'; // default when changing sort type
+            }
+            updateSortUI();
+            loadHistory();
+        });
+    });
+    
+    updateSortUI();
+}
+
+function populateFilterCategories() {
+    const history = getHistory();
+    const categories = new Set();
+    history.forEach(entry => {
+        const firstObject = (entry.result?.objects || [])[0];
+        if (firstObject) {
+            categories.add(classifyWasteCategory(firstObject));
+        }
+    });
+
+    dom.filterCategoryList.innerHTML = '';
+    Array.from(categories).sort().forEach(category => {
+        const btn = document.createElement('button');
+        btn.className = 'filter-category-option w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors';
+        btn.dataset.category = category;
+        const isSelected = currentHistoryFilter.type === 'category' && currentHistoryFilter.value === category;
+        btn.innerHTML = `
+            <i class="ph ph-${getCategoryIcon(category)} ${isSelected ? 'text-emerald-500' : 'text-gray-400'}"></i>
+            <span class="flex-1 text-left capitalize ${isSelected ? 'font-bold text-emerald-600' : ''}">${category}</span>
+        `;
+        dom.filterCategoryList.appendChild(btn);
+    });
+}
+
+function updateFilterUI() {
+    if (currentHistoryFilter.type) {
+        dom.filterActiveDot.classList.remove('hidden');
+    } else {
+        dom.filterActiveDot.classList.add('hidden');
+    }
+}
+
+function updateSortUI() {
+    dom.historySortDropdown.querySelectorAll('.sort-option').forEach(btn => {
+        const icon = btn.querySelector('.sort-dir-icon');
+        if (btn.dataset.sort === currentHistorySort.by) {
+            icon.classList.remove('hidden');
+            icon.className = `sort-dir-icon ph ${currentHistorySort.order === 'asc' ? 'ph-sort-ascending' : 'ph-sort-descending'} text-xs text-emerald-500`;
+            btn.querySelector('span').classList.add('font-bold', 'text-emerald-600');
+        } else {
+            icon.classList.add('hidden');
+            btn.querySelector('span').classList.remove('font-bold', 'text-emerald-600');
+        }
+    });
+}
+
+function getCategoryIcon(category) {
+    const icons = {
+        'plastic': 'bottle',
+        'metal': 'cylinder',
+        'paper': 'newspaper',
+        'glass': 'martini',
+        'organic': 'leaf',
+        'special': 'battery-warning',
+        'other': 'trash'
+    };
+    return icons[category] || 'package';
+}
+
 
 function clearHistory() {
     if (!confirm(t('clearHistoryConfirm'))) return;
@@ -3889,31 +4092,61 @@ function renderImpactDashboard(metrics = getMetrics()) {
     dom.impactStatsGrid.replaceChildren();
     dom.categoryBreakdownList.replaceChildren();
 
-    const statCards = [
-        { label: t('totalScans'), value: metrics.totalScans, iconClass: 'ph ph-camera text-emerald-600' },
-        { label: t('ecoScore'), value: metrics.totalEcoScore, iconClass: 'ph ph-leaf text-emerald-600' },
-        { label: t('recyclableItems'), value: metrics.recyclableCount, iconClass: 'ph ph-recycle text-emerald-600' },
-        { label: t('nonRecyclableItems'), value: metrics.nonRecyclableCount, iconClass: 'ph ph-warning text-orange-600' },
-        { label: t('specialHandlingItems'), value: metrics.specialHandlingCount, iconClass: 'ph ph-shield-warning text-amber-600' },
-        { label: t('mostCommon'), value: formatCategoryName(metrics.mostCommonCategory), iconClass: 'ph ph-stack text-blue-600' },
-        { label: t('estimatedCo2Saved'), value: formatCo2(metrics.estimatedCo2Kg), iconClass: 'ph ph-cloud text-blue-600' },
-        { label: t('quizXp'), value: metrics.quizStats.quizXp, iconClass: 'ph ph-graduation-cap text-emerald-600' },
-        { label: t('quizzesCompleted'), value: metrics.quizStats.quizzesCompleted, iconClass: 'ph ph-check-circle text-emerald-600' },
-        { label: t('correctAnswers'), value: metrics.quizStats.correctAnswers, iconClass: 'ph ph-thumbs-up text-blue-600' },
-        { label: t('incorrectAnswers'), value: metrics.quizStats.incorrectAnswers, iconClass: 'ph ph-x-circle text-orange-600' },
-        { label: t('quizAccuracy'), value: `${metrics.quizAccuracy}%`, iconClass: 'ph ph-target text-purple-600' }
+    const statGroups = [
+        {
+            title: t('overview') || 'Overview',
+            icon: 'ph-chart-bar',
+            cards: [
+                { label: t('totalScans'), value: metrics.totalScans, iconClass: 'ph ph-camera text-emerald-600' },
+                { label: t('ecoScore'), value: metrics.totalEcoScore, iconClass: 'ph ph-leaf text-emerald-600' },
+                { label: t('estimatedCo2Saved'), value: formatCo2(metrics.estimatedCo2Kg), iconClass: 'ph ph-cloud text-blue-600' }
+            ]
+        },
+        {
+            title: t('wasteComposition') || 'Waste Composition',
+            icon: 'ph-trash',
+            cards: [
+                { label: t('recyclableItems'), value: metrics.recyclableCount, iconClass: 'ph ph-recycle text-emerald-600' },
+                { label: t('nonRecyclableItems'), value: metrics.nonRecyclableCount, iconClass: 'ph ph-warning text-orange-600' },
+                { label: t('specialHandlingItems'), value: metrics.specialHandlingCount, iconClass: 'ph ph-shield-warning text-amber-600' },
+                { label: t('mostCommon'), value: formatCategoryName(metrics.mostCommonCategory), iconClass: 'ph ph-stack text-blue-600' }
+            ]
+        },
+        {
+            title: t('quizProgress') || 'Quiz Progress',
+            icon: 'ph-exam',
+            cards: [
+                { label: t('quizXp'), value: metrics.quizStats.quizXp, iconClass: 'ph ph-graduation-cap text-emerald-600' },
+                { label: t('quizzesCompleted'), value: metrics.quizStats.quizzesCompleted, iconClass: 'ph ph-check-circle text-emerald-600' },
+                { label: t('correctAnswers'), value: metrics.quizStats.correctAnswers, iconClass: 'ph ph-thumbs-up text-blue-600' },
+                { label: t('incorrectAnswers'), value: metrics.quizStats.incorrectAnswers, iconClass: 'ph ph-x-circle text-orange-600' },
+                { label: t('quizAccuracy'), value: `${metrics.quizAccuracy}%`, iconClass: 'ph ph-target text-purple-600' }
+            ]
+        }
     ];
 
-    statCards.forEach(card => {
-        dom.impactStatsGrid.appendChild(createElement('div', {
-            className: 'impact-stat-card bg-gray-50 rounded-xl p-4 border border-gray-100'
-        }, [
-            createElement('div', { className: 'flex items-center gap-2 mb-2' }, [
-                icon(`${card.iconClass} text-xl`),
-                createElement('p', { className: 'text-xs font-bold text-gray-500 uppercase', text: card.label })
+    statGroups.forEach(group => {
+        const grid = createElement('div', { className: 'grid grid-cols-2 lg:grid-cols-4 gap-4' });
+        group.cards.forEach(card => {
+            grid.appendChild(createElement('div', {
+                className: 'impact-stat-card bg-gray-50 rounded-xl p-5 border border-gray-100 flex flex-col justify-between hover:shadow-sm transition-shadow'
+            }, [
+                createElement('div', { className: 'flex items-center gap-2 mb-3' }, [
+                    icon(`${card.iconClass} text-xl`),
+                    createElement('p', { className: 'text-[11px] font-bold text-gray-500 uppercase leading-tight', text: card.label })
+                ]),
+                createElement('p', { className: 'text-2xl font-black text-gray-800', text: card.value })
+            ]));
+        });
+
+        const section = createElement('div', { className: 'space-y-3' }, [
+            createElement('h3', { className: 'text-sm font-bold text-gray-700 flex items-center gap-2' }, [
+                icon(`ph ${group.icon} text-emerald-500`),
+                createElement('span', { text: group.title })
             ]),
-            createElement('p', { className: 'text-xl font-bold text-gray-800', text: card.value })
-        ]));
+            grid
+        ]);
+        dom.impactStatsGrid.appendChild(section);
     });
 
     dom.impactSummaryText.textContent = t('scansSummary', {
@@ -4411,7 +4644,16 @@ function bindEvents() {
     dom.cameraSection.addEventListener('drop', handleDrop);
     dom.confirmBtn?.addEventListener('click', analyzeWithAI);
     dom.closeResultsBtn.addEventListener('click', closeResults);
-    dom.clearHistoryBtn.addEventListener('click', clearHistory);
+    dom.viewDetailsBtn?.addEventListener('click', () => {
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(nav => nav.classList.remove('active'));
+        const profileNav = document.querySelector('.nav-item[data-page="profile"]');
+        if (profileNav) profileNav.classList.add('active');
+        ['scan', 'history', 'quiz', 'profile'].forEach(p => {
+            const pageEl = document.getElementById(`page-${p}`);
+            if (pageEl) pageEl.classList.toggle('hidden', p !== 'profile');
+        });
+    });
     if (dom.saveToHistoryBtn) {
         dom.saveToHistoryBtn.addEventListener('click', () => {
             if (lastAnalysisResult) addToHistory(lastAnalysisResult);
@@ -4456,6 +4698,7 @@ function initializeApp() {
     updateDemoModeUI(isDemoMode);
 
     setCameraStatus('');
+    setupHistoryControls();
     loadHistory();
     renderChart();
     updateUserLevel();
