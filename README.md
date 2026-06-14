@@ -1,6 +1,23 @@
 # Trash-Scanner
 
+## No Backend Needed
+
+This app is **100% front-end**. The `server/` folder is just a tiny static file host — it does not run any AI, database, or app logic. All waste analysis happens directly in your browser by calling OpenAI, OpenRouter, or Gemini over HTTPS using your own API key.
+
+You only need a static file server because modern browsers block key features on `file://` URLs:
+
+- **Camera access** (`getUserMedia`) — required for scanning items
+- **Service Worker** (`sw.js`) — required for PWA install and offline caching
+- **Web App Manifest** — required for "Add to Home Screen"
+- **Strict CORS rules** on some browsers
+
+Anything that gives the app an `http://localhost` or `https://` origin will work.
+
 ## Run Locally
+
+Pick **any one** of the options below. They all do the exact same job.
+
+### Option 1: Bundled Node server (default)
 
 Open a terminal in the project folder:
 
@@ -49,6 +66,50 @@ The helper uses port `8000` by default, shows the exact URL, keeps the terminal 
 ```powershell
 .\server\start-server.bat 5500
 ```
+
+### Option 2: Python (no Node.js required)
+
+If you have Python 3 installed:
+
+```bash
+cd Trash-Scanner
+python -m http.server 8000
+```
+
+Then open `http://127.0.0.1:8000/index.html`.
+
+### Option 3: npx (no install required)
+
+If you have Node.js but don't want to use the bundled `server/` folder:
+
+```bash
+cd Trash-Scanner
+npx serve . -l 8000
+```
+
+or
+
+```bash
+npx http-server . -p 8000
+```
+
+Then open the URL it prints (usually `http://127.0.0.1:8000/index.html`).
+
+### Option 4: VS Code Live Server extension
+
+Install the **Live Server** extension by Ritwick Dey, then right-click `index.html` → **Open with Live Server**. The browser opens automatically.
+
+### Option 5: Drop into a static host
+
+The `Trash-Scanner` folder is a fully static site. You can upload it as-is to:
+
+- GitHub Pages
+- Netlify Drop
+- Cloudflare Pages
+- Vercel
+- Any web host that serves static files
+
+No build step, no backend, no env vars required.
 
 ## Troubleshooting Old Cached UI
 
