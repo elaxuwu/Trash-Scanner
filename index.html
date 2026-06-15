@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -344,6 +344,22 @@
                         <i class="ph ph-caret-right text-gray-400 text-xl"></i>
                     </button>
                 </section>
+
+                <!-- RecycleDex Section (Button) -->
+                <section class="px-6 mb-6">
+                    <button id="openRecycleDexBtn" class="w-full bg-white rounded-2xl shadow-sm p-5 flex items-center justify-between hover:bg-gray-50 transition-colors active:scale-[0.98]">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100">
+                                <i class="ph ph-books text-xl text-emerald-500"></i>
+                            </div>
+                            <span class="text-lg font-bold text-gray-800">RecycleDex</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span id="recycledexMiniCount" class="text-sm font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">0/16</span>
+                            <i class="ph ph-caret-right text-gray-400 text-xl"></i>
+                        </div>
+                    </button>
+                </section>
             </div>
 
             <!-- Overlay Page: Achievements -->
@@ -359,6 +375,33 @@
                 </header>
                 <div class="p-6">
                     <div id="achievementList" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+                </div>
+            </div>
+
+            <!-- Overlay Page: RecycleDex -->
+            <div id="page-recycledex" class="fixed inset-0 bg-gray-50 z-50 hidden overflow-y-auto pb-20">
+                <header class="bg-white border-b border-gray-100 px-4 py-4 flex items-center sticky top-0 z-30 shadow-sm">
+                    <button id="closeRecycleDexBtn" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors mr-3 active:scale-95">
+                        <i class="ph ph-arrow-left text-xl text-gray-600"></i>
+                    </button>
+                    <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <i class="ph ph-books text-emerald-500"></i>
+                        <span>RecycleDex</span>
+                    </h2>
+                </header>
+                <div class="p-6">
+                    <div class="bg-white rounded-2xl shadow-sm p-5 mb-6 text-center">
+                        <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-2">Discovered Items</h3>
+                        <div class="flex items-center justify-center gap-2">
+                            <span id="recycledexDiscoveredCount" class="text-3xl font-black text-emerald-600">0</span>
+                            <span class="text-xl font-bold text-gray-400">/</span>
+                            <span id="recycledexTotalCount" class="text-xl font-bold text-gray-400">16</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-2.5 mt-3 overflow-hidden">
+                            <div id="recycledexProgressBar" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div id="recycleDexList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
                 </div>
             </div>
 

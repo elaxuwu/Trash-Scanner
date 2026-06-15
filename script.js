@@ -24,6 +24,14 @@ const dom = {
     loadingModeText: document.getElementById('loadingModeText'),
     dropZoneOverlay: document.getElementById('dropZoneOverlay'),
     fileInput: document.getElementById('fileInput'),
+    openRecycleDexBtn: document.getElementById('openRecycleDexBtn'),
+    closeRecycleDexBtn: document.getElementById('closeRecycleDexBtn'),
+    pageRecycleDex: document.getElementById('page-recycledex'),
+    recycleDexList: document.getElementById('recycleDexList'),
+    recycledexDiscoveredCount: document.getElementById('recycledexDiscoveredCount'),
+    recycledexTotalCount: document.getElementById('recycledexTotalCount'),
+    recycledexProgressBar: document.getElementById('recycledexProgressBar'),
+    recycledexMiniCount: document.getElementById('recycledexMiniCount'),
     cameraSection: document.getElementById('cameraSection'),
     cameraStatusMessage: document.getElementById('cameraStatusMessage'),
     // New HUD elements
@@ -218,6 +226,61 @@ const bottomNavTranslationKeys = {
     profile: 'navProfile'
 };
 
+// --- Geolocation ---
+let _cachedUserLocation = null;
+let _geoFetchPromise = null;
+
+function fetchUserLocation() {
+    if (_cachedUserLocation) return Promise.resolve(_cachedUserLocation);
+    if (_geoFetchPromise) return _geoFetchPromise;
+
+    _geoFetchPromise = new Promise(resolve => {
+        if (!navigator.geolocation) {
+            resolve(null);
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            async pos => {
+                const { latitude, longitude } = pos.coords;
+                try {
+                    const res = await fetch(
+                        `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&zoom=5&accept-language=en`,
+                        { headers: { 'User-Agent': 'TrashScanner/1.0' } }
+                    );
+                    const data = await res.json();
+                    const addr = data.address || {};
+                    _cachedUserLocation = {
+                        country: addr.country || null,
+                        countryCode: addr.country_code?.toUpperCase() || null,
+                        state: addr.state || addr.region || null,
+                        city: addr.city || addr.town || addr.village || null,
+                        lat: latitude,
+                        lon: longitude
+                    };
+                } catch {
+                    _cachedUserLocation = { country: null, countryCode: null, state: null, city: null, lat: latitude, lon: longitude };
+                }
+                resolve(_cachedUserLocation);
+            },
+            () => resolve(null),
+            { enableHighAccuracy: false, timeout: 5000, maximumAge: 600000 }
+        );
+    }).finally(() => { _geoFetchPromise = null; });
+
+    return _geoFetchPromise;
+}
+
+function getLocationPromptSnippet() {
+    if (!_cachedUserLocation || !_cachedUserLocation.country) return '';
+    const loc = _cachedUserLocation;
+    const parts = [loc.city, loc.state, loc.country].filter(Boolean).join(', ');
+    return [
+        `The user is located in ${parts} (country code: ${loc.countryCode}).`,
+        `Tailor ALL recycling advice, disposal instructions, and recyclability classifications to the waste management rules and regulations of ${loc.country}.`,
+        `What is recyclable varies by country — for example, some plastics accepted in one country may not be accepted in another. Soft plastics, cartons, and e-waste rules differ significantly. Always use local context.`
+    ].join(' ');
+}
+
 const achievements = [
     {
         id: 'consistency_is_key',
@@ -272,10 +335,29 @@ const achievements = [
         title: 'Waste Wisdom',
         description: 'Reach 50 quiz XP',
         unlocked: metrics => metrics.quizStats.quizXp >= 50
+    },
+    {
+        id: 'dex_explorer',
+        title: 'Dex Explorer',
+        description: 'Discover 5 items in the RecycleDex',
+        unlocked: metrics => metrics.recycledexCount >= 5
+    },
+    {
+        id: 'dex_collector',
+        title: 'Dex Collector',
+        description: 'Discover 10 items in the RecycleDex',
+        unlocked: metrics => metrics.recycledexCount >= 10
+    },
+    {
+        id: 'dex_master',
+        title: 'Dex Master',
+        description: 'Discover all items in the RecycleDex',
+        unlocked: metrics => metrics.recycledexCount >= 16
     }
 ];
 
 const achievementIconClasses = {
+    consistency_is_key: 'ph ph-fire',
     eco_starter: 'ph ph-leaf',
     recycling_hero: 'ph ph-recycle',
     plastic_hunter: 'ph ph-magnifying-glass',
@@ -283,7 +365,10 @@ const achievementIconClasses = {
     eco_learner: 'ph ph-graduation-cap',
     sorting_student: 'ph ph-student',
     perfect_sorter: 'ph ph-trophy',
-    waste_wisdom: 'ph ph-brain'
+    waste_wisdom: 'ph ph-brain',
+    dex_explorer: 'ph ph-binoculars',
+    dex_collector: 'ph ph-books',
+    dex_master: 'ph ph-crown'
 };
 
 const levelIconClasses = {
@@ -825,6 +910,14 @@ Object.assign(translations.en, {
     achPerfectSorterDesc: 'Get 5/5 in one quiz',
     achWasteWisdom: 'Waste Wisdom',
     achWasteWisdomDesc: 'Reach 50 quiz XP',
+    achConsistencyIsKey: 'Consistency is Key',
+    achConsistencyIsKeyDesc: 'Maintain a 3-day scanning streak',
+    achDexExplorer: 'Dex Explorer',
+    achDexExplorerDesc: 'Discover 5 items in the RecycleDex',
+    achDexCollector: 'Dex Collector',
+    achDexCollectorDesc: 'Discover 10 items in the RecycleDex',
+    achDexMaster: 'Dex Master',
+    achDexMasterDesc: 'Discover all items in the RecycleDex',
     quizTitleSample: 'Eco Quiz - Sample Quiz',
     quizCompleteXp: 'XP earned: {xp} (+5 per correct, +2 completion{bonus}).'
     ,
@@ -1025,6 +1118,14 @@ Object.assign(translations.vi, {
     achPerfectSorterDesc: 'Đạt 5/5 trong một câu đố',
     achWasteWisdom: 'Trí tuệ rác thải',
     achWasteWisdomDesc: 'Đạt 50 XP câu đố',
+    achConsistencyIsKey: 'Kiên trì là chìa khóa',
+    achConsistencyIsKeyDesc: 'Duy trì chuỗi quét 3 ngày liên tục',
+    achDexExplorer: 'Nhà thám hiểm Dex',
+    achDexExplorerDesc: 'Khám phá 5 vật phẩm trong RecycleDex',
+    achDexCollector: 'Nhà sưu tầm Dex',
+    achDexCollectorDesc: 'Khám phá 10 vật phẩm trong RecycleDex',
+    achDexMaster: 'Bậc thầy Dex',
+    achDexMasterDesc: 'Khám phá tất cả vật phẩm trong RecycleDex',
     quizTitleSample: 'Câu đố sinh thái - Câu đố mẫu',
     quizCompleteXp: 'XP nhận được: {xp} (+5 mỗi câu đúng, +2 hoàn thành{bonus}).'
     ,
@@ -1681,12 +1782,14 @@ function buildSystemPrompt(modeName = selectedScanMode) {
         ? 'Return all user-facing text in Vietnamese with full accents. Do not mix English and Vietnamese. Keep JSON keys in English, but translate every string value shown to users.'
         : 'Return all user-facing text in English. Keep JSON keys in English.';
     const unclearMessage = t('unclearRetakeMessage');
+    const locationSnippet = getLocationPromptSnippet();
     return [
         'You are an expert waste sorting AI for a browser-only recycling demo.',
         'Return JSON only. No markdown. No explanation outside JSON.',
         'Use consistent fields and short practical language.',
         `App language: ${currentLanguage}. Response language: ${responseLanguage}.`,
         strictLanguageInstruction,
+        locationSnippet,
         'Translate all user-facing string values, including item names where possible, category, disposalAction, overallSummary, disposalPlan.immediateAction, disposalPlan.handlingType, disposalPlan.safetyWarning, disposalPlan.mistakeToAvoid, disposalPlan.steps, components.part, components.material, components.instruction, preparationSteps, education, and unclear/error messages.',
         'Do not confuse "components" with physical parts. Components MUST describe MATERIALS the item is MADE OF (e.g., PET Plastic 85%, Water 10%, Ink 5% for a plastic bottle). Do NOT list physical parts like "bottle body" or "cap". Those are NOT materials. A bottle is NOT made of a cap; a cap is a separate physical part that happens to be attached. For a water bottle, list PET Plastic, water residue, label adhesive, etc. For an aluminum can, list aluminum alloy, interior lining, paint/coating, etc. Components array is for MATERIAL COMPOSITION, not physical anatomy.',
         'Do not translate JSON keys. Include a top-level "language" field with value "en" or "vi".',
@@ -2111,6 +2214,10 @@ function getMockDemoResponse() {
 async function analyzeWasteImage({ provider, apiKey, model, imageBase64, mode }) {
     const normalizedProvider = aiProviders[provider] ? provider : 'openai';
     const selectedModeForCall = scanModes[mode] ? mode : 'quick';
+
+    // Pre-fetch location (non-blocking, uses cache after first call)
+    await fetchUserLocation().catch(() => null);
+
     const adapterInput = {
         apiKey,
         model: model || aiProviders[normalizedProvider].defaultModel,
@@ -3287,6 +3394,7 @@ function addToHistory(result) {
     renderChart();
     updateUserLevel();
     checkAchievements();
+    updateRecycleDexMiniCount();
 }
 
 function showConfidencePopup() {
@@ -3588,6 +3696,7 @@ function clearHistory() {
     renderChart();
     updateUserLevel();
     renderAchievements();
+    updateRecycleDexMiniCount();
 }
 
 function getObjectsFromHistoryEntry(entry) {
@@ -3704,7 +3813,20 @@ function getMetrics() {
             ? Math.round((quizStats.correctAnswers / (quizStats.correctAnswers + quizStats.incorrectAnswers)) * 100)
             : 0,
         plasticCount,
-        batteryCount
+        batteryCount,
+        recycledexCount: (() => {
+            const discoveredIds = new Set();
+            history.forEach(entry => {
+                const objs = entry.result?.objects || [];
+                objs.forEach(obj => {
+                    const n = (obj.name || '').toLowerCase();
+                    RECYCLEDEX_ITEMS.forEach(item => {
+                        if (item.regex.test(n)) discoveredIds.add(item.id);
+                    });
+                });
+            });
+            return discoveredIds.size;
+        })()
     };
 }
 
@@ -4149,6 +4271,113 @@ function updateUserLevel() {
         xpBar.style.width = '100%';
     }
 }
+
+const RECYCLEDEX_ITEMS = [
+    { id: 'dex_plastic_bottle', name: 'Plastic Bottle', category: 'plastic', icon: 'ph-wine', regex: /plastic.*bottle|bottle|pet.*bottle|water.*bottle/i },
+    { id: 'dex_soda_can', name: 'Soda Can', category: 'metal', icon: 'ph-beer-stein', regex: /can|soda.*can|aluminum|aluminium/i },
+    { id: 'dex_cardboard_box', name: 'Cardboard Box', category: 'paper', icon: 'ph-package', regex: /box|cardboard|carton/i },
+    { id: 'dex_glass_bottle', name: 'Glass Bottle', category: 'glass', icon: 'ph-beer-bottle', regex: /glass.*bottle|jar/i },
+    { id: 'dex_coffee_cup', name: 'Coffee Cup', category: 'paper', icon: 'ph-coffee', regex: /cup|coffee/i },
+    { id: 'dex_plastic_bag', name: 'Plastic Bag', category: 'plastic', icon: 'ph-tote', regex: /bag|plastic.*bag|shopping.*bag/i },
+    { id: 'dex_banana_peel', name: 'Banana Peel', category: 'organic', icon: 'ph-leaf', regex: /banana|peel|fruit/i },
+    { id: 'dex_battery', name: 'Battery', category: 'special', icon: 'ph-battery-full', regex: /battery|aa|aaa|lithium/i },
+    { id: 'dex_phone', name: 'Mobile Phone', category: 'special', icon: 'ph-device-mobile', regex: /phone|mobile|cellphone|iphone|e-waste|electronic/i },
+    { id: 'dex_receipt', name: 'Receipt', category: 'paper', icon: 'ph-receipt', regex: /receipt/i },
+    { id: 'dex_wrapper', name: 'Food Wrapper', category: 'plastic', icon: 'ph-cookie', regex: /wrapper|candy|snack/i },
+    { id: 'dex_newspaper', name: 'Newspaper', category: 'paper', icon: 'ph-newspaper', regex: /newspaper|magazine|book/i },
+    { id: 'dex_lightbulb', name: 'Light Bulb', category: 'special', icon: 'ph-lightbulb', regex: /bulb|light|lamp/i },
+    { id: 'dex_pizza_box', name: 'Pizza Box', category: 'paper', icon: 'ph-pizza', regex: /pizza/i },
+    { id: 'dex_utensils', name: 'Plastic Utensils', category: 'plastic', icon: 'ph-fork-knife', regex: /fork|spoon|knife|utensil|cutlery/i },
+    { id: 'dex_milk_jug', name: 'Milk Jug', category: 'plastic', icon: 'ph-drop', regex: /milk|jug|hdpe/i }
+];
+
+function renderRecycleDex() {
+    if (!dom.recycleDexList) return;
+    
+    // Parse user history
+    const history = getHistory();
+    const discoveredIds = new Set();
+    
+    history.forEach(entry => {
+        const objects = entry.result?.objects || [];
+        objects.forEach(obj => {
+            const name = (obj.name || '').toLowerCase();
+            RECYCLEDEX_ITEMS.forEach(item => {
+                if (item.regex.test(name)) {
+                    discoveredIds.add(item.id);
+                }
+            });
+        });
+    });
+    
+    // Update Header Counts
+    const total = RECYCLEDEX_ITEMS.length;
+    const discovered = discoveredIds.size;
+    
+    if (dom.recycledexDiscoveredCount) dom.recycledexDiscoveredCount.textContent = discovered;
+    if (dom.recycledexTotalCount) dom.recycledexTotalCount.textContent = total;
+    if (dom.recycledexMiniCount) dom.recycledexMiniCount.textContent = `${discovered}/${total}`;
+    
+    if (dom.recycledexProgressBar) {
+        dom.recycledexProgressBar.style.width = `${(discovered / total) * 100}%`;
+    }
+    
+    // Render Grid
+    dom.recycleDexList.innerHTML = '';
+    
+    const categoryColors = {
+        plastic: 'bg-blue-50 text-blue-500 border-blue-200',
+        metal: 'bg-gray-50 text-gray-500 border-gray-300',
+        paper: 'bg-yellow-50 text-yellow-600 border-yellow-200',
+        glass: 'bg-cyan-50 text-cyan-500 border-cyan-200',
+        organic: 'bg-green-50 text-green-500 border-green-200',
+        special: 'bg-purple-50 text-purple-500 border-purple-200',
+        other: 'bg-gray-50 text-gray-400 border-gray-200'
+    };
+    
+    RECYCLEDEX_ITEMS.forEach(item => {
+        const isUnlocked = discoveredIds.has(item.id);
+        const cardClass = isUnlocked 
+            ? `recycledex-card unlocked relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 ${categoryColors[item.category]}`
+            : 'recycledex-card relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-dashed border-gray-200 bg-white';
+            
+        const iconContainerClass = isUnlocked
+            ? 'w-12 h-12 rounded-full flex items-center justify-center bg-white shadow-sm mb-3'
+            : 'w-12 h-12 rounded-full flex items-center justify-center bg-gray-100 mb-3 recycledex-silhouette';
+            
+        const iconClass = isUnlocked ? `ph-fill ${item.icon} text-2xl` : `ph-fill ${item.icon} text-2xl text-gray-400`;
+        const titleText = isUnlocked ? item.name : '???';
+        const titleClass = isUnlocked ? 'text-xs font-bold text-center leading-tight' : 'text-xs font-bold text-center text-gray-400';
+        
+        dom.recycleDexList.innerHTML += `
+            <div class="${cardClass}">
+                ${!isUnlocked ? '<i class="ph-fill ph-lock-key absolute top-2 right-2 text-gray-300 text-[10px]"></i>' : ''}
+                <div class="${iconContainerClass}">
+                    <i class="${iconClass}"></i>
+                </div>
+                <span class="${titleClass}">${titleText}</span>
+            </div>
+        `;
+    });
+}
+
+function updateRecycleDexMiniCount() {
+    const history = getHistory();
+    const discoveredIds = new Set();
+    history.forEach(entry => {
+        const objects = entry.result?.objects || [];
+        objects.forEach(obj => {
+            const name = (obj.name || '').toLowerCase();
+            RECYCLEDEX_ITEMS.forEach(item => {
+                if (item.regex.test(name)) discoveredIds.add(item.id);
+            });
+        });
+    });
+    const total = RECYCLEDEX_ITEMS.length;
+    const discovered = discoveredIds.size;
+    if (dom.recycledexMiniCount) dom.recycledexMiniCount.textContent = `${discovered}/${total}`;
+}
+
 function renderAchievements() {
     const unlockedIds = new Set(getUnlockedAchievementIds());
     dom.achievementList.replaceChildren();
@@ -4177,6 +4406,7 @@ function renderAchievements() {
 
 function getAchievementTranslationBase(achievement) {
     const bases = {
+        consistency_is_key: 'achConsistencyIsKey',
         eco_starter: 'achEcoStarter',
         recycling_hero: 'achRecyclingHero',
         plastic_hunter: 'achPlasticHunter',
@@ -4184,7 +4414,10 @@ function getAchievementTranslationBase(achievement) {
         eco_learner: 'achEcoLearner',
         sorting_student: 'achSortingStudent',
         perfect_sorter: 'achPerfectSorter',
-        waste_wisdom: 'achWasteWisdom'
+        waste_wisdom: 'achWasteWisdom',
+        dex_explorer: 'achDexExplorer',
+        dex_collector: 'achDexCollector',
+        dex_master: 'achDexMaster'
     };
     return bases[achievement.id] || '';
 }
@@ -4559,6 +4792,7 @@ function refreshLanguage() {
     renderChart();
     updateUserLevel();
     renderAchievements();
+    updateRecycleDexMiniCount();
     renderQuizInlineStats();
     updateDemoModeUI(localStorage.getItem(STORAGE_KEYS.demoMode) === 'true');
 
@@ -4750,6 +4984,20 @@ function bindEvents() {
         });
     }
 
+    if (dom.openRecycleDexBtn) {
+        dom.openRecycleDexBtn.addEventListener('click', () => {
+            renderRecycleDex();
+            dom.pageRecycleDex.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+        });
+    }
+    if (dom.closeRecycleDexBtn) {
+        dom.closeRecycleDexBtn.addEventListener('click', () => {
+            dom.pageRecycleDex.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        });
+    }
+
     if (dom.streakBadge) {
         dom.streakBadge.addEventListener('click', () => {
             renderStreakDetailsModal();
@@ -4913,7 +5161,11 @@ function initializeApp() {
     renderChart();
     updateUserLevel();
     renderAchievements();
+    updateRecycleDexMiniCount();
     renderQuizInlineStats();
+
+    // Pre-warm geolocation cache silently in the background
+    fetchUserLocation().catch(() => null);
 }
 
 // Setup Bottom Navigation
