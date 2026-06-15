@@ -128,7 +128,7 @@ const dom = {
     demoResultBadge: document.getElementById('demoResultBadge')
 };
 
-const APP_VERSION = 'v21';
+const APP_VERSION = 'v25';
 const APP_CACHE_PREFIX = 'recyclecheck-';
 
 const STORAGE_KEYS = {

@@ -7,12 +7,12 @@
   "theme_color": "#10b981",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/ngoctnguyen861/rmittechcamp2026/main/Trash-Scanner/icon-192.png",
+      "src": "./icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "https://raw.githubusercontent.com/ngoctnguyen861/rmittechcamp2026/main/Trash-Scanner/icon-512.png",
+      "src": "./icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
