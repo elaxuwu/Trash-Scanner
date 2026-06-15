@@ -2428,10 +2428,11 @@ async function initCamera() {
     }
 
     video = document.createElement('video');
+    video.id = 'videoCanvas';
+    video.className = 'scan-video';
     video.autoplay = true;
     video.playsInline = true;
     video.muted = true;
-    video.className = 'tiktok-video';
 
     try {
         const capabilities = { video: { facingMode: { ideal: 'environment' } } };
