@@ -1,8 +1,20 @@
 const MAX_DETECTED_OBJECTS = 20;
 const dom = {
+    openAchievementsBtn: document.getElementById('openAchievementsBtn'),
+    closeAchievementsBtn: document.getElementById('closeAchievementsBtn'),
+    pageAchievements: document.getElementById('page-achievements'),
     streakBadge: document.getElementById('streakBadge'),
     streakIcon: document.getElementById('streakIcon'),
     streakText: document.getElementById('streakText'),
+    streakModal: document.getElementById('streakModal'),
+    closeStreakBtn: document.getElementById('closeStreakBtn'),
+    streakModalBigIcon: document.getElementById('streakModalBigIcon'),
+    streakDisplayNum: document.getElementById('streakDisplayNum'),
+    streakDisplayMsg: document.getElementById('streakDisplayMsg'),
+    streakDaysContainer: document.getElementById('streakDaysContainer'),
+    streakDisplayCurrent: document.getElementById('streakDisplayCurrent'),
+    streakDisplayLongest: document.getElementById('streakDisplayLongest'),
+    streakActionBtn: document.getElementById('streakActionBtn'),
     videoCanvas: document.getElementById('videoCanvas'), // <video> when live
     capturedImageCanvas: document.getElementById('capturedImageCanvas'), // <img> for captured/uploaded
     scanBtn: document.getElementById('scanBtn'),
@@ -3171,6 +3183,81 @@ function renderStreakUI() {
     }
 }
 
+function renderStreakDetailsModal() {
+    if (!dom.streakModal) return;
+    
+    const streakStatsRaw = localStorage.getItem(STORAGE_KEYS.streak);
+    const streakStats = streakStatsRaw ? JSON.parse(streakStatsRaw) : { currentStreak: 0, longestStreak: 0, lastScanDate: null };
+    
+    // Update simple text
+    dom.streakDisplayNum.textContent = streakStats.currentStreak;
+    dom.streakDisplayCurrent.textContent = streakStats.currentStreak;
+    dom.streakDisplayLongest.textContent = streakStats.longestStreak || 0;
+    
+    // Styling the Big Icon & Message
+    if (streakStats.currentStreak > 0) {
+        dom.streakModalBigIcon.className = 'ph-fill ph-fire text-[5.5rem] text-orange-500 drop-shadow-md z-10 transition-colors duration-500';
+        dom.streakDisplayMsg.textContent = "You're on a roll!";
+        dom.streakDisplayMsg.className = "text-orange-500 font-bold mb-8 text-lg";
+    } else {
+        dom.streakModalBigIcon.className = 'ph-fill ph-fire text-[5.5rem] text-gray-300 drop-shadow-md z-10 transition-colors duration-500';
+        dom.streakDisplayMsg.textContent = "Start your streak today!";
+        dom.streakDisplayMsg.className = "text-gray-500 font-medium mb-8 text-lg";
+    }
+    
+    // Build Rolling 7-Day Timeline ending Today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let lastScanDate = streakStats.lastScanDate ? new Date(streakStats.lastScanDate) : null;
+    if (lastScanDate) lastScanDate.setHours(0, 0, 0, 0);
+    
+    const daysArr = [];
+    const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        
+        let isLit = false;
+        
+        if (streakStats.currentStreak > 0 && lastScanDate) {
+            const diffFromLastScan = Math.round((lastScanDate.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+            // Day is lit if it's <= lastScanDate AND it falls within the currentStreak window ending at lastScanDate
+            if (diffFromLastScan >= 0 && diffFromLastScan < streakStats.currentStreak) {
+                isLit = true;
+            }
+        }
+        
+        const dayLetter = dayNames[d.getDay()];
+        const isToday = i === 0;
+        
+        const circleClass = isLit 
+            ? 'w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-orange-500 text-white shadow-sm ring-4 ring-orange-100/50 relative'
+            : 'w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-gray-100 text-gray-400 border-2 border-gray-200 relative';
+            
+        const iconClass = isLit ? 'ph-fill ph-fire text-lg sm:text-xl' : 'ph-fill ph-fire text-lg sm:text-xl opacity-40';
+        
+        const labelClass = isToday 
+            ? 'text-[10px] sm:text-xs font-bold text-orange-600 mt-2 uppercase'
+            : (isLit ? 'text-[10px] sm:text-xs font-bold text-gray-700 mt-2 uppercase' : 'text-[10px] sm:text-xs font-semibold text-gray-400 mt-2 uppercase');
+            
+        const labelText = isToday ? 'Today' : dayLetter;
+        
+        daysArr.push(`
+            <div class="flex flex-col items-center flex-1">
+                <div class="${circleClass}">
+                    <i class="${iconClass}"></i>
+                    ${isLit && isToday ? '<div class="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full flex items-center justify-center shadow-sm"><div class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></div></div>' : ''}
+                </div>
+                <span class="${labelClass}">${labelText}</span>
+            </div>
+        `);
+    }
+    
+    dom.streakDaysContainer.innerHTML = daysArr.join('');
+}
+
 function addToHistory(result) {
     const history = getHistory();
     const config = getProviderConfig();
@@ -4650,6 +4737,39 @@ function bindEvents() {
         await clearLocalAppCache();
         setTimeout(hardRefreshApp, 900);
     });
+    if (dom.openAchievementsBtn) {
+        dom.openAchievementsBtn.addEventListener('click', () => {
+            dom.pageAchievements.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden'); // Prevent scrolling
+        });
+    }
+    if (dom.closeAchievementsBtn) {
+        dom.closeAchievementsBtn.addEventListener('click', () => {
+            dom.pageAchievements.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        });
+    }
+
+    if (dom.streakBadge) {
+        dom.streakBadge.addEventListener('click', () => {
+            renderStreakDetailsModal();
+            dom.streakModal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+        });
+    }
+    if (dom.closeStreakBtn) {
+        dom.closeStreakBtn.addEventListener('click', () => {
+            dom.streakModal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        });
+    }
+    if (dom.streakActionBtn) {
+        dom.streakActionBtn.addEventListener('click', () => {
+            dom.streakModal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        });
+    }
+
     dom.settingsBtn.addEventListener('click', openSettings);
     dom.closeSettingsBtn.addEventListener('click', closeSettings);
     dom.cancelSettingsBtn.addEventListener('click', closeSettings);

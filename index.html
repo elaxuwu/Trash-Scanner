@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -55,7 +55,7 @@
 
                 <!-- Right: Streak & Settings Capsule -->
                 <div class="flex items-center bg-gray-50 border border-gray-100 rounded-full p-1 shadow-sm shrink-0 ml-2">
-                    <div id="streakBadge" class="flex items-center justify-center px-3 py-1 rounded-full transition-colors duration-300 bg-transparent">
+                    <div id="streakBadge" class="flex items-center justify-center px-3 py-1 rounded-full transition-colors duration-300 bg-transparent cursor-pointer hover:bg-gray-200/50 active:scale-95">
                         <div class="flex items-center gap-1.5">
                             <span id="streakIcon" class="opacity-50 grayscale text-sm md:text-base">🔥</span>
                             <span id="streakText" class="text-sm md:text-base font-bold text-gray-500">0</span>
@@ -286,7 +286,7 @@
             </div>
 
             <!-- Page: Quiz -->
-            <div id="page-quiz" class="page-content hidden">
+            <div id="page-quiz" class="page-content hidden pb-24">
                 <!-- Eco Quiz Section -->
                 <section class="px-6 mt-6">
                     <div class="bg-white rounded-2xl shadow-sm p-6">
@@ -308,7 +308,7 @@
             </div>
 
             <!-- Page: Profile -->
-            <div id="page-profile" class="page-content hidden">
+            <div id="page-profile" class="page-content hidden pb-24">
                 <!-- Analytics Section -->
                 <section class="px-6 mt-6">
                     <div class="bg-white rounded-2xl shadow-sm p-6">
@@ -332,16 +332,34 @@
                     <div id="achievementBanner" class="achievement-banner hidden"></div>
                 </section>
 
-                <!-- Achievements Section -->
+                <!-- Achievements Section (Button) -->
                 <section class="px-6 mt-6 mb-6">
-                    <div class="bg-white rounded-2xl shadow-sm p-6">
-                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <i class="ph ph-medal text-amber-500"></i>
-                            <span>Achievements</span>
-                        </h2>
-                        <div id="achievementList" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
-                    </div>
+                    <button id="openAchievementsBtn" class="w-full bg-white rounded-2xl shadow-sm p-5 flex items-center justify-between hover:bg-gray-50 transition-colors active:scale-[0.98]">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center border border-amber-100">
+                                <i class="ph ph-medal text-xl text-amber-500"></i>
+                            </div>
+                            <span class="text-lg font-bold text-gray-800">Achievements</span>
+                        </div>
+                        <i class="ph ph-caret-right text-gray-400 text-xl"></i>
+                    </button>
                 </section>
+            </div>
+
+            <!-- Overlay Page: Achievements -->
+            <div id="page-achievements" class="fixed inset-0 bg-gray-50 z-50 hidden overflow-y-auto pb-20">
+                <header class="bg-white border-b border-gray-100 px-4 py-4 flex items-center sticky top-0 z-30 shadow-sm">
+                    <button id="closeAchievementsBtn" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors mr-3 active:scale-95">
+                        <i class="ph ph-arrow-left text-xl text-gray-600"></i>
+                    </button>
+                    <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <i class="ph ph-medal text-amber-500"></i>
+                        <span>Achievements</span>
+                    </h2>
+                </header>
+                <div class="p-6">
+                    <div id="achievementList" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+                </div>
             </div>
 
         </main>
@@ -369,6 +387,61 @@
         </nav>
     </div>
 
+
+        <!-- Streak Modal -->
+    <div id="streakModal" class="fixed inset-0 bg-black/50 z-[60] hidden flex flex-col items-center justify-end sm:justify-center p-0 sm:p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-pop-up" style="max-height: 90vh;">
+            <!-- Header -->
+            <div class="flex justify-between items-center px-6 pt-6 pb-4">
+                <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <i class="ph-fill ph-fire text-orange-500"></i> Streak
+                </h2>
+                <button id="closeStreakBtn" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-gray-500 active:scale-95">
+                    <i class="ph ph-x text-lg"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex-1 flex flex-col items-center text-center">
+                <!-- Big Fire -->
+                <div class="relative w-28 h-28 flex items-center justify-center mb-4">
+                    <div class="absolute inset-0 bg-orange-500/20 rounded-full blur-xl animate-pulse-glow"></div>
+                    <i id="streakModalBigIcon" class="ph-fill ph-fire text-[5.5rem] text-gray-300 drop-shadow-md z-10 transition-colors duration-500"></i>
+                </div>
+                
+                <h3 class="text-4xl font-black text-gray-800 mb-1" id="streakDisplayNum">0</h3>
+                <p class="text-gray-500 font-medium mb-8 text-lg" id="streakDisplayMsg">Start your streak today!</p>
+                
+                <!-- Rolling 7 Days Timeline -->
+                <div class="w-full bg-white rounded-2xl p-4 sm:p-5 mb-6 border-2 border-gray-100 shadow-sm">
+                    <div class="flex justify-between items-center" id="streakDaysContainer">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="w-full grid grid-cols-2 gap-4">
+                    <div class="bg-white border-2 border-gray-100 shadow-sm rounded-2xl p-4 flex flex-col items-start">
+                        <div class="flex items-center gap-1.5 mb-2">
+                            <i class="ph-fill ph-lightning text-amber-500"></i>
+                            <span class="text-xs text-gray-500 font-bold uppercase tracking-wider">Current</span>
+                        </div>
+                        <span class="text-2xl font-black text-gray-800" id="streakDisplayCurrent">0</span>
+                    </div>
+                    <div class="bg-white border-2 border-gray-100 shadow-sm rounded-2xl p-4 flex flex-col items-start">
+                        <div class="flex items-center gap-1.5 mb-2">
+                            <i class="ph-fill ph-crown text-yellow-500"></i>
+                            <span class="text-xs text-gray-500 font-bold uppercase tracking-wider">Longest</span>
+                        </div>
+                        <span class="text-2xl font-black text-gray-800" id="streakDisplayLongest">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-6 pt-2 border-t border-gray-50">
+                <button id="streakActionBtn" class="w-full py-3.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold rounded-2xl shadow-[0_4px_0_#c2410c] hover:shadow-[0_2px_0_#c2410c] hover:translate-y-[2px] transition-all text-lg">Continue</button>
+            </div>
+        </div>
+    </div>
 
         <!-- Settings Modal -->
     <div id="settingsModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3 sm:p-4 backdrop-blur-sm overflow-hidden h-full">
