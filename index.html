@@ -24,33 +24,50 @@
 
     <div class="app-container flex flex-col h-screen">
         <!-- Header -->
-        <header class="flex justify-between items-center px-4 md:px-6 py-3 md:py-4 border-b border-gray-100 bg-white sticky top-0 z-30">
-            <div class="flex flex-col gap-1 flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                    <i class="ph ph-leaf text-xl md:text-2xl text-emerald-500"></i>
-                    <h1 class="font-bold text-lg md:text-xl text-gray-800">RecycleCheck AI</h1>
-                </div>
-                <!-- User Level & XP Bar (Always visible) -->
-                <div class="flex items-center gap-2">
-                    <div id="userLevelBadge" class="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold border border-emerald-200">
-                        <span id="levelIcon">🌱</span>
-                        <span id="levelText">Sprout</span>
+        <header class="relative bg-white pt-2 pb-2 md:pt-3 md:pb-3 px-4 shadow-sm z-30 border-b border-gray-100">
+            <div class="flex justify-between items-center w-full">
+                <!-- Left: Branding & Level Info -->
+                <div class="flex items-center gap-3 flex-1 min-w-0 pr-2">
+                    <!-- Level Avatar -->
+                    <div id="userLevelBadge" class="w-10 h-10 md:w-11 md:h-11 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100 shadow-sm shrink-0">
+                        <span id="levelIcon" class="text-lg md:text-xl drop-shadow-sm">🌱</span>
                     </div>
-                    <div class="flex-1 flex flex-col gap-0.5">
-                        <div class="flex justify-between items-center text-[10px] text-gray-500 px-1">
-                            <span id="currentXp">0 XP</span>
-                            <span id="nextLevelXp">Next: 100 XP</span>
+                    
+                    <!-- Titles & XP -->
+                    <div class="flex flex-col justify-center w-full max-w-[150px] md:max-w-[220px]">
+                        <h1 class="font-bold text-gray-800 text-[13px] md:text-[15px] leading-tight truncate">RecycleCheck AI</h1>
+                        
+                        <div class="flex items-center justify-between mt-0.5 w-full">
+                            <span id="levelText" class="text-[10px] md:text-xs text-emerald-600 font-bold uppercase tracking-wider">Sprout</span>
+                            <div class="flex items-center gap-1 text-[10px] md:text-xs font-bold text-gray-500">
+                                <span id="currentXp">0 XP</span>
+                                <span class="hidden sm:inline text-gray-300 font-normal">|</span>
+                                <span id="nextLevelXp" class="hidden sm:inline font-normal text-gray-400">Next: 100 XP</span>
+                            </div>
                         </div>
-                        <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                            <div id="xpProgressBar" class="h-full bg-emerald-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        
+                        <!-- Visible Progress Bar -->
+                        <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden mt-1 w-full">
+                            <div id="xpProgressBar" class="h-full bg-emerald-500 transition-all duration-500" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="flex items-center gap-2 ml-2">
-                <button id="settingsBtn" class="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors" title="Settings">
-                    <i class="ph ph-gear text-xl md:text-2xl"></i>
-                </button>
+
+                <!-- Right: Streak & Settings Capsule -->
+                <div class="flex items-center bg-gray-50 border border-gray-100 rounded-full p-1 shadow-sm shrink-0 ml-2">
+                    <div id="streakBadge" class="flex items-center justify-center px-3 py-1 rounded-full transition-colors duration-300 bg-transparent">
+                        <div class="flex items-center gap-1.5">
+                            <span id="streakIcon" class="opacity-50 grayscale text-sm md:text-base">🔥</span>
+                            <span id="streakText" class="text-sm md:text-base font-bold text-gray-500">0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="w-px h-5 bg-gray-200 mx-0.5"></div>
+                    
+                    <button id="settingsBtn" class="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-full hover:bg-white hover:shadow-sm text-gray-500 transition-all active:scale-95 shrink-0" title="Settings">
+                        <i class="ph ph-gear text-lg md:text-xl"></i>
+                    </button>
+                </div>
             </div>
         </header>
 

@@ -1,5 +1,8 @@
 const MAX_DETECTED_OBJECTS = 20;
 const dom = {
+    streakBadge: document.getElementById('streakBadge'),
+    streakIcon: document.getElementById('streakIcon'),
+    streakText: document.getElementById('streakText'),
     videoCanvas: document.getElementById('videoCanvas'), // <video> when live
     capturedImageCanvas: document.getElementById('capturedImageCanvas'), // <img> for captured/uploaded
     scanBtn: document.getElementById('scanBtn'),
@@ -109,6 +112,7 @@ const APP_VERSION = 'v21';
 const APP_CACHE_PREFIX = 'recyclecheck-';
 
 const STORAGE_KEYS = {
+    streak: 'recycle_streak_stats',
     apiKey: 'openai_api_key',
     provider: 'ai_provider',
     providerKeys: 'ai_provider_api_keys',
@@ -203,6 +207,12 @@ const bottomNavTranslationKeys = {
 };
 
 const achievements = [
+    {
+        id: 'consistency_is_key',
+        title: 'Consistency is Key',
+        description: 'Maintain a 3-day scanning streak',
+        unlocked: metrics => (metrics.currentStreak || 0) >= 3
+    },
     {
         id: 'eco_starter',
         title: 'Eco Starter',
@@ -3089,6 +3099,78 @@ function renderMoreDetails(result) {
     `;
 }
 
+function updateStreak(result) {
+    const streakStatsRaw = localStorage.getItem(STORAGE_KEYS.streak);
+    const streakStats = streakStatsRaw ? JSON.parse(streakStatsRaw) : { currentStreak: 0, longestStreak: 0, lastScanDate: null };
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let lastScanDate = streakStats.lastScanDate ? new Date(streakStats.lastScanDate) : null;
+    if (lastScanDate) {
+        lastScanDate.setHours(0, 0, 0, 0);
+    }
+
+    const diffTime = lastScanDate ? today.getTime() - lastScanDate.getTime() : null;
+    const diffDays = diffTime !== null ? Math.round(diffTime / (1000 * 60 * 60 * 24)) : null;
+
+    let updated = false;
+    let streakExtended = false;
+
+    if (diffDays === 1 || diffDays === null) {
+        streakStats.currentStreak += 1;
+        updated = true;
+        streakExtended = true;
+    } else if (diffDays > 1) {
+        streakStats.currentStreak = 1;
+        updated = true;
+    }
+    
+    if (streakStats.currentStreak > streakStats.longestStreak) {
+        streakStats.longestStreak = streakStats.currentStreak;
+        updated = true;
+    }
+
+    if (updated || !streakStats.lastScanDate) {
+        streakStats.lastScanDate = new Date().toISOString();
+        localStorage.setItem(STORAGE_KEYS.streak, JSON.stringify(streakStats));
+        renderStreakUI();
+    }
+
+    if (streakExtended && result) {
+        if (typeof result.totalEcoScore === 'number') {
+            result.totalEcoScore += 5; // 5 bonus XP for extending streak
+        }
+        if (!result.objects) result.objects = [];
+        result.objects.push({
+            name: "Daily Streak Bonus",
+            recyclable: true,
+            ecoScore: 5
+        });
+    }
+}
+
+function renderStreakUI() {
+    if (!dom.streakBadge || !dom.streakText || !dom.streakIcon) return;
+    const streakStatsRaw = localStorage.getItem(STORAGE_KEYS.streak);
+    const streakStats = streakStatsRaw ? JSON.parse(streakStatsRaw) : { currentStreak: 0 };
+    
+    // Base layout classes that shouldn't change
+    const baseClasses = 'flex items-center justify-center px-3 py-1 rounded-full transition-colors duration-300';
+    
+    if (streakStats.currentStreak > 0) {
+        dom.streakBadge.className = `${baseClasses} bg-orange-100/50`;
+        dom.streakIcon.className = 'text-sm md:text-base';
+        dom.streakText.className = 'text-sm md:text-base font-bold text-orange-600';
+        dom.streakText.textContent = `${streakStats.currentStreak}`;
+    } else {
+        dom.streakBadge.className = `${baseClasses} bg-transparent`;
+        dom.streakIcon.className = 'opacity-50 grayscale text-sm md:text-base';
+        dom.streakText.className = 'text-sm md:text-base font-bold text-gray-500';
+        dom.streakText.textContent = '0';
+    }
+}
+
 function addToHistory(result) {
     const history = getHistory();
     const config = getProviderConfig();
@@ -3098,6 +3180,8 @@ function addToHistory(result) {
     if (isDemoMode) {
         result.isDemo = true;
     }
+
+    updateStreak(result);
 
     const entry = {
         id: Date.now(),
@@ -3511,8 +3595,13 @@ function getMetrics() {
     const plasticCount = objects.filter(item => classifyWasteCategory(item) === 'plastic').length;
     const batteryCount = objects.filter(item => classifyWasteCategory(item) === 'special').length;
 
+    const streakStatsRaw = localStorage.getItem(STORAGE_KEYS.streak);
+    const streakStats = streakStatsRaw ? JSON.parse(streakStatsRaw) : { currentStreak: 0, longestStreak: 0 };
+
     return {
         history,
+        currentStreak: streakStats.currentStreak,
+        longestStreak: streakStats.longestStreak,
         objects,
         totalScans: history.length,
         totalEcoScore,
@@ -4700,6 +4789,7 @@ function initializeApp() {
     setCameraStatus('');
     setupHistoryControls();
     loadHistory();
+    renderStreakUI();
     renderChart();
     updateUserLevel();
     renderAchievements();
