@@ -1,148 +1,65 @@
-# Trash-Scanner
+# RecycleCheck AI ♻️
 
-## No Backend Needed
+Welcome to **RecycleCheck AI**, a gamified, completely client-side web app designed to eliminate recycling confusion and build eco-friendly habits. It turns a boring household chore into a fun, rewarding role-playing game (RPG) experience.
 
-This app is **100% front-end**. The `server/` folder is just a tiny static file host — it does not run any AI, database, or app logic. All waste analysis happens directly in your browser by calling OpenAI, OpenRouter, or Gemini over HTTPS using your own API key.
+## 🛑 The Problem We Are Solving
+We often found ourselves (and many others) standing in front of public recycle and trash bins on the street, completely confused about which bin to use. Because of this confusion, people usually end up throwing their trash into a random bin.
 
-You only need a static file server because modern browsers block key features on `file://` URLs:
+To fix this, we built RecycleCheck AI. We designed it to be **extremely fast and easy to use, with a crystal-clear interface**, because we know people only have a couple of seconds before they lose interest and just throw their trash away randomly.
 
-- **Camera access** (`getUserMedia`) — required for scanning items
-- **Service Worker** (`sw.js`) — required for PWA install and offline caching
-- **Web App Manifest** — required for "Add to Home Screen"
-- **Strict CORS rules** on some browsers
+## 📱 Project Overview
+Recycling rules are confusing and different everywhere. **RecycleCheck AI** fixes this by putting a smart AI scanner right in your browser. Just take a picture or upload an image of your waste. The app instantly figures out what it is, tells you exactly how to throw it away, calculates your carbon savings, and gives you a personalized quiz.
 
-Anything that gives the app an `http://localhost` or `https://` origin will work.
+### The Three Core Pillars
+1. **Zero-Friction AI Scanner:** No app store downloads, no forced sign-ups. You use AI directly from your browser.
+2. **Deep Gamification:** Build habits by earning XP, leveling up, unlocking achievements, and keeping your daily scan streak alive.
+3. **Adaptive Learning:** The app learns from what you scan and gives you a custom quiz based on your actual trash habits.
 
-## Run Locally
+## 🚀 Key App Features
 
-Pick **any one** of the options below. They all do the exact same job.
+| Feature | Description | Technical Details |
+| :--- | :--- | :--- |
+| **Multi-Object Auto-Detection** | Take a single picture containing multiple different types of trash! The AI will automatically detect every item in the photo and perform a full, separate analysis for each piece individually. | Loops through detected objects up to a set limit in the vision model prompt. |
+| **Multi-Provider AI Scanner** | Instantly identifies household objects using your camera or file upload. | Connects directly to `OpenAI`, `Google Gemini`, or `OpenRouter`. |
+| **Daily Streak Engine** | Tracks how many consecutive days you recycle to help build a habit. | Uses local storage to check your last scan dates. |
+| **Interactive RecycleDex** | A "Pokedex" for trash. Items start as grey silhouettes and unlock when you scan them. | Updates UI cards dynamically based on your saved scan history. |
+| **Adaptive Quiz Module** | Generates custom multiple-choice trivia questions based on the exact items you've scanned. | Randomly pulls from your saved personal history. |
+| **Impact Analytics Hub** | Shows clean graphs of your total XP, what types of trash you throw away, and your estimated $CO_2$ savings. | Built using `Chart.js`. |
+| **Progressive Web App (PWA)** | You can install it on your phone or computer just like a real app. | Uses `manifest.json` and a Service Worker (`sw.js`). |
 
-### Option 1: Bundled Node server (default)
+## 🛠️ Architecture & Tech Stack
+This app runs **100% on the front-end**. There is no backend server or database required.
 
-Open a terminal in the project folder:
+* **Design:** Clean HTML5 powered by **Tailwind CSS**.
+* **Logic:** Vanilla JavaScript (ES6+). No heavy frameworks.
+* **Storage:** Everything is saved directly to your browser's `localStorage` (your API keys, stats, and settings are completely private).
+* **Extras:** Phosphor Icons, Chart.js for graphs, and Canvas-Confetti for rewards!
 
-```powershell
-cd "C:\Users\hkhan\OneDrive\Documents\LazyNotes\Trash-Scanner"
-```
+---
 
-Start the local static server:
+## 💻 Run Locally
 
-```powershell
-node server/local-server.js 8000
-```
+Browsers block camera access and geo location on local files, so that's why we need something (the `server/`) to help our website get a `https://` to access the browser's camera, service worker, geo location...
 
-Then open:
+Our app runs 100% on front-end only, no backend.
 
-```text
-http://127.0.0.1:8000/index.html
-```
+If you're lazy or afraid of virus, **live web page is available at https://elaxuwu.me/Trash-Scanner/**
 
-You can verify the server with:
+### Step 1:
+- Go to "`web_app/server/`"
+### Step 2:
+- Open "`start-server.bat`"
+### Step 3:
+- The web_app is now opened at `http://127.0.0.1:8000/index.html`
 
-```text
-http://127.0.0.1:8000/health
-```
 
-Keep the terminal open while testing. If port `8000` is already in use, choose another port:
+## ⚙️ Evaluator Evaluation Walkthrough & Configuration
 
-```powershell
-node server/local-server.js 5500
-```
+To test the live, intelligent AI waste classification suite during hackathon judging:
 
-Then open:
-
-```text
-http://127.0.0.1:5500/index.html
-```
-
-On Windows, you can also run:
-
-```powershell
-.\server\start-server.bat
-```
-
-The helper uses port `8000` by default, shows the exact URL, keeps the terminal window open, and prints clear errors if Node.js is missing or the server cannot start. To use another port:
-
-```powershell
-.\server\start-server.bat 5500
-```
-
-### Option 2: Python (no Node.js required)
-
-If you have Python 3 installed:
-
-```bash
-cd Trash-Scanner
-python -m http.server 8000
-```
-
-Then open `http://127.0.0.1:8000/index.html`.
-
-### Option 3: npx (no install required)
-
-If you have Node.js but don't want to use the bundled `server/` folder:
-
-```bash
-cd Trash-Scanner
-npx serve . -l 8000
-```
-
-or
-
-```bash
-npx http-server . -p 8000
-```
-
-Then open the URL it prints (usually `http://127.0.0.1:8000/index.html`).
-
-### Option 4: VS Code Live Server extension
-
-Install the **Live Server** extension by Ritwick Dey, then right-click `index.html` → **Open with Live Server**. The browser opens automatically.
-
-### Option 5: Drop into a static host
-
-The `Trash-Scanner` folder is a fully static site. You can upload it as-is to:
-
-- GitHub Pages
-- Netlify Drop
-- Cloudflare Pages
-- Vercel
-- Any web host that serves static files
-
-No build step, no backend, no env vars required.
-
-## Troubleshooting Old Cached UI
-
-If a normal browser shows an old UI while another browser shows the newest app:
-
-1. Open DevTools.
-2. Go to **Application**.
-3. Open **Service Workers** and click **Unregister** for this site.
-4. Open **Storage** and click **Clear site data**.
-5. Hard reload the page.
-6. Or use **Settings → Clear Local Cache** inside the app.
-7. Or open:
-
-```text
-http://127.0.0.1:8000/index.html?v=latest
-```
-
-If Opera still shows stale content, disable Opera VPN/proxy or test in Chrome/Edge.
-
-## Cache and PWA Behavior
-
-- Local development on `localhost`, `127.0.0.1`, or `[::1]` disables app service workers so old cached UI does not hide current local files.
-- The local Node server sends `Cache-Control: no-store, no-cache, must-revalidate` headers for local testing.
-- Production still uses the service worker for PWA caching, offline fallback, `skipWaiting()`, `clients.claim()`, and old app cache cleanup.
-- **Settings → Clear Local Cache** clears only this app's `recyclecheck-*` Cache Storage entries and unregisters this app's service worker scope. It does not delete scan history, achievements, quiz stats, API keys, language/theme settings, or other localStorage progress.
-- Full offline PWA support currently depends on network access for CDN-hosted dependencies such as Tailwind CSS, Phosphor Icons, Chart.js, and Confetti. To make offline mode complete, vendor or bundle those assets locally.
-
-## Version Bump Checklist
-
-When shipping a new frontend version, update all of these together:
-
-1. `APP_VERSION` in `script.js`
-2. `APP_VERSION` in `sw.js`
-3. Asset query strings in `index.html`
-4. The service worker pre-cache URLs in `sw.js`
-5. The visible app version marker in `index.html`
+1. Spin up the application.
+2. Click on the **Gear Symbol (Settings)** floating in the top-right corner of the application main header dashboard.
+3. Choose your preferred AI processing provider engine from the tabs layout (`OpenAI`, `Google Gemini`, or `OpenRouter`).
+4. Paste your secure personal API token directly into the input text parameter area. (this is a front-end only app so I'm not risking exposing our API key so it's user configured)
+5. Hit **Save Configurations**. 
+6. *Security Architecture Note:* Your personal security tokens are handled safely and entirely client-side. They never hit proxy cloud boxes, middleware pipelines, or outside databases. They remain strictly bounded within your private local browser instance storage deck. You can wipe your data states cleanly at any moment by simply selecting the **Clear Local Cache** button on the settings module layout.
