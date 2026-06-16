@@ -71,7 +71,9 @@ To test the live, intelligent AI waste classification suite during hackathon jud
 
 ## Credits:
 [Đỗ Ngọc Thiên Bảo (elax)](https://elaxuwu.me/)
+
 [Phạm Hoàng Khang](https://www.facebook.com/hkhang.5.10)
+
 [Nguyễn Xuân Nghĩa](https://www.facebook.com/nguyen.xuan.nghia.617068)
 
 
