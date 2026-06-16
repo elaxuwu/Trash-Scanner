@@ -67,3 +67,20 @@ To test the live, intelligent AI waste classification suite during hackathon jud
 4. Paste your secure personal API token directly into the input text parameter area. (this is a front-end only app so I'm not risking exposing our API key so it's user configured)
 5. Hit **Save Configurations**. 
 6. *Security Architecture Note:* Your personal security tokens are handled safely and entirely client-side. They never hit proxy cloud boxes, middleware pipelines, or outside databases. They remain strictly bounded within your private local browser instance storage deck. You can wipe your data states cleanly at any moment by simply selecting the **Clear Local Cache** button on the settings module layout.
+
+
+## License
+
+Licensed under **PolyForm Noncommercial License 1.0.0**.
+
+All trademarks and logos are the property of the original author and are not licensed under this agreement.
+
+In simple terms, this is **similar** to **CC BY-NC 4.0**:
+
+	Attribution: You must credit me.
+
+	Non-Commercial: You cannot sell this or use it for business.
+
+See [LICENSE](LICENSE) for the full legal text.
+
+Commercial use is not permitted under this license.
