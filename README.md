@@ -1,3 +1,7 @@
+Github repo: https://github.com/elaxuwu/Trash-Scanner  
+# IMPORTANT: This web-based app is designed to be mobile-first!
+If using Desktop, please turn on device emulation: on any browser, open DevTools (F12/Inspect), then Ctrl + Shift + M.
+
 # RecycleCheck AI ♻️
 
 Welcome to **RecycleCheck AI**, a gamified, completely client-side web app designed to eliminate recycling confusion and build eco-friendly habits. It turns a boring household chore into a fun, rewarding role-playing game (RPG) experience.
