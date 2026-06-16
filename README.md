@@ -69,6 +69,12 @@ To test the live, intelligent AI waste classification suite during hackathon jud
 6. *Security Architecture Note:* Your personal security tokens are handled safely and entirely client-side. They never hit proxy cloud boxes, middleware pipelines, or outside databases. They remain strictly bounded within your private local browser instance storage deck. You can wipe your data states cleanly at any moment by simply selecting the **Clear Local Cache** button on the settings module layout.
 
 
+## Credits:
+[Đỗ Ngọc Thiên Bảo (elax)](https://elaxuwu.me/)
+[Phạm Hoàng Khang](https://www.facebook.com/hkhang.5.10)
+[Nguyễn Xuân Nghĩa](https://www.facebook.com/nguyen.xuan.nghia.617068)
+
+
 ## License
 
 Licensed under **PolyForm Noncommercial License 1.0.0**.
