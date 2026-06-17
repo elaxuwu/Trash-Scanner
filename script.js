@@ -188,8 +188,8 @@ const scanModes = {
 const aiProviders = {
     openai: {
         label: 'OpenAI',
-        defaultModel: 'gpt-5.4-nano-2026-03-17',
-        recommendedModels: ['gpt-5.4-nano-2026-03-17', 'gpt-4o-mini', 'gpt-4.1-mini'],
+        defaultModel: 'gpt-5.4-mini-2026-03-17',
+        recommendedModels: ['gpt-5.4-nano-2026-03-17', 'gpt-5.4-mini-2026-03-17', 'gpt-4o-mini', 'gpt-4.1-mini'],
         keyPlaceholder: 'sk-...',
         keyHelpText: 'Get your API key from OpenAI Platform.',
         keyHelpUrl: 'https://platform.openai.com/api-keys'
